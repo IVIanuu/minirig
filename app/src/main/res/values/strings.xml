@@ -4,7 +4,4 @@
 
 <resources>
     <string name="app_name">MINIRIG</string>
-
-    <!-- Home -->
-    <string name="home_title">@string/app_name</string>
 </resources>

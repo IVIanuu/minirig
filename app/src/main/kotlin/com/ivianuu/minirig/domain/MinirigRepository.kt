@@ -14,7 +14,6 @@ import com.ivianuu.injekt.android.*
 import com.ivianuu.injekt.common.*
 import com.ivianuu.injekt.coroutines.*
 import com.ivianuu.minirig.data.*
-import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.util.*
 
@@ -35,6 +34,9 @@ import java.util.*
           ?: emptyList()
       }
 
+  val configs: Flow<List<MinirigConfig>>
+    get() = db.selectAll()
+
   fun minirig(address: String): Flow<Minirig?> = bondedDeviceChanges()
     .onStart<Any> { emit(Unit) }
     .map {
@@ -43,10 +45,10 @@ import java.util.*
         ?.toMinirig()
     }
 
-  fun config(address: String): Flow<MinirigConfig?> = db.selectById<MinirigConfig>(address)
+  fun config(id: String): Flow<MinirigConfig?> = db.selectById<MinirigConfig>(id)
     .map { config ->
-      config ?: if (isMinirigBonded(address))
-        MinirigConfig(id = address)
+      config ?: if (id.isMinirigAddress())
+        MinirigConfig(id = id)
           .also { updateConfig(it) }
       else config
     }
@@ -56,12 +58,9 @@ import java.util.*
     db.insert(config, InsertConflictStrategy.REPLACE)
   }
 
-  private suspend fun isMinirigBonded(address: String): Boolean = catch {
-    withContext(context) {
-      bluetoothManager.adapter?.bondedDevices
-        ?.singleOrNull { it.address == address } != null
-    }
-  }.getOrElse { false }
+  suspend fun deleteConfig(id: String) = db.transaction {
+    db.deleteById<MinirigConfig>(id)
+  }
 
   private fun bondedDeviceChanges() = broadcastsFactory(
     BluetoothAdapter.ACTION_STATE_CHANGED,
