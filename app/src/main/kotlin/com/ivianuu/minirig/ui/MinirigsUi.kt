@@ -1,3 +1,7 @@
+/*
+ * Copyright 2021 Manuel Wrage. Use of this source code is governed by the Apache 2.0 license.
+ */
+
 package com.ivianuu.minirig.ui
 
 import androidx.compose.foundation.*
@@ -13,11 +17,9 @@ import com.ivianuu.essentials.ui.resource.*
 import com.ivianuu.injekt.*
 import com.ivianuu.minirig.domain.*
 
-@Provide
-object MinirigsKey : RootKey
+@Provide object MinirigsKey : RootKey
 
-@Provide
-val minirigsUi = ModelKeyUi<MinirigsKey, MinirigsModel> {
+@Provide val minirigsUi = ModelKeyUi<MinirigsKey, MinirigsModel> {
   Scaffold(
     topBar = { TopAppBar(title = { Text("Minirigs") }) }
   ) {
@@ -35,8 +37,7 @@ data class MinirigsModel(
   val openMinirig: (Minirig) -> Unit
 )
 
-@Provide
-fun minirigsModel(
+@Provide fun minirigsModel(
   minirigRepository: MinirigRepository,
   navigator: Navigator,
   SS: StateScope

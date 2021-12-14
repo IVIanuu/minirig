@@ -1,3 +1,7 @@
+/*
+ * Copyright 2021 Manuel Wrage. Use of this source code is governed by the Apache 2.0 license.
+ */
+
 package com.ivianuu.minirig.domain
 
 import android.bluetooth.*
@@ -14,9 +18,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.util.*
 
-@Provide
-@Scoped<AppScope>
-class MinirigRepository(
+@Provide @Scoped<AppScope> class MinirigRepository(
   private val bluetoothManager: @SystemService BluetoothManager,
   private val broadcastsFactory: BroadcastsFactory,
   private val context: IOContext,
