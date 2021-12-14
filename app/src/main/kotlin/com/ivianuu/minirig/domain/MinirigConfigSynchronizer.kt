@@ -90,11 +90,11 @@ private suspend fun applyConfig(
         }
       }
 
-      updateConfigIfNeeded(1, (config.band1 * 100).toInt().coerceIn(0, 99))
-      updateConfigIfNeeded(2, (config.band2 * 100).toInt().coerceIn(0, 99))
-      updateConfigIfNeeded(3, (config.band3 * 100).toInt().coerceIn(0, 99))
-      updateConfigIfNeeded(4, (config.band4 * 100).toInt().coerceIn(0, 99))
-      updateConfigIfNeeded(5, (config.band5 * 100).toInt().coerceIn(0, 99))
+      updateConfigIfNeeded(1, (config.band1 * 99).toInt())
+      updateConfigIfNeeded(2, (config.band2 * 99).toInt())
+      updateConfigIfNeeded(3, (config.band3 * 99).toInt())
+      updateConfigIfNeeded(4, (config.band4 * 99).toInt())
+      updateConfigIfNeeded(5, (config.band5 * 99).toInt())
       updateConfigIfNeeded(
         8,
         // > 30 means mutes the minirig
@@ -119,7 +119,7 @@ private suspend fun applyConfig(
 
       updateConfigIfNeeded(
         14,
-        ((1f - config.channel) * 100).toInt().coerceIn(0, 99)
+        ((1f - config.channel) * 99).toInt()
       )
     },
     finalizer = {
