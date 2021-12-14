@@ -15,6 +15,8 @@ import com.ivianuu.essentials.state.*
 import com.ivianuu.essentials.ui.dialog.*
 import com.ivianuu.essentials.ui.layout.*
 import com.ivianuu.essentials.ui.material.*
+import com.ivianuu.essentials.ui.material.Scaffold
+import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.navigation.*
 import com.ivianuu.essentials.ui.popup.*
 import com.ivianuu.essentials.ui.resource.*
@@ -29,8 +31,15 @@ fun interface ConfigsUi : @Composable () -> Unit
 @Provide fun configsUi(models: StateFlow<ConfigsModel>) = ConfigsUi {
   val model by models.collectAsState()
 
-  Box(
-    modifier = Modifier.fillMaxSize()
+  Scaffold(
+    topBar = { TopAppBar(title = { Text("Minirig") }) },
+    floatingActionButton = {
+      ExtendedFloatingActionButton(
+        onClick = model.createConfig,
+        text = { Text("CREATE CONFIG") }
+      )
+    },
+    floatingActionButtonPosition = FabPosition.Center
   ) {
     ResourceVerticalListFor(
       modifier = Modifier.fillMaxSize(),
@@ -57,14 +66,6 @@ fun interface ConfigsUi : @Composable () -> Unit
         }
       )
     }
-
-    ExtendedFloatingActionButton(
-      modifier = Modifier
-        .align(Alignment.BottomCenter)
-        .padding(16.dp),
-      onClick = model.createConfig,
-      text = { Text("CREATE CONFIG") }
-    )
   }
 }
 

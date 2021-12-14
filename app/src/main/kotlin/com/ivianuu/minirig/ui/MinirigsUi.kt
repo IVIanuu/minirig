@@ -13,6 +13,8 @@ import com.ivianuu.essentials.resource.*
 import com.ivianuu.essentials.state.*
 import com.ivianuu.essentials.ui.layout.*
 import com.ivianuu.essentials.ui.material.*
+import com.ivianuu.essentials.ui.material.Scaffold
+import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.navigation.*
 import com.ivianuu.essentials.ui.popup.*
 import com.ivianuu.essentials.ui.resource.*
@@ -25,37 +27,55 @@ fun interface MinirigsUi : @Composable () -> Unit
 
 @Provide fun minirigsUi(models: StateFlow<MinirigsModel>) = MinirigsUi {
   val model by models.collectAsState()
-  ResourceVerticalListFor(
-    modifier = Modifier.fillMaxSize(),
-    resource = model.minirigs,
-    successEmpty = {
-      Text(
-        modifier = Modifier.center(),
-        text = "No minirigs found",
-        style = MaterialTheme.typography.body2
+  Scaffold(
+    topBar = {
+      TopAppBar(
+        title = { Text("Minirig") },
+        actions = {
+          PopupMenuButton(
+            items = listOf(
+              PopupMenu.Item(onSelected = model.applyConfigToAll) {
+                Text("Apply to all")
+              }
+            )
+          )
+        }
       )
     }
-  ) { minirig ->
-    ListItem(
-      modifier = Modifier.clickable { model.openMinirig(minirig) },
-      title = { Text(minirig.name) },
-      trailing = {
-        PopupMenuButton(
-          items = listOf(
-            PopupMenu.Item(onSelected = { model.applyConfig(minirig) }) {
-              Text("Apply from")
-            }
-          )
+  ) {
+    ResourceVerticalListFor(
+      modifier = Modifier.fillMaxSize(),
+      resource = model.minirigs,
+      successEmpty = {
+        Text(
+          modifier = Modifier.center(),
+          text = "No minirigs found",
+          style = MaterialTheme.typography.body2
         )
       }
-    )
+    ) { minirig ->
+      ListItem(
+        modifier = Modifier.clickable { model.openMinirig(minirig) },
+        title = { Text(minirig.name) },
+        trailing = {
+          PopupMenuButton(
+            items = listOf(
+              PopupMenu.Item(onSelected = { model.applyConfig(minirig) }) {
+                Text("Apply")
+              }
+            )
+          )
+        }
+      )
+    }
   }
 }
 
 data class MinirigsModel(
   val minirigs: Resource<List<Minirig>>,
   val openMinirig: (Minirig) -> Unit,
-  val applyConfig: (Minirig) -> Unit
+  val applyConfig: (Minirig) -> Unit,
+  val applyConfigToAll: () -> Unit
 )
 
 @Provide fun minirigsModel(
@@ -69,6 +89,12 @@ data class MinirigsModel(
     applyConfig = action { minirig ->
       val config = navigator.push(ConfigPickerKey) ?: return@action
       repository.updateConfig(config.copy(id = minirig.address))
+    },
+    applyConfigToAll = action {
+      val config = navigator.push(ConfigPickerKey) ?: return@action
+      repository.minirigs.first().forEach { minirig ->
+        repository.updateConfig(config.copy(id = minirig.address))
+      }
     }
   )
 }
