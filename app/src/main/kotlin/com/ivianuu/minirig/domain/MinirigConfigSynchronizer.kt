@@ -107,11 +107,6 @@ private suspend fun applyConfig(
         }
       }
 
-      updateConfigIfNeeded(1, (config.band1 * 99).toInt())
-      updateConfigIfNeeded(2, (config.band2 * 99).toInt())
-      updateConfigIfNeeded(3, (config.band3 * 99).toInt())
-      updateConfigIfNeeded(4, (config.band4 * 99).toInt())
-      updateConfigIfNeeded(5, (config.band5 * 99).toInt())
       updateConfigIfNeeded(
         8,
         // > 30 means mutes the minirig
@@ -127,6 +122,12 @@ private suspend fun applyConfig(
         // minirig value range is 0..10 and 10 means highest gain
         else (10 * config.auxGain).toInt()
       )
+
+      updateConfigIfNeeded(1, (config.band1 * 99).toInt())
+      updateConfigIfNeeded(2, (config.band2 * 99).toInt())
+      updateConfigIfNeeded(3, (config.band3 * 99).toInt())
+      updateConfigIfNeeded(4, (config.band4 * 99).toInt())
+      updateConfigIfNeeded(5, (config.band5 * 99).toInt())
 
       updateConfigIfNeeded(
         7,
