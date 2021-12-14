@@ -26,25 +26,31 @@ import kotlin.coroutines.*
   bluetoothManager: @SystemService BluetoothManager,
   context: IOContext,
   repository: MinirigRepository,
-  L: Logger
+  L: Logger,
+  T: ToastContext
 ) = ScopeWorker<AppScope> {
   repository.minirigs
     .flatMapLatest { minirigs ->
       combine(
         minirigs
-          .map { repository.config(it.address) }
+          .map { minirig ->
+            repository.config(minirig.address)
+              .map { minirig to it }
+          }
       ) { it.toList() }
     }
     .collect { configs ->
       withContext(context) {
         configs
-          .filter { it?.id?.isMinirigAddress() == true }
-          .parForEach { config ->
-            config!!
-            log { "write config ${config.id}" }
+          .filter { it.second?.id?.isMinirigAddress() == true }
+          .parForEach { (minirig, config) ->
+            log { "write config ${minirig.readableName()}" }
             catch {
-              applyConfig(config)
-            }.onFailure { log { "failed to apply config to ${config.id} -> ${it.asLog()}" } }
+              applyConfig(config!!)
+            }.onFailure {
+              log { "failed to apply config to ${minirig.readableName()} -> ${it.asLog()}" }
+              showToast("Could not apply config to ${minirig.readableName()}")
+            }
           }
       }
     }
@@ -60,9 +66,20 @@ private suspend fun applyConfig(
   }!!
   val socket = device.createRfcommSocketToServiceRecord(CLIENT_ID)
     .also { socket ->
-      log { "connect to ${config.id}" }
-      socket.connect()
-      log { "connected to ${config.id} ${socket.isConnected}" }
+      log { "connect to ${device.readableName()}" }
+      var attempt = 0
+      while (attempt < 5) {
+        try {
+          socket.connect()
+          break
+        } catch (e: Throwable) {
+          e.nonFatalOrThrow()
+          attempt++
+          delay(1000)
+          log { "retry ${device.readableName()} ${e.asLog()}" }
+        }
+      }
+      log { "connected to ${device.readableName()} ${socket.isConnected}" }
     }
 
   guarantee(
@@ -83,7 +100,7 @@ private suspend fun applyConfig(
 
         // only write if the value has changed
         if (currentConfig[key] != value) {
-          log { "${config.id} update $finalKey -> $finalValue" }
+          log { "${device.readableName()} update $finalKey -> $finalValue" }
           socket.outputStream.write("q p $finalKey $finalValue".toByteArray())
           // the minirig cannot keep with out speed to debounce each write
           delay(500)
@@ -123,7 +140,7 @@ private suspend fun applyConfig(
       )
     },
     finalizer = {
-      log { "disconnect from ${config.id}" }
+      log { "disconnect from ${device.readableName()}" }
       catch { socket.close() }
     }
   )
@@ -139,7 +156,7 @@ private suspend fun BluetoothSocket.readMinirigConfig(@Inject L: Logger): Map<In
         val arr = ByteArray(inputStream.available())
         inputStream.read(arr)
         val curr = arr.toString(StandardCharsets.UTF_8)
-        log { "${remoteDevice.address} received $curr" }
+        log { "${remoteDevice.readableName()} received $curr" }
         if (curr.startsWith("q")) {
           return@withTimeoutOrNull curr.removePrefix("q ")
             .split(" ")
@@ -167,8 +184,12 @@ private suspend fun BluetoothSocket.readMinirigStatus(@Inject L: Logger) {
         val arr = ByteArray(inputStream.available())
         inputStream.read(arr)
         val curr = arr.toString(StandardCharsets.UTF_8)
-        log { "${remoteDevice.address} stats $curr" }
+        log { "${remoteDevice.readableName()} stats $curr" }
       }
     }
   }
 }
+
+private fun BluetoothDevice.readableName() = "[$name ~ $address]"
+
+private fun Minirig.readableName() = "[$name ~ $address]"

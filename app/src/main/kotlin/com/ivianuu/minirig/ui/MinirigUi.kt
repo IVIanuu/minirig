@@ -28,7 +28,7 @@ data class MinirigKey(val address: String) : Key<Unit>
         FloatSliderListItem(
           value = model.band1,
           onValueChange = model.updateBand1,
-          title = { Text("Band 1") },
+          title = { Text("70Hz") },
           stepPolicy = incrementingStepPolicy(0.05f),
           valueText = { ScaledPercentageUnitText(it) }
         )
@@ -38,7 +38,7 @@ data class MinirigKey(val address: String) : Key<Unit>
         FloatSliderListItem(
           value = model.band2,
           onValueChange = model.updateBand2,
-          title = { Text("70Hz") },
+          title = { Text("250Hz") },
           stepPolicy = incrementingStepPolicy(0.05f),
           valueText = { ScaledPercentageUnitText(it) }
         )
@@ -48,7 +48,7 @@ data class MinirigKey(val address: String) : Key<Unit>
         FloatSliderListItem(
           value = model.band3,
           onValueChange = model.updateBand3,
-          title = { Text("250Hz") },
+          title = { Text("850Hz") },
           stepPolicy = incrementingStepPolicy(0.05f),
           valueText = { ScaledPercentageUnitText(it) }
         )
@@ -58,16 +58,6 @@ data class MinirigKey(val address: String) : Key<Unit>
         FloatSliderListItem(
           value = model.band4,
           onValueChange = model.updateBand4,
-          title = { Text("850Hz") },
-          stepPolicy = incrementingStepPolicy(0.05f),
-          valueText = { ScaledPercentageUnitText(it) }
-        )
-      }
-
-      item {
-        FloatSliderListItem(
-          value = model.band5,
-          onValueChange = model.updateBand5,
           title = { Text("3KHz") },
           stepPolicy = incrementingStepPolicy(0.05f),
           valueText = { ScaledPercentageUnitText(it) }
