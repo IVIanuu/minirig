@@ -4,7 +4,11 @@
 
 package com.ivianuu.minirig.ui
 
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.unit.*
 import com.ivianuu.essentials.resource.*
 import com.ivianuu.essentials.state.*
 import com.ivianuu.essentials.ui.common.*
@@ -134,22 +138,45 @@ data class ConfigKey(val id: String) : Key<Unit>
       }
 
       item {
-        FloatSliderListItem(
+        Subheader { Text("Channel") }
+      }
+
+      @Composable fun ChannelListItem(
+        value: Float,
+        onValueChange: (Float) -> Unit,
+        title: String
+      ) {
+        Row(
+          modifier = Modifier.padding(horizontal = 16.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Text("L")
+
+          FloatSliderListItem(
+            modifier = Modifier.weight(1f),
+            value = value,
+            onValueChange = onValueChange,
+            title = { Text(title) },
+            stepPolicy = incrementingStepPolicy(0.05f)
+          )
+
+          Text("R")
+        }
+      }
+
+      item {
+        ChannelListItem(
           value = model.channel,
           onValueChange = model.updateChannel,
-          title = { Text("Channel") },
-          stepPolicy = incrementingStepPolicy(0.05f),
-          valueText = { ScaledPercentageUnitText(it) }
+          title = "Channel",
         )
       }
 
       item {
-        FloatSliderListItem(
+        ChannelListItem(
           value = model.auxChannel,
           onValueChange = model.updateAuxChannel,
-          title = { Text("Aux channel") },
-          stepPolicy = incrementingStepPolicy(0.05f),
-          valueText = { ScaledPercentageUnitText(it) }
+          title = "Aux channel",
         )
       }
     }

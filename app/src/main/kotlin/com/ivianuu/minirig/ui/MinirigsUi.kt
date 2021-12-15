@@ -64,6 +64,7 @@ fun interface MinirigsUi : @Composable () -> Unit
       ListItem(
         modifier = Modifier.clickable { model.openMinirig(minirig) },
         title = { Text(minirig.name) },
+        subtitle = { Text(minirig.address) },
         trailing = {
           PopupMenuButton(
             items = listOf(
