@@ -67,20 +67,11 @@ private suspend fun applyConfig(
   val socket = device.createRfcommSocketToServiceRecord(CLIENT_ID)
     .also { socket ->
       log { "connect to ${device.readableName()}" }
-      var attempt = 0
-      while (attempt < 5) {
-        try {
-          socket.connect()
-          break
-        } catch (e: Throwable) {
-          e.nonFatalOrThrow()
-          attempt++
-          delay(1000)
-          log { "retry ${device.readableName()} ${e.asLog()}" }
-        }
-      }
+      socket.connect()
       log { "connected to ${device.readableName()} ${socket.isConnected}" }
     }
+
+  log { "${config.id} apply config $config" }
 
   guarantee(
     block = {
@@ -103,7 +94,7 @@ private suspend fun applyConfig(
           log { "${device.readableName()} update $finalKey -> $finalValue" }
           socket.outputStream.write("q p $finalKey $finalValue".toByteArray())
           // the minirig cannot keep with our speed to debounce each write
-          delay(100)
+          delay(200)
         }
       }
 
@@ -138,6 +129,11 @@ private suspend fun applyConfig(
       updateConfigIfNeeded(
         14,
         ((1f - config.channel) * 99).toInt()
+      )
+
+      updateConfigIfNeeded(
+        15,
+        ((1f - config.auxChannel) * 99).toInt()
       )
     },
     finalizer = {

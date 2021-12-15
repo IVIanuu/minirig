@@ -134,6 +134,16 @@ data class ConfigKey(val id: String) : Key<Unit>
           valueText = { ScaledPercentageUnitText(it) }
         )
       }
+
+      item {
+        FloatSliderListItem(
+          value = model.auxChannel,
+          onValueChange = model.updateAuxChannel,
+          title = { Text("Aux channel") },
+          stepPolicy = incrementingStepPolicy(0.05f),
+          valueText = { ScaledPercentageUnitText(it) }
+        )
+      }
     }
   }
 }
@@ -158,6 +168,8 @@ data class ConfigModel(
   val updateBassGain: (Float) -> Unit,
   val channel: Float,
   val updateChannel: (Float) -> Unit,
+  val auxChannel: Float,
+  val updateAuxChannel: (Float) -> Unit,
   val saveAs: () -> Unit
 )
 
@@ -208,6 +220,10 @@ data class ConfigModel(
     channel = config.map { it?.channel }.getOrNull() ?: 0f,
     updateChannel = action { value ->
       repository.updateConfig(config.get()!!.copy(channel = value))
+    },
+    auxChannel = config.map { it?.auxChannel }.getOrNull() ?: 0f,
+    updateAuxChannel = action { value ->
+      repository.updateConfig(config.get()!!.copy(auxChannel = value))
     },
     saveAs = action {
       val id = navigator.push(ConfigIdPickerKey()) ?: return@action

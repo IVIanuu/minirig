@@ -17,5 +17,6 @@ import kotlinx.serialization.*
   val gain: Float = 0.5f,
   val auxGain: Float = 0.5f,
   val bassGain: Float = 1f,
-  val channel: Float = 0.5f
+  val channel: Float = 0.5f,
+  val auxChannel: Float = 0.5f
 )
