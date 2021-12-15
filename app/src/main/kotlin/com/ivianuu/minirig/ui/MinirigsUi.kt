@@ -75,6 +75,9 @@ fun interface MinirigsUi : @Composable () -> Unit
                   },
                   PopupMenu.Item(onSelected = model.applyGainToSelected) {
                     Text("Apply gain")
+                  },
+                  PopupMenu.Item(onSelected = model.startLinkupWithSelected) {
+                    Text("Start linkup")
                   }
                 )
               )
@@ -96,81 +99,90 @@ fun interface MinirigsUi : @Composable () -> Unit
           style = MaterialTheme.typography.body2
         )
       }
-    ) { minirig ->
-      ListItem(
-        modifier = Modifier
-          .combinedClickable(
-            onClick = {
-              if (model.isSelectionMode) model.toggleSelectMinirig(minirig)
-              else model.openMinirig(minirig)
-            },
-            onLongClick = { model.toggleSelectMinirig(minirig) }
-          )
-          .background(
-            if (minirig.address in model.selectedMinirigs) LocalContentColor.current.copy(alpha = 0.12f)
-            else Color.Transparent
-          ),
-        leading = {
-          Box(
-            modifier = Modifier
-              .size(24.dp)
-              .background(
-                if (minirig.isConnected) Color.Green
-                else Color.Red,
-                CircleShape
-              )
-          )
+    ) { Minirig(it, model) }
+  }
+}
+
+@Composable private fun Minirig(
+  minirig: UiMinirig,
+  model: MinirigsModel
+) {
+  ListItem(
+    modifier = Modifier
+      .combinedClickable(
+        onClick = {
+          if (model.isSelectionMode) model.toggleSelectMinirig(minirig)
+          else model.openMinirig(minirig)
         },
-        title = { Text(minirig.name) },
-        subtitle = { Text(minirig.address) },
-        trailing = {
-          PopupMenuButton(
-            items = listOf(
-              PopupMenu.Item(onSelected = { model.applyConfig(minirig) }) {
-                Text("Apply config")
-              },
-              PopupMenu.Item(onSelected = { model.applyEq(minirig) }) {
-                Text("Apply equalizer")
-              },
-              PopupMenu.Item(onSelected = { model.applyGain(minirig) }) {
-                Text("Apply gain")
-              },
-              PopupMenu.Item(onSelected = { model.setAsOutputDevice(minirig) }) {
-                Text("Set as output device")
-              },
-              PopupMenu.Item(onSelected = { model.startLinkup(minirig) }) {
-                Text("Start linkup")
-              },
-              PopupMenu.Item(onSelected = { model.joinLinkup(minirig) }) {
-                Text("Join linkup")
-              },
-              PopupMenu.Item(onSelected = { model.cancelLinkup(minirig) }) {
-                Text("Cancel linkup")
-              },
-              PopupMenu.Item(onSelected = { model.powerOff(minirig) }) {
-                Text("Power off")
-              },
-              PopupMenu.Item(onSelected = { model.rename(minirig) }) {
-                Text("Rename")
-              },
-              PopupMenu.Item(onSelected = { model.clearPairedDevices(minirig) }) {
-                Text("Clear paired devices")
-              },
-              PopupMenu.Item(onSelected = { model.factoryReset(minirig) }) {
-                Text("Factory reset")
-              }
-            )
+        onLongClick = { model.toggleSelectMinirig(minirig) }
+      )
+      .background(
+        if (minirig.address in model.selectedMinirigs) LocalContentColor.current.copy(alpha = 0.12f)
+        else Color.Transparent
+      ),
+    leading = {
+      Surface(
+        modifier = Modifier.size(36.dp),
+        color = if (minirig.isConnected) MaterialTheme.colors.secondary
+        else LocalContentColor.current.copy(alpha = 0.12f),
+        shape = CircleShape
+      ) {
+        if (minirig.isActive)
+          Icon(
+            modifier = Modifier.center(),
+            painterResId = R.drawable.ic_volume_up
           )
-        }
+      }
+    },
+    title = { Text(minirig.name) },
+    subtitle = { Text(minirig.address) },
+    trailing = {
+      PopupMenuButton(
+        items = listOf(
+          PopupMenu.Item(onSelected = { model.applyConfig(minirig) }) {
+            Text("Apply config")
+          },
+          PopupMenu.Item(onSelected = { model.applyEq(minirig) }) {
+            Text("Apply equalizer")
+          },
+          PopupMenu.Item(onSelected = { model.applyGain(minirig) }) {
+            Text("Apply gain")
+          },
+          PopupMenu.Item(onSelected = { model.makeActive(minirig) }) {
+            Text("Play music")
+          },
+          PopupMenu.Item(onSelected = { model.startLinkup(minirig) }) {
+            Text("Start linkup")
+          },
+          PopupMenu.Item(onSelected = { model.joinLinkup(minirig) }) {
+            Text("Join linkup")
+          },
+          PopupMenu.Item(onSelected = { model.cancelLinkup(minirig) }) {
+            Text("Cancel linkup")
+          },
+          PopupMenu.Item(onSelected = { model.powerOff(minirig) }) {
+            Text("Power off")
+          },
+          PopupMenu.Item(onSelected = { model.rename(minirig) }) {
+            Text("Rename")
+          },
+          PopupMenu.Item(onSelected = { model.clearPairedDevices(minirig) }) {
+            Text("Clear paired devices")
+          },
+          PopupMenu.Item(onSelected = { model.factoryReset(minirig) }) {
+            Text("Factory reset")
+          }
+        )
       )
     }
-  }
+  )
 }
 
 data class UiMinirig(
   val address: String,
   val name: String,
-  val isConnected: Boolean
+  val isConnected: Boolean,
+  val isActive: Boolean
 )
 
 data class MinirigsModel(
@@ -186,8 +198,9 @@ data class MinirigsModel(
   val applyConfigToSelected: () -> Unit,
   val applyEqToSelected: () -> Unit,
   val applyGainToSelected: () -> Unit,
-  val setAsOutputDevice: (UiMinirig) -> Unit,
+  val makeActive: (UiMinirig) -> Unit,
   val startLinkup: (UiMinirig) -> Unit,
+  val startLinkupWithSelected: () -> Unit,
   val joinLinkup: (UiMinirig) -> Unit,
   val cancelLinkup: (UiMinirig) -> Unit,
   val powerOff: (UiMinirig) -> Unit,
@@ -200,11 +213,11 @@ data class MinirigsModel(
 }
 
 @Provide fun minirigsModel(
+  activeMinirigOps: ActiveMinirigOps,
   configRepository: ConfigRepository,
   linkupUseCases: LinkupUseCases,
   minirigRepository: MinirigRepository,
   navigator: Navigator,
-  setOutputDevice: SetOutputDeviceUseCase,
   troubleshootingUseCases: TroubleshootingUseCases,
   L: Logger,
   S: NamedCoroutineScope<KeyUiScope>
@@ -226,16 +239,24 @@ data class MinirigsModel(
 
   suspend fun applyGain(addresses: Collection<String>) = apply(addresses) { applyGain(it) }
 
-  val minirigs = minirigRepository.minirigs
-    .flatMapLatest { minirigs ->
+  val minirigs = combine(
+    minirigRepository.minirigs,
+    activeMinirigOps.activeMinirig
+  )
+    .flatMapLatest { (minirigs, activeMinirig) ->
       if (minirigs.isEmpty()) flowOf(emptyList())
       else combine(
         minirigs
           .map { minirig ->
             minirigRepository.minirigState(minirig.address)
               .map {
-                log { "${minirig.readableName()} -> $it" }
-                UiMinirig(minirig.address, minirig.name, it.isConnected)
+                log { "${minirig.debugName()} -> $it" }
+                UiMinirig(
+                  minirig.address,
+                  minirig.name,
+                  it.isConnected,
+                  minirig.address == activeMinirig
+                )
               }
           }
       ) { it.toList() }
@@ -262,10 +283,15 @@ data class MinirigsModel(
     applyEqToSelected = action { applyEq(selectedMinirigs) },
     applyGain = action { minirig -> applyGain(listOf(minirig.address)) },
     applyGainToSelected = action { applyGain(selectedMinirigs) },
-    setAsOutputDevice = action { minirig -> setOutputDevice(minirig.address) },
+    makeActive = action { minirig -> activeMinirigOps.setActiveMinirig(minirig.address) },
     startLinkup = action { minirig -> linkupUseCases.startLinkup(minirig.address) },
     joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },
     cancelLinkup = action { minirig -> linkupUseCases.cancelLinkup(minirig.address) },
+    startLinkupWithSelected = action {
+      val hostAddress = navigator.push(MinirigPickerKey(selectedMinirigs.toList()))
+        ?: return@action
+      linkupUseCases.startLinkup(hostAddress, selectedMinirigs.filterNot { it == hostAddress })
+    },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
     rename = action { minirig ->
       val newName = navigator.push(RenameMinirigKey()) ?: return@action

@@ -4,10 +4,34 @@
 
 package com.ivianuu.minirig.domain
 
+import com.ivianuu.essentials.coroutines.*
+import com.ivianuu.essentials.logging.*
 import com.ivianuu.injekt.*
 import kotlinx.coroutines.*
 
-@Provide class LinkupUseCases(private val remote: MinirigRemote) {
+@Provide class LinkupUseCases(
+  private val activeMinirigOps: ActiveMinirigOps,
+  private val connectToMinirigUseCase: ConnectToMinirigUseCase,
+  private val remote: MinirigRemote,
+  private val L: Logger
+) {
+  suspend fun startLinkup(hostAddress: String, guestAddresses: List<String>) {
+    log { "start linkup host: $hostAddress guests: $guestAddresses" }
+
+    startLinkup(hostAddress)
+    guestAddresses.forEach { joinLinkup(it) }
+
+    delay(5000)
+
+    log { "reconnect to guests" }
+    guestAddresses.parForEach { connectToMinirigUseCase(it) }
+
+    delay(1000)
+
+    log { "reconnect to host $hostAddress" }
+    activeMinirigOps.setActiveMinirig(hostAddress)
+  }
+
   suspend fun startLinkup(address: String) = remote.withMinirig(address) {
     send("HBROADCAST_START")
   }
@@ -22,10 +46,8 @@ import kotlinx.coroutines.*
       send("JBROADCAST_LEAVE")
     }
 
-    delay(1000)
+    delay(10000)
 
-    // ensure we get reconnected
-    remote.withMinirig(address) {
-    }
+    connectToMinirigUseCase(address)
   }
 }

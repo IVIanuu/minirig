@@ -19,12 +19,6 @@ import com.ivianuu.minirig.domain.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
-fun ConfigIdPickerKey() =
-  TextInputKey(label = "Specify the name of your config..", allowEmpty = false)
-
-fun RenameMinirigKey() =
-  TextInputKey(label = "Specify the new name for the minirig..", allowEmpty = false)
-
 object ConfigPickerKey : DialogKey<MinirigConfig>
 
 @Provide fun configPickerUi(

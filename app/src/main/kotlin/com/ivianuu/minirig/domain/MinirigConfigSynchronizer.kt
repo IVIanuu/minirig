@@ -8,7 +8,6 @@ import com.ivianuu.essentials.*
 import com.ivianuu.essentials.app.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
-import com.ivianuu.essentials.time.*
 import com.ivianuu.essentials.util.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.coroutines.*
@@ -29,18 +28,24 @@ import kotlinx.coroutines.flow.*
       minirigs.parForEach { minirig ->
         remote.isConnected(minirig.address).collectLatest { isConnected ->
           if (isConnected) {
-            log { "observe config changes ${minirig.readableName()}" }
+            log { "observe config changes ${minirig.debugName()}" }
             configRepository.config(minirig.address).collectLatest { config ->
-              log { "apply config ${minirig.readableName()}" }
-              catch {
-                applyConfig(config!!)
-              }.onFailure {
-                log { "failed to apply config to ${minirig.readableName()} -> ${it.asLog()}" }
-                showToast("Could not apply config to ${minirig.readableName()}")
+              log { "apply config ${minirig.debugName()}" }
+              suspend fun applyConfig(attempt: Int) {
+                catch {
+                  applyConfig(config!!)
+                }.onFailure {
+                  log { "failed to apply config to ${minirig.debugName()} -> ${it.asLog()}" }
+                  showToast("Could not apply config to ${minirig.debugName()}")
+                  delay(2000)
+                  applyConfig(attempt + 1)
+                }
               }
+
+              applyConfig(0)
             }
           } else {
-            log { "ignore config changes ${minirig.readableName()}" }
+            log { "ignore config changes ${minirig.debugName()}" }
           }
         }
       }
@@ -72,7 +77,7 @@ private suspend fun applyConfig(
 
       // only write if the value has changed
       if (currentConfig[key] != value) {
-        log { "${device.readableName()} update $finalKey -> $finalValue" }
+        log { "${device.debugName()} update $finalKey -> $finalValue" }
         send("q p $finalKey $finalValue")
       }
     }
@@ -125,24 +130,11 @@ private suspend fun applyConfig(
 private suspend fun MinirigSocket.readMinirigConfig(@Inject L: Logger): Map<Int, Int> {
   // sending this message triggers the state output
   send("q p 00 50")
-
-  withTimeoutOrNull(5.seconds) {
-    messages
-      .first { it.startsWith("q") }
-      .removePrefix("q ")
-      .split(" ")
-      .withIndex()
-      .associateBy { it.index + 1 }
-      .mapValues {
-        try {
-          it.value.value.toInt()
-        } catch (e: Throwable) {
-          e.nonFatalOrThrow()
-          log { "wtf $it" }
-          throw e
-        }
-      }
-  }?.let { return it }
-
-  throw IllegalStateException("Could not read minirig config for ${device.name}")
+  return messages
+    .first { it.startsWith("q") }
+    .removePrefix("q ")
+    .split(" ")
+    .withIndex()
+    .associateBy { it.index + 1 }
+    .mapValues { it.value.value.toInt() }
 }

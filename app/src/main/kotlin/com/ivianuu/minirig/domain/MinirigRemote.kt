@@ -17,6 +17,8 @@ import com.ivianuu.injekt.coroutines.*
 import com.ivianuu.minirig.data.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.*
+import java.io.*
 import java.nio.charset.*
 import java.util.*
 
@@ -29,49 +31,10 @@ import java.util.*
 ) {
   private val sockets = RefCountedResource<String, MinirigSocket>(
     create = { address ->
-      val device = bluetoothManager.adapter.getRemoteDevice(address)
-      MinirigSocket(
-        socket = device.createRfcommSocketToServiceRecord(CLIENT_ID)
-          .also { socket ->
-            val connectComplete = CompletableDeferred<Unit>()
-            par(
-              {
-                log { "connect ${device.readableName()}" }
-                try {
-                  var attempt = 0
-                  while (attempt < 5) {
-                    try {
-                      socket.connect()
-                      if (socket.isConnected) {
-                        log { "connected to ${device.readableName()}" }
-                        break
-                      }
-                    } catch (e: Throwable) {
-                      log { "connect failed ${device.readableName()} attempt $attempt" }
-                      e.nonFatalOrThrow()
-                      attempt++
-                      delay(1000)
-                    }
-                  }
-                } finally {
-                  connectComplete.complete(Unit)
-                }
-              },
-              {
-                onCancel(
-                  block = { connectComplete.await() },
-                  onCancel = {
-                    log { "cancel connect ${device.readableName()}" }
-                    catch { socket.close() }
-                  }
-                )
-              }
-            )
-          }
-      )
+      MinirigSocket(address)
     },
     release = { _, socket ->
-      log { "release connection ${socket.device.readableName()}" }
+      log { "release connection ${socket.device.debugName()}" }
       socket.close()
     }
   )
@@ -113,23 +76,43 @@ import java.util.*
 }
 
 class MinirigSocket(
-  private val socket: BluetoothSocket,
-  @Inject context: IOContext,
+  private val address: String,
+  @Inject private val bluetoothManager: @SystemService BluetoothManager,
+  context: IOContext,
   scope: NamedCoroutineScope<AppScope>,
-  L: Logger
+  private val L: Logger
 ) {
   private val scope = scope.childCoroutineScope(context)
 
-  val device get() = socket.remoteDevice
+  var socket: BluetoothSocket? = null
+  private val socketLock = Mutex()
+
+  val device: BluetoothDevice
+    get() = bluetoothManager.adapter.getRemoteDevice(address)
 
   val messages = channelFlow {
-    while (currentCoroutineContext().isActive && socket.isConnected) {
-      if (socket.inputStream.available() > 0) {
-        val arr = ByteArray(socket.inputStream.available())
-        socket.inputStream.read(arr)
-        val current = arr.toString(StandardCharsets.UTF_8)
-        log { "${socket.remoteDevice.readableName()} stats $current" }
-        send(current)
+    while (currentCoroutineContext().isActive) {
+      if (!bluetoothManager.adapter.isEnabled) {
+        delay(5000)
+        continue
+      }
+
+      catch {
+        try {
+          withSocket {
+            if (inputStream.available() > 0) {
+              val arr = ByteArray(inputStream.available())
+              inputStream.read(arr)
+              val current = arr.toString(StandardCharsets.UTF_8)
+              log { "${device.debugName()} stats $current" }
+              send(current)
+            }
+          }
+        } catch (e: IOException) {
+          log { "${device.debugName()} close socket due to ${e.asLog()}" }
+          closeCurrentSocket()
+          delay(2000)
+        }
       }
     }
   }.shareIn(scope, SharingStarted.Eagerly)
@@ -139,14 +122,82 @@ class MinirigSocket(
   suspend fun send(message: String) {
     // the minirig cannot keep with our speed to debounce each write
     sendLimiter.acquire()
-    socket.outputStream.write(message.toByteArray())
+    try {
+      withSocket {
+        outputStream.write(message.toByteArray())
+      }
+    } catch (e: IOException) {
+      log { "${device.debugName()} close socket due to ${e.asLog()}" }
+      closeCurrentSocket()
+      throw e
+    }
   }
 
-  fun close() {
+  suspend fun close() {
     scope.cancel()
-    catch {
-      socket.close()
+    closeCurrentSocket()
+  }
+
+  private suspend fun closeCurrentSocket() {
+    withContext(NonCancellable) {
+      socketLock.withLock {
+        log { "${device.debugName()} close current socket" }
+        catch { socket?.close() }
+        socket = null
+      }
     }
+  }
+
+  private suspend fun withSocket(block: suspend BluetoothSocket.() -> Unit) {
+    val socket = socketLock.withLock {
+      var socket = socket
+      check(socket == null || socket.isConnected)
+      if (socket != null)
+        return@withLock socket
+
+      socket = device.createRfcommSocketToServiceRecord(CLIENT_ID)
+
+      val connectComplete = CompletableDeferred<Unit>()
+      par(
+        {
+          log { "connect ${device.debugName()}" }
+          try {
+            var attempt = 0
+            while (attempt < 5) {
+              try {
+                socket.connect()
+                if (socket.isConnected) {
+                  log { "connected to ${device.debugName()}" }
+                  break
+                }
+              } catch (e: Throwable) {
+                log { "connect failed ${device.debugName()} attempt $attempt" }
+                e.nonFatalOrThrow()
+                attempt++
+                delay(1000)
+              }
+            }
+          } finally {
+            connectComplete.complete(Unit)
+          }
+        },
+        {
+          onCancel(
+            block = { connectComplete.await() },
+            onCancel = {
+              log { "cancel connect ${device.debugName()}" }
+              catch { socket.close() }
+            }
+          )
+        }
+      )
+
+      this.socket = socket
+
+      socket
+    }
+
+    block(socket)
   }
 }
 
