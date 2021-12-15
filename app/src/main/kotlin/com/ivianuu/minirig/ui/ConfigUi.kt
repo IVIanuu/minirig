@@ -20,6 +20,7 @@ import com.ivianuu.essentials.ui.navigation.*
 import com.ivianuu.essentials.ui.popup.*
 import com.ivianuu.essentials.ui.prefs.*
 import com.ivianuu.injekt.*
+import com.ivianuu.minirig.data.*
 import com.ivianuu.minirig.domain.*
 import kotlinx.coroutines.flow.*
 
@@ -213,13 +214,14 @@ data class ConfigModel(
 @Provide fun configModel(
   key: ConfigKey,
   navigator: Navigator,
-  repository: MinirigRepository,
+  remote: MinirigRemote,
+  repository: ConfigRepository,
   SS: StateScope
 ): ConfigModel {
   val config = repository.config(key.id).bindResource()
   return ConfigModel(
     name = if (!key.id.isMinirigAddress()) key.id
-    else repository.minirig(key.id)
+    else remote.minirig(key.id)
       .map { it?.name ?: key.id }
       .bind(key.id),
     band1 = config.map { it?.band1 }.getOrNull() ?: 0f,

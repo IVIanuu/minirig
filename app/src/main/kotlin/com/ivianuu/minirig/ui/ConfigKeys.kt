@@ -22,12 +22,15 @@ import kotlinx.coroutines.flow.*
 fun ConfigIdPickerKey() =
   TextInputKey(label = "Specify the name of your config..", allowEmpty = false)
 
+fun RenameMinirigKey() =
+  TextInputKey(label = "Specify the new name for the minirig..", allowEmpty = false)
+
 object ConfigPickerKey : DialogKey<MinirigConfig>
 
 @Provide fun configPickerUi(
   key: ConfigPickerKey,
   navigator: Navigator,
-  repository: MinirigRepository
+  repository: ConfigRepository
 ) = KeyUi<ConfigPickerKey> {
   DialogScaffold {
     Dialog(

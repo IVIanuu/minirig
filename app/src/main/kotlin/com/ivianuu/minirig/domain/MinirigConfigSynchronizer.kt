@@ -24,36 +24,30 @@ import kotlin.coroutines.*
 
 @Provide fun minirigConfigSynchronizer(
   context: IOContext,
-  repository: MinirigRepository,
-  R: MinirigRemote,
+  configRepository: ConfigRepository,
+  remote: MinirigRemote,
   L: Logger,
   T: ToastContext
 ) = ScopeWorker<AppScope> {
-  repository.minirigs
-    .flatMapLatest { minirigs ->
-      combine(
-        minirigs
-          .map { minirig ->
-            repository.config(minirig.address)
-              .map { minirig to it }
-          }
-      ) { it.toList() }
-    }
-    .collectLatest { configs ->
-      withContext(context) {
-        configs
-          .filter { it.second?.id?.isMinirigAddress() == true }
-          .parForEach { (minirig, config) ->
-            log { "write config ${minirig.readableName()}" }
-            catch {
-              applyConfig(config!!)
-            }.onFailure {
-              log { "failed to apply config to ${minirig.readableName()} -> ${it.asLog()}" }
-              showToast("Could not apply config to ${minirig.readableName()}")
+  withContext(context) {
+    remote.minirigs.collectLatest { minirigs ->
+      minirigs.forEach { minirig ->
+        remote.isConnected(minirig.address).collectLatest { isConnected ->
+          if (isConnected) {
+            configRepository.config(minirig.address).collectLatest { config ->
+              log { "apply config ${minirig.readableName()}" }
+              catch {
+                applyConfig(config!!)
+              }.onFailure {
+                log { "failed to apply config to ${minirig.readableName()} -> ${it.asLog()}" }
+                showToast("Could not apply config to ${minirig.readableName()}")
+              }
             }
           }
+        }
       }
     }
+  }
 }
 
 private suspend fun applyConfig(
@@ -175,7 +169,3 @@ private suspend fun BluetoothSocket.readMinirigStatus(@Inject L: Logger) {
     }
   }
 }
-
-fun BluetoothDevice.readableName() = "[$name ~ $address]"
-
-private fun Minirig.readableName() = "[$name ~ $address]"

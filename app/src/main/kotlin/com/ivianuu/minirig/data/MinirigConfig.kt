@@ -4,8 +4,19 @@
 
 package com.ivianuu.minirig.data
 
+import android.bluetooth.*
 import com.ivianuu.essentials.db.*
 import kotlinx.serialization.*
+
+data class Minirig(val address: String, val name: String)
+
+fun BluetoothDevice.toMinirig() = Minirig(address, alias ?: name)
+
+fun String.isMinirigAddress() = startsWith("00:12:6F")
+
+fun BluetoothDevice.readableName() = "[${alias ?: name} ~ $address]"
+
+fun Minirig.readableName() = "[$name ~ $address]"
 
 @Serializable data class MinirigConfig(
   @PrimaryKey val id: String,

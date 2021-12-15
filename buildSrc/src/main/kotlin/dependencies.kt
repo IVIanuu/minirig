@@ -7,7 +7,7 @@
 object Build {
   const val applicationId = "com.ivianuu.minirig"
   const val compileSdk = 31
-  const val minSdk = 24
+  const val minSdk = 30
   const val targetSdk = 30
   const val versionCode = 1
   const val versionName = "0.0.1"

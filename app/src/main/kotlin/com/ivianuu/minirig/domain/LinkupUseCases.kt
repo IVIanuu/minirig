@@ -5,6 +5,7 @@
 package com.ivianuu.minirig.domain
 
 import com.ivianuu.injekt.*
+import kotlinx.coroutines.*
 
 @Provide class LinkupUseCases(private val remote: MinirigRemote) {
   suspend fun startLinkup(address: String) = remote.withMinirig(address) { socket ->
@@ -15,7 +16,16 @@ import com.ivianuu.injekt.*
     socket.outputStream.write("IBROADCAST_JOIN".toByteArray())
   }
 
-  suspend fun cancelLinkup(address: String) = remote.withMinirig(address) { socket ->
-    socket.outputStream.write("JBROADCAST_LEAVE".toByteArray())
+  suspend fun cancelLinkup(address: String) {
+    // disconnect
+    remote.withMinirig(address) { socket ->
+      socket.outputStream.write("JBROADCAST_LEAVE".toByteArray())
+    }
+
+    delay(1000)
+
+    // ensure we get reconnected
+    remote.withMinirig(address) {
+    }
   }
 }

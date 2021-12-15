@@ -9,9 +9,12 @@ import android.media.*
 import android.media.session.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.unit.*
 import com.ivianuu.essentials.*
 import com.ivianuu.essentials.logging.*
 import com.ivianuu.essentials.resource.*
@@ -28,6 +31,7 @@ import com.ivianuu.injekt.android.*
 import com.ivianuu.injekt.coroutines.*
 import com.ivianuu.minirig.data.*
 import com.ivianuu.minirig.domain.*
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
 fun interface MinirigsUi : @Composable () -> Unit
@@ -69,6 +73,17 @@ fun interface MinirigsUi : @Composable () -> Unit
     ) { minirig ->
       ListItem(
         modifier = Modifier.clickable { model.openMinirig(minirig) },
+        leading = {
+          Box(
+            modifier = Modifier
+              .size(24.dp)
+              .background(
+                if (minirig.isConnected) Color.Green
+                else Color.Red,
+                CircleShape
+              )
+          )
+        },
         title = { Text(minirig.name) },
         subtitle = { Text(minirig.address) },
         trailing = {
@@ -94,6 +109,18 @@ fun interface MinirigsUi : @Composable () -> Unit
               },
               PopupMenu.Item(onSelected = { model.cancelLinkup(minirig) }) {
                 Text("Cancel linkup")
+              },
+              PopupMenu.Item(onSelected = { model.powerOff(minirig) }) {
+                Text("Power off")
+              },
+              PopupMenu.Item(onSelected = { model.rename(minirig) }) {
+                Text("Rename")
+              },
+              PopupMenu.Item(onSelected = { model.clearPairedDevices(minirig) }) {
+                Text("Clear paired devices")
+              },
+              PopupMenu.Item(onSelected = { model.factoryReset(minirig) }) {
+                Text("Factory reset")
               }
             )
           )
@@ -103,31 +130,43 @@ fun interface MinirigsUi : @Composable () -> Unit
   }
 }
 
+data class UiMinirig(
+  val address: String,
+  val name: String,
+  val isConnected: Boolean
+)
+
 data class MinirigsModel(
-  val minirigs: Resource<List<Minirig>>,
-  val openMinirig: (Minirig) -> Unit,
-  val applyConfig: (Minirig) -> Unit,
-  val applyEq: (Minirig) -> Unit,
-  val applyGain: (Minirig) -> Unit,
+  val minirigs: Resource<List<UiMinirig>>,
+  val openMinirig: (UiMinirig) -> Unit,
+  val applyConfig: (UiMinirig) -> Unit,
+  val applyEq: (UiMinirig) -> Unit,
+  val applyGain: (UiMinirig) -> Unit,
   val applyConfigToAll: () -> Unit,
   val applyEqToAll: () -> Unit,
   val applyGainToAll: () -> Unit,
-  val setAsOutputDevice: (Minirig) -> Unit,
-  val startLinkup: (Minirig) -> Unit,
-  val joinLinkup: (Minirig) -> Unit,
-  val cancelLinkup: (Minirig) -> Unit
+  val setAsOutputDevice: (UiMinirig) -> Unit,
+  val startLinkup: (UiMinirig) -> Unit,
+  val joinLinkup: (UiMinirig) -> Unit,
+  val cancelLinkup: (UiMinirig) -> Unit,
+  val powerOff: (UiMinirig) -> Unit,
+  val rename: (UiMinirig) -> Unit,
+  val clearPairedDevices: (UiMinirig) -> Unit,
+  val factoryReset: (UiMinirig) -> Unit
 )
 
 @Provide fun minirigsModel(
+  configRepository: ConfigRepository,
   linkupUseCases: LinkupUseCases,
   navigator: Navigator,
-  repository: MinirigRepository,
-  S: NamedCoroutineScope<KeyUiScope>,
-  setOutputDevice: SetOutputDeviceUseCase
+  remote: MinirigRemote,
+  setOutputDevice: SetOutputDeviceUseCase,
+  troubleshootingUseCases: TroubleshootingUseCases,
+  S: NamedCoroutineScope<KeyUiScope>
 ) = state {
   suspend fun apply(id: String, transform: MinirigConfig.() -> MinirigConfig) {
-    val minirigConfig = repository.config(id).first()!!
-    repository.updateConfig(minirigConfig.transform())
+    val minirigConfig = configRepository.config(id).first()!!
+    configRepository.updateConfig(minirigConfig.transform())
   }
 
   suspend fun apply(id: String, other: MinirigConfig) {
@@ -143,7 +182,20 @@ data class MinirigsModel(
   }
 
   MinirigsModel(
-    minirigs = repository.minirigs.bindResource(),
+    minirigs = remote.minirigs
+      .flatMapLatest { minirigs ->
+        if (minirigs.isEmpty()) flowOf(emptyList())
+        else combine(
+          minirigs
+            .map { minirig ->
+              remote.isConnected(minirig.address)
+                .map {
+                  UiMinirig(minirig.address, minirig.name, it)
+                }
+            }
+        ) { it.toList() }
+      }
+      .bindResource(),
     openMinirig = action { minirig -> navigator.push(ConfigKey(minirig.address)) },
     applyConfig = action { minirig ->
       val config = navigator.push(ConfigPickerKey) ?: return@action
@@ -151,7 +203,7 @@ data class MinirigsModel(
     },
     applyConfigToAll = action {
       val config = navigator.push(ConfigPickerKey) ?: return@action
-      repository.minirigs.first().forEach { minirig ->
+      remote.minirigs.first().forEach { minirig ->
         apply(minirig.address, config)
       }
     },
@@ -161,7 +213,7 @@ data class MinirigsModel(
     },
     applyEqToAll = action {
       val eqConfig = navigator.push(ConfigPickerKey) ?: return@action
-      repository.minirigs.first().forEach { minirig ->
+      remote.minirigs.first().forEach { minirig ->
         applyEq(minirig.address, eqConfig)
       }
     },
@@ -171,7 +223,7 @@ data class MinirigsModel(
     },
     applyGainToAll = action {
       val gainConfig = navigator.push(ConfigPickerKey) ?: return@action
-      repository.minirigs.first().forEach { minirig ->
+      remote.minirigs.first().forEach { minirig ->
         applyGain(minirig.address, gainConfig)
       }
     },
@@ -179,5 +231,14 @@ data class MinirigsModel(
     startLinkup = action { minirig -> linkupUseCases.startLinkup(minirig.address) },
     joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },
     cancelLinkup = action { minirig -> linkupUseCases.cancelLinkup(minirig.address) },
+    powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
+    rename = action { minirig ->
+      val newName = navigator.push(RenameMinirigKey()) ?: return@action
+      troubleshootingUseCases.rename(minirig.address, newName)
+    },
+    clearPairedDevices = action { minirig ->
+      troubleshootingUseCases.clearPairedDevices(minirig.address)
+    },
+    factoryReset = action { minirig -> troubleshootingUseCases.factoryReset(minirig.address) }
   )
 }

@@ -78,7 +78,7 @@ data class ConfigsModel(
 
 @Provide fun configsModel(
   navigator: Navigator,
-  repository: MinirigRepository,
+  repository: ConfigRepository,
   S: NamedCoroutineScope<KeyUiScope>
 ) = state {
   ConfigsModel(
