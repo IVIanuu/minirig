@@ -10,12 +10,14 @@ import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
+import com.ivianuu.injekt.coroutines.*
 import com.ivianuu.minirig.data.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
 @Provide class MinirigRepository(
   private val bluetoothManager: @SystemService BluetoothManager,
+  private val context: IOContext,
   private val remote: MinirigRemote,
   private val L: Logger
 ) {
@@ -29,6 +31,7 @@ import kotlinx.coroutines.flow.*
           ?: emptyList()
       }
       .distinctUntilChanged()
+      .flowOn(context)
 
   fun minirig(address: String): Flow<Minirig?> = remote.bondedDeviceChanges()
     .onStart<Any> { emit(Unit) }
@@ -37,6 +40,7 @@ import kotlinx.coroutines.flow.*
         ?.getRemoteDevice(address)
         ?.toMinirig()
     }
+    .flowOn(context)
 
   fun minirigState(address: String) = remote.bondedDeviceChanges()
     .onStart<Any> { emit(Unit) }
@@ -48,6 +52,8 @@ import kotlinx.coroutines.flow.*
           emit(MinirigState(isConnected = true, batteryPercentage = batteryPercentage))
         }
 
+        emit()
+
         par(
           {
             messages.collect { message ->
@@ -56,8 +62,9 @@ import kotlinx.coroutines.flow.*
                   val newBatteryPercentage = message
                     .removePrefix("B")
                     .take(5)
-                    .toInt()
-                    .toBatteryPercentage()
+                    .toIntOrNull()
+                    ?.toBatteryPercentage()
+                    ?: return@collect
 
                   if (newBatteryPercentage != batteryPercentage) {
                     batteryPercentage = newBatteryPercentage
@@ -77,6 +84,7 @@ import kotlinx.coroutines.flow.*
       } ?: emit(MinirigState(isConnected = false))
     }
     .distinctUntilChanged()
+    .flowOn(context)
 }
 
 private fun Int.toBatteryPercentage(): Float = when {

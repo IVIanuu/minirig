@@ -7,12 +7,13 @@ package com.ivianuu.minirig.data
 import com.ivianuu.essentials.*
 import com.ivianuu.essentials.db.*
 import com.ivianuu.injekt.*
+import com.ivianuu.injekt.common.*
 import com.ivianuu.injekt.coroutines.*
 
 @Provide fun minirigDb(
   androidContext: AppContext,
   ioContext: IOContext
-): Db = AndroidDb(
+): @Scoped<AppScope> Db = AndroidDb(
   context = androidContext,
   coroutineContext = ioContext,
   name = "minirig.db",

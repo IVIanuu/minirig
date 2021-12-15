@@ -4,15 +4,15 @@
 
 package com.ivianuu.minirig.domain
 
-import com.ivianuu.essentials.*
 import com.ivianuu.essentials.db.*
 import com.ivianuu.essentials.logging.*
 import com.ivianuu.injekt.*
-import com.ivianuu.injekt.common.*
+import com.ivianuu.injekt.coroutines.*
 import com.ivianuu.minirig.data.*
 import kotlinx.coroutines.flow.*
 
-@Provide @Scoped<AppScope> class ConfigRepository(
+@Provide class ConfigRepository(
+  private val context: IOContext,
   private val db: Db,
   private val L: Logger
 ) {
@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.*
       else config
     }
     .distinctUntilChanged()
+    .flowOn(context)
 
   suspend fun updateConfig(config: MinirigConfig) = db.transaction {
     log { "update config $config" }

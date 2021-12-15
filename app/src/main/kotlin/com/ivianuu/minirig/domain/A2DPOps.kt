@@ -7,38 +7,57 @@ package com.ivianuu.minirig.domain
 import android.bluetooth.*
 import com.ivianuu.essentials.*
 import com.ivianuu.essentials.coroutines.*
+import com.ivianuu.essentials.logging.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
+import com.ivianuu.injekt.common.*
+import com.ivianuu.injekt.coroutines.*
 import kotlinx.coroutines.*
 import kotlin.coroutines.*
 
-@Provide class A2DPOps(
+@Provide @Scoped<AppScope> class A2DPOps(
   private val bluetoothManager: @SystemService BluetoothManager,
-  private val context: AppContext
+  private val appContext: AppContext,
+  private val ioContext: IOContext,
+  private val L: Logger,
+  private val scope: NamedCoroutineScope<AppScope>
 ) {
-  suspend fun <R> withProxy(block: suspend BluetoothA2dp.() -> R): R? =
-    suspendCancellableCoroutine<BluetoothA2dp?> { cont ->
-      bluetoothManager.adapter.getProfileProxy(
-        context,
-        object : BluetoothProfile.ServiceListener {
-          override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
-            catch { cont.resume(proxy.cast()) }
-          }
+  private val proxy = RefCountedResource<Unit, BluetoothA2dp>(
+    create = {
+      log { "acquire proxy" }
+      suspendCancellableCoroutine { cont ->
+        bluetoothManager.adapter.getProfileProxy(
+          appContext,
+          object : BluetoothProfile.ServiceListener {
+            override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
+              catch { cont.resume(proxy.cast()) }
+            }
 
-          override fun onServiceDisconnected(profile: Int) {
-            catch { cont.resume(null) }
-          }
-        },
-        BluetoothProfile.A2DP
-      )
-    }?.let { proxy ->
-      guarantee(
-        block = { block(proxy) },
-        finalizer = {
-          catch {
-            bluetoothManager.adapter.closeProfileProxy(BluetoothProfile.A2DP, proxy)
-          }
+            override fun onServiceDisconnected(profile: Int) {
+            }
+          },
+          BluetoothProfile.A2DP
+        )
+      }
+    },
+    release = { _, proxy ->
+      log { "release proxy" }
+      catch {
+        bluetoothManager.adapter.closeProfileProxy(BluetoothProfile.A2DP, proxy)
+      }
+    }
+  )
+
+  suspend fun <R> withProxy(block: suspend BluetoothA2dp.() -> R): R? =
+    withContext(ioContext) {
+      try {
+        val proxy = proxy.acquire(Unit)
+        block(proxy)
+      } finally {
+        scope.launch {
+          delay(2000)
+          proxy.release(Unit)
         }
-      )
+      }
     }
 }

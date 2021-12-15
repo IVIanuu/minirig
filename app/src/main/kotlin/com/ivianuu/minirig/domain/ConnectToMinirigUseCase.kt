@@ -19,14 +19,15 @@ fun interface ConnectToMinirigUseCase : suspend (String) -> Boolean
   remote: MinirigRemote,
   L: Logger
 ) = ConnectToMinirigUseCase { address ->
+  val device = bluetoothManager.adapter.getRemoteDevice(address)!!
+
+  if (remote.isConnected(address).first()) return@ConnectToMinirigUseCase true
+
   a2DPOps.withProxy {
-    val device = bluetoothManager.adapter.getRemoteDevice(address)!!
-    log { "pre connect ${device.debugName()}" }
-    val result = javaClass.getDeclaredMethod(
+    javaClass.getDeclaredMethod(
       "connect",
       BluetoothDevice::class.java
     ).invoke(this, device)
-    log { "connect result ${device.debugName()} $result" }
   }
 
   remote.isConnected(address).first { it }

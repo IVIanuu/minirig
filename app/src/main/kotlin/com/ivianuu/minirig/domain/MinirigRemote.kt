@@ -43,6 +43,7 @@ import java.util.*
     .onStart<Any> { emit(Unit) }
     .map { address.isConnected() }
     .distinctUntilChanged()
+    .flowOn(context)
 
   private fun String.isConnected(): Boolean =
     bluetoothManager.adapter.getRemoteDevice(this)
@@ -56,15 +57,17 @@ import java.util.*
     block: suspend MinirigSocket.() -> R
   ): R? = withContext(context) {
     if (!address.isConnected()) null
-    else guarantee(
-      block = {
-        val socket = sockets.acquire(address)
+    else {
+      val socket = sockets.acquire(address)
+      try {
         block(socket)
-      },
-      finalizer = {
-        sockets.release(address)
+      } finally {
+        scope.launch {
+          delay(2000)
+          sockets.release(address)
+        }
       }
-    )
+    }
   }
 
   fun bondedDeviceChanges() = broadcastsFactory(
@@ -90,16 +93,16 @@ class MinirigSocket(
   val device: BluetoothDevice
     get() = bluetoothManager.adapter.getRemoteDevice(address)
 
-  val messages = channelFlow {
+  val messages = channelFlow<String> {
     while (currentCoroutineContext().isActive) {
       if (!bluetoothManager.adapter.isEnabled) {
         delay(5000)
         continue
       }
 
-      catch {
-        try {
-          withSocket {
+      try {
+        withSocket {
+          while (currentCoroutineContext().isActive) {
             if (inputStream.available() > 0) {
               val arr = ByteArray(inputStream.available())
               inputStream.read(arr)
@@ -108,41 +111,45 @@ class MinirigSocket(
               send(current)
             }
           }
-        } catch (e: IOException) {
-          log { "${device.debugName()} close socket due to ${e.asLog()}" }
-          closeCurrentSocket()
-          delay(2000)
         }
+      } catch (e: IOException) {
+        closeCurrentSocket(e)
+        delay(2000)
       }
     }
   }.shareIn(scope, SharingStarted.Eagerly)
 
   private val sendLimiter = RateLimiter(1, 100.milliseconds)
 
-  suspend fun send(message: String) {
+  suspend fun send(message: String) = withContext(scope.coroutineContext) {
     // the minirig cannot keep with our speed to debounce each write
     sendLimiter.acquire()
+
+    log { "send ${device.debugName()} -> $message" }
+
     try {
       withSocket {
         outputStream.write(message.toByteArray())
       }
     } catch (e: IOException) {
-      log { "${device.debugName()} close socket due to ${e.asLog()}" }
-      closeCurrentSocket()
+      closeCurrentSocket(e)
       throw e
     }
   }
 
-  suspend fun close() {
+  suspend fun close() = withContext(scope.coroutineContext) {
     scope.cancel()
-    closeCurrentSocket()
+    closeCurrentSocket(null)
   }
 
-  private suspend fun closeCurrentSocket() {
+  private suspend fun closeCurrentSocket(reason: Throwable?) {
     withContext(NonCancellable) {
       socketLock.withLock {
-        log { "${device.debugName()} close current socket" }
-        catch { socket?.close() }
+        catch {
+          socket
+            ?.also { log { "${device.debugName()} close current socket ${reason?.asLog()}" } }
+            ?.close()
+        }
         socket = null
       }
     }

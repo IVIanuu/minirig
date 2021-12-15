@@ -241,7 +241,7 @@ data class MinirigsModel(
 
   val minirigs = combine(
     minirigRepository.minirigs,
-    activeMinirigOps.activeMinirig
+    activeMinirigOps.activeMinirig.onStart { emit(null) }
   )
     .flatMapLatest { (minirigs, activeMinirig) ->
       if (minirigs.isEmpty()) flowOf(emptyList())
@@ -250,7 +250,6 @@ data class MinirigsModel(
           .map { minirig ->
             minirigRepository.minirigState(minirig.address)
               .map {
-                log { "${minirig.debugName()} -> $it" }
                 UiMinirig(
                   minirig.address,
                   minirig.name,
