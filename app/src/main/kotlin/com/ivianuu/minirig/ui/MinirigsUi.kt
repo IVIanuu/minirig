@@ -85,6 +85,15 @@ fun interface MinirigsUi : @Composable () -> Unit
               },
               PopupMenu.Item(onSelected = { model.setAsOutputDevice(minirig) }) {
                 Text("Set as output device")
+              },
+              PopupMenu.Item(onSelected = { model.startLinkup(minirig) }) {
+                Text("Start linkup")
+              },
+              PopupMenu.Item(onSelected = { model.joinLinkup(minirig) }) {
+                Text("Join linkup")
+              },
+              PopupMenu.Item(onSelected = { model.cancelLinkup(minirig) }) {
+                Text("Cancel linkup")
               }
             )
           )
@@ -103,10 +112,14 @@ data class MinirigsModel(
   val applyConfigToAll: () -> Unit,
   val applyEqToAll: () -> Unit,
   val applyGainToAll: () -> Unit,
-  val setAsOutputDevice: (Minirig) -> Unit
+  val setAsOutputDevice: (Minirig) -> Unit,
+  val startLinkup: (Minirig) -> Unit,
+  val joinLinkup: (Minirig) -> Unit,
+  val cancelLinkup: (Minirig) -> Unit
 )
 
 @Provide fun minirigsModel(
+  linkupUseCases: LinkupUseCases,
   navigator: Navigator,
   repository: MinirigRepository,
   S: NamedCoroutineScope<KeyUiScope>,
@@ -162,6 +175,9 @@ data class MinirigsModel(
         applyGain(minirig.address, gainConfig)
       }
     },
-    setAsOutputDevice = action { minirig -> setOutputDevice(minirig.address) }
+    setAsOutputDevice = action { minirig -> setOutputDevice(minirig.address) },
+    startLinkup = action { minirig -> linkupUseCases.startLinkup(minirig.address) },
+    joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },
+    cancelLinkup = action { minirig -> linkupUseCases.cancelLinkup(minirig.address) },
   )
 }

@@ -23,9 +23,9 @@ import java.nio.charset.*
 import kotlin.coroutines.*
 
 @Provide fun minirigConfigSynchronizer(
-  bluetoothManager: @SystemService BluetoothManager,
   context: IOContext,
   repository: MinirigRepository,
+  R: MinirigRemote,
   L: Logger,
   T: ToastContext
 ) = ScopeWorker<AppScope> {
@@ -58,134 +58,78 @@ import kotlin.coroutines.*
 
 private suspend fun applyConfig(
   config: MinirigConfig,
-  @Inject bluetoothManager: @SystemService BluetoothManager,
-  L: Logger
+  @Inject L: Logger,
+  remote: MinirigRemote
 ) {
-  val device = bluetoothManager.adapter.bondedDevices.firstOrNull {
-    it.address == config.id
-  }!!
+  remote.withMinirig(config.id) { socket ->
+    log { "${config.id} apply config $config" }
 
-  if (!device.javaClass.getDeclaredMethod("isConnected").invoke(device).cast<Boolean>()) {
-    log { "skip not connected device ${device.readableName()}" }
-    return
-  }
+    val currentConfig = socket.readMinirigConfig()
 
-  val socket = device.createRfcommSocketToServiceRecord(CLIENT_ID)
-    .also { socket ->
-      val connectComplete = CompletableDeferred<Unit>()
-      par(
-        {
-          log { "connect ${device.readableName()} on ${Thread.currentThread().name}" }
-          try {
-            var attempt = 0
-            while (attempt < 5) {
-              try {
-                socket.connect()
-                if (socket.isConnected) break
-              } catch (e: Throwable) {
-                e.nonFatalOrThrow()
-                attempt++
-                delay(1000)
-              }
-            }
-          } finally {
-            connectComplete.complete(Unit)
-          }
-        },
-        {
-          onCancel(
-            block = { connectComplete.await() },
-            onCancel = {
-              log { "cancel connect ${device.readableName()} on ${Thread.currentThread().name}" }
-              catch { socket.close() }
-            }
-          )
-        }
-      )
-    }
+    log { "${config.id} current config $currentConfig" }
 
-  if (!socket.isConnected) {
-    log { "could not connect to ${device.readableName()}" }
-    return
-  }
+    suspend fun updateConfigIfNeeded(key: Int, value: Int) {
+      // format key and value to match the minirig format
+      var finalKey = key.toString()
+      if (finalKey.length == 1)
+        finalKey = "0$finalKey"
 
-  log { "connected to ${device.readableName()}" }
+      var finalValue = value.toString()
+      if (finalValue.length == 1)
+        finalValue = "0$finalValue"
 
-  log { "${config.id} apply config $config" }
-
-  guarantee(
-    block = {
-      val currentConfig = socket.readMinirigConfig()
-
-      log { "${config.id} current config $currentConfig" }
-
-      suspend fun updateConfigIfNeeded(key: Int, value: Int) {
-        // format key and value to match the minirig format
-        var finalKey = key.toString()
-        if (finalKey.length == 1)
-          finalKey = "0$finalKey"
-
-        var finalValue = value.toString()
-        if (finalValue.length == 1)
-          finalValue = "0$finalValue"
-
-        // only write if the value has changed
-        if (currentConfig[key] != value) {
-          log { "${device.readableName()} update $finalKey -> $finalValue" }
-          socket.outputStream.write("q p $finalKey $finalValue".toByteArray())
-          // the minirig cannot keep with our speed to debounce each write
-          delay(100)
-        }
+      // only write if the value has changed
+      if (currentConfig[key] != value) {
+        log { "${socket.remoteDevice.readableName()} update $finalKey -> $finalValue" }
+        socket.outputStream.write("q p $finalKey $finalValue".toByteArray())
+        // the minirig cannot keep with our speed to debounce each write
+        delay(100)
       }
-
-      updateConfigIfNeeded(
-        8,
-        // > 30 means mutes the minirig
-        if (config.gain == 0f) 31
-        // minirig value range is 0..30 and 30 means lowest gain
-        else (30 * (1f - config.gain)).toInt()
-      )
-
-      updateConfigIfNeeded(
-        9,
-        // > 10 means mutes the aux device
-        if (config.auxGain == 0f) 11
-        // minirig value range is 0..10 and 10 means highest gain
-        else (10 * config.auxGain).toInt()
-      )
-
-      updateConfigIfNeeded(1, (config.band1 * 99).toInt())
-      updateConfigIfNeeded(2, (config.band2 * 99).toInt())
-      updateConfigIfNeeded(3, (config.band3 * 99).toInt())
-      updateConfigIfNeeded(4, (config.band4 * 99).toInt())
-      updateConfigIfNeeded(5, (config.band5 * 99).toInt())
-
-      updateConfigIfNeeded(
-        14,
-        ((1f - config.channel) * 99).toInt()
-      )
-
-      updateConfigIfNeeded(
-        15,
-        ((1f - config.auxChannel) * 99).toInt()
-      )
-
-      updateConfigIfNeeded(
-        7,
-        // everything above 7 sounds not healthy
-        (7 * config.bassGain).toInt()
-      )
-
-      updateConfigIfNeeded(
-        12,
-        if (config.loud) 1 else 0
-      )
-    },
-    finalizer = {
-      log { "disconnect from ${device.readableName()}" }
-      catch { socket.close() }
     }
-  )
+
+    updateConfigIfNeeded(
+      8,
+      // > 30 means mutes the minirig
+      if (config.gain == 0f) 31
+      // minirig value range is 0..30 and 30 means lowest gain
+      else (30 * (1f - config.gain)).toInt()
+    )
+
+    updateConfigIfNeeded(
+      9,
+      // > 10 means mutes the aux device
+      if (config.auxGain == 0f) 11
+      // minirig value range is 0..10 and 10 means highest gain
+      else (10 * config.auxGain).toInt()
+    )
+
+    updateConfigIfNeeded(1, (config.band1 * 99).toInt())
+    updateConfigIfNeeded(2, (config.band2 * 99).toInt())
+    updateConfigIfNeeded(3, (config.band3 * 99).toInt())
+    updateConfigIfNeeded(4, (config.band4 * 99).toInt())
+    updateConfigIfNeeded(5, (config.band5 * 99).toInt())
+
+    updateConfigIfNeeded(
+      14,
+      ((1f - config.channel) * 99).toInt()
+    )
+
+    updateConfigIfNeeded(
+      15,
+      ((1f - config.auxChannel) * 99).toInt()
+    )
+
+    updateConfigIfNeeded(
+      7,
+      // everything above 7 sounds not healthy
+      (7 * config.bassGain).toInt()
+    )
+
+    updateConfigIfNeeded(
+      12,
+      if (config.loud) 1 else 0
+    )
+  }
 }
 
 private suspend fun BluetoothSocket.readMinirigConfig(@Inject L: Logger): Map<Int, Int> {
@@ -232,6 +176,6 @@ private suspend fun BluetoothSocket.readMinirigStatus(@Inject L: Logger) {
   }
 }
 
-private fun BluetoothDevice.readableName() = "[$name ~ $address]"
+fun BluetoothDevice.readableName() = "[$name ~ $address]"
 
 private fun Minirig.readableName() = "[$name ~ $address]"
