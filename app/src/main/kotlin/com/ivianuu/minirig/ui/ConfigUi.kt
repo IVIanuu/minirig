@@ -97,6 +97,24 @@ data class ConfigKey(val id: String) : Key<Unit>
 
       item {
         FloatSliderListItem(
+          value = model.bassGain,
+          onValueChange = model.updateBassGain,
+          title = { Text("Bass gain") },
+          stepPolicy = incrementingStepPolicy(0.05f),
+          valueText = { ScaledPercentageUnitText(it) }
+        )
+      }
+
+      item {
+        SwitchListItem(
+          value = model.loud,
+          onValueChange = model.updateLoud,
+          title = { Text("Loud") }
+        )
+      }
+
+      item {
+        FloatSliderListItem(
           value = model.gain,
           onValueChange = model.updateGain,
           title = { Text("Gain") },
@@ -110,16 +128,6 @@ data class ConfigKey(val id: String) : Key<Unit>
           value = model.auxGain,
           onValueChange = model.updateAuxGain,
           title = { Text("Aux gain") },
-          stepPolicy = incrementingStepPolicy(0.05f),
-          valueText = { ScaledPercentageUnitText(it) }
-        )
-      }
-
-      item {
-        FloatSliderListItem(
-          value = model.bassGain,
-          onValueChange = model.updateBassGain,
-          title = { Text("Bass gain") },
           stepPolicy = incrementingStepPolicy(0.05f),
           valueText = { ScaledPercentageUnitText(it) }
         )
@@ -160,12 +168,14 @@ data class ConfigModel(
   val updateBand4: (Float) -> Unit,
   val band5: Float,
   val updateBand5: (Float) -> Unit,
+  val bassGain: Float,
+  val updateBassGain: (Float) -> Unit,
+  val loud: Boolean,
+  val updateLoud: (Boolean) -> Unit,
   val gain: Float,
   val updateGain: (Float) -> Unit,
   val auxGain: Float,
   val updateAuxGain: (Float) -> Unit,
-  val bassGain: Float,
-  val updateBassGain: (Float) -> Unit,
   val channel: Float,
   val updateChannel: (Float) -> Unit,
   val auxChannel: Float,
@@ -205,6 +215,14 @@ data class ConfigModel(
     updateBand5 = action { value ->
       repository.updateConfig(config.get()!!.copy(band5 = value))
     },
+    bassGain = config.map { it?.bassGain }.getOrNull() ?: 0f,
+    updateBassGain = action { value ->
+      repository.updateConfig(config.get()!!.copy(bassGain = value))
+    },
+    loud = config.map { it?.loud }.getOrNull() ?: false,
+    updateLoud = action { value ->
+      repository.updateConfig(config.get()!!.copy(loud = value))
+    },
     gain = config.map { it?.gain }.getOrNull() ?: 0f,
     updateGain = action { value ->
       repository.updateConfig(config.get()!!.copy(gain = value))
@@ -212,10 +230,6 @@ data class ConfigModel(
     auxGain = config.map { it?.auxGain }.getOrNull() ?: 0f,
     updateAuxGain = action { value ->
       repository.updateConfig(config.get()!!.copy(auxGain = value))
-    },
-    bassGain = config.map { it?.bassGain }.getOrNull() ?: 0f,
-    updateBassGain = action { value ->
-      repository.updateConfig(config.get()!!.copy(bassGain = value))
     },
     channel = config.map { it?.channel }.getOrNull() ?: 0f,
     updateChannel = action { value ->

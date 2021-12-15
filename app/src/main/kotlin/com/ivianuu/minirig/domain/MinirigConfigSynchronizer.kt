@@ -39,7 +39,7 @@ import kotlin.coroutines.*
           }
       ) { it.toList() }
     }
-    .collect { configs ->
+    .collectLatest { configs ->
       withContext(context) {
         configs
           .filter { it.second?.id?.isMinirigAddress() == true }
@@ -64,12 +64,52 @@ private suspend fun applyConfig(
   val device = bluetoothManager.adapter.bondedDevices.firstOrNull {
     it.address == config.id
   }!!
+
+  if (!device.javaClass.getDeclaredMethod("isConnected").invoke(device).cast<Boolean>()) {
+    log { "skip not connected device ${device.readableName()}" }
+    return
+  }
+
   val socket = device.createRfcommSocketToServiceRecord(CLIENT_ID)
     .also { socket ->
-      log { "connect to ${device.readableName()}" }
-      socket.connect()
-      log { "connected to ${device.readableName()} ${socket.isConnected}" }
+      val connectComplete = CompletableDeferred<Unit>()
+      par(
+        {
+          log { "connect ${device.readableName()} on ${Thread.currentThread().name}" }
+          try {
+            var attempt = 0
+            while (attempt < 5) {
+              try {
+                socket.connect()
+                if (socket.isConnected) break
+              } catch (e: Throwable) {
+                e.nonFatalOrThrow()
+                attempt++
+                delay(1000)
+              }
+            }
+          } finally {
+            connectComplete.complete(Unit)
+          }
+        },
+        {
+          onCancel(
+            block = { connectComplete.await() },
+            onCancel = {
+              log { "cancel connect ${device.readableName()} on ${Thread.currentThread().name}" }
+              catch { socket.close() }
+            }
+          )
+        }
+      )
     }
+
+  if (!socket.isConnected) {
+    log { "could not connect to ${device.readableName()}" }
+    return
+  }
+
+  log { "connected to ${device.readableName()}" }
 
   log { "${config.id} apply config $config" }
 
@@ -121,12 +161,6 @@ private suspend fun applyConfig(
       updateConfigIfNeeded(5, (config.band5 * 99).toInt())
 
       updateConfigIfNeeded(
-        7,
-        // everything above 7 sounds not healthy
-        (7 * config.bassGain).toInt()
-      )
-
-      updateConfigIfNeeded(
         14,
         ((1f - config.channel) * 99).toInt()
       )
@@ -134,6 +168,17 @@ private suspend fun applyConfig(
       updateConfigIfNeeded(
         15,
         ((1f - config.auxChannel) * 99).toInt()
+      )
+
+      updateConfigIfNeeded(
+        7,
+        // everything above 7 sounds not healthy
+        (7 * config.bassGain).toInt()
+      )
+
+      updateConfigIfNeeded(
+        12,
+        if (config.loud) 1 else 0
       )
     },
     finalizer = {

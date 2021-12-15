@@ -14,9 +14,10 @@ import kotlinx.serialization.*
   val band3: Float = 0.5f,
   val band4: Float = 0.5f,
   val band5: Float = 0.5f,
+  val bassGain: Float = 1f,
+  val loud: Boolean = false,
   val gain: Float = 0.5f,
   val auxGain: Float = 0.5f,
-  val bassGain: Float = 1f,
   val channel: Float = 0.5f,
   val auxChannel: Float = 0.5f
 )
