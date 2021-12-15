@@ -134,7 +134,7 @@ private suspend fun applyConfig(
           log { "${device.readableName()} update $finalKey -> $finalValue" }
           socket.outputStream.write("q p $finalKey $finalValue".toByteArray())
           // the minirig cannot keep with our speed to debounce each write
-          delay(200)
+          delay(100)
         }
       }
 

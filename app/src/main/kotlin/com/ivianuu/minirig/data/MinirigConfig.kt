@@ -21,3 +21,24 @@ import kotlinx.serialization.*
   val channel: Float = 0.5f,
   val auxChannel: Float = 0.5f
 )
+
+fun MinirigConfig.apply(other: MinirigConfig) = other.copy(id = id)
+
+fun MinirigConfig.applyEq(other: MinirigConfig) = other.copy(
+  id = id,
+  bassGain = bassGain,
+  loud = loud,
+  gain = gain,
+  auxGain = auxGain,
+  channel = channel,
+  auxChannel = auxChannel
+)
+
+fun MinirigConfig.applyGain(other: MinirigConfig) = other.copy(
+  id = id,
+  band1 = band1,
+  band2 = band2,
+  band3 = band3,
+  band4 = band4,
+  band5 = band5
+)

@@ -20,6 +20,7 @@ import com.ivianuu.essentials.ui.popup.*
 import com.ivianuu.essentials.ui.resource.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.coroutines.*
+import com.ivianuu.minirig.data.*
 import com.ivianuu.minirig.domain.*
 import kotlinx.coroutines.flow.*
 
@@ -35,7 +36,13 @@ fun interface MinirigsUi : @Composable () -> Unit
           PopupMenuButton(
             items = listOf(
               PopupMenu.Item(onSelected = model.applyConfigToAll) {
-                Text("Apply to all")
+                Text("Apply config to all")
+              },
+              PopupMenu.Item(onSelected = model.applyEqToAll) {
+                Text("Apply equalizer to all")
+              },
+              PopupMenu.Item(onSelected = model.applyGainToAll) {
+                Text("Apply gain to all")
               }
             )
           )
@@ -61,7 +68,13 @@ fun interface MinirigsUi : @Composable () -> Unit
           PopupMenuButton(
             items = listOf(
               PopupMenu.Item(onSelected = { model.applyConfig(minirig) }) {
-                Text("Apply")
+                Text("Apply config")
+              },
+              PopupMenu.Item(onSelected = { model.applyEq(minirig) }) {
+                Text("Apply equalizer")
+              },
+              PopupMenu.Item(onSelected = { model.applyGain(minirig) }) {
+                Text("Apply gain")
               }
             )
           )
@@ -75,7 +88,11 @@ data class MinirigsModel(
   val minirigs: Resource<List<Minirig>>,
   val openMinirig: (Minirig) -> Unit,
   val applyConfig: (Minirig) -> Unit,
-  val applyConfigToAll: () -> Unit
+  val applyEq: (Minirig) -> Unit,
+  val applyGain: (Minirig) -> Unit,
+  val applyConfigToAll: () -> Unit,
+  val applyEqToAll: () -> Unit,
+  val applyGainToAll: () -> Unit
 )
 
 @Provide fun minirigsModel(
@@ -83,17 +100,54 @@ data class MinirigsModel(
   repository: MinirigRepository,
   S: NamedCoroutineScope<KeyUiScope>
 ) = state {
+  suspend fun apply(id: String, transform: MinirigConfig.() -> MinirigConfig) {
+    val minirigConfig = repository.config(id).first()!!
+    repository.updateConfig(minirigConfig.transform())
+  }
+
+  suspend fun apply(id: String, other: MinirigConfig) {
+    apply(id) { apply(other) }
+  }
+
+  suspend fun applyEq(id: String, other: MinirigConfig) {
+    apply(id) { applyEq(other) }
+  }
+
+  suspend fun applyGain(id: String, other: MinirigConfig) {
+    apply(id) { applyGain(other) }
+  }
+
   MinirigsModel(
     minirigs = repository.minirigs.bindResource(),
     openMinirig = action { minirig -> navigator.push(ConfigKey(minirig.address)) },
     applyConfig = action { minirig ->
       val config = navigator.push(ConfigPickerKey) ?: return@action
-      repository.updateConfig(config.copy(id = minirig.address))
+      apply(minirig.address, config)
     },
     applyConfigToAll = action {
       val config = navigator.push(ConfigPickerKey) ?: return@action
       repository.minirigs.first().forEach { minirig ->
-        repository.updateConfig(config.copy(id = minirig.address))
+        apply(minirig.address, config)
+      }
+    },
+    applyEq = action { minirig ->
+      val eqConfig = navigator.push(ConfigPickerKey) ?: return@action
+      applyEq(minirig.address, eqConfig)
+    },
+    applyEqToAll = action {
+      val eqConfig = navigator.push(ConfigPickerKey) ?: return@action
+      repository.minirigs.first().forEach { minirig ->
+        applyEq(minirig.address, eqConfig)
+      }
+    },
+    applyGain = action { minirig ->
+      val gainConfig = navigator.push(ConfigPickerKey) ?: return@action
+      applyGain(minirig.address, gainConfig)
+    },
+    applyGainToAll = action {
+      val gainConfig = navigator.push(ConfigPickerKey) ?: return@action
+      repository.minirigs.first().forEach { minirig ->
+        applyGain(minirig.address, gainConfig)
       }
     }
   )
