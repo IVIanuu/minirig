@@ -25,7 +25,7 @@ fun Minirig.readableName() = "[$name ~ $address]"
   val band3: Float = 0.5f,
   val band4: Float = 0.5f,
   val band5: Float = 0.5f,
-  val bassGain: Float = 1f,
+  val bassBoost: Float = 0.7f,
   val loud: Boolean = false,
   val gain: Float = 0.5f,
   val auxGain: Float = 0.5f,
@@ -37,7 +37,7 @@ fun MinirigConfig.apply(other: MinirigConfig) = other.copy(id = id)
 
 fun MinirigConfig.applyEq(other: MinirigConfig) = other.copy(
   id = id,
-  bassGain = bassGain,
+  bassBoost = bassBoost,
   loud = loud,
   gain = gain,
   auxGain = auxGain,

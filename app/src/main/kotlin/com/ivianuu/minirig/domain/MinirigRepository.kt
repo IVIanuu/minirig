@@ -5,6 +5,7 @@
 package com.ivianuu.minirig.domain
 
 import android.bluetooth.*
+import com.ivianuu.essentials.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
 import com.ivianuu.injekt.*
@@ -68,7 +69,7 @@ import kotlinx.coroutines.flow.*
           },
           {
             while (currentCoroutineContext().isActive) {
-              send("BGET_BATTERY")
+              catch { send("BGET_BATTERY") }
               delay(5000)
             }
           }
@@ -78,25 +79,16 @@ import kotlinx.coroutines.flow.*
     .distinctUntilChanged()
 }
 
-private fun Int.toBatteryPercentage(): Float {
-  // todo wtf is this
-  val old = when {
-    this < 10300 -> 0.01f
-    this in 10300..10549 -> 0.1f
-    this in 10550..10699 -> 0.2f
-    this in 10700..10799 -> 0.3f
-    this in 10800..10899 -> 0.4f
-    this in 10900..11099 -> 0.5f
-    this in 11100..11349 -> 0.6f
-    this in 11350..11699 -> 0.7f
-    this in 11700..11999 -> 0.8f
-    this in 12000..12299 -> 0.9f
-    else -> 1f
-  }
-
-  val new = ((this - 10300) * 100) / (12300 - 10300)
-
-  // println("old $old new $new for $this")
-
-  return old
+private fun Int.toBatteryPercentage(): Float = when {
+  this < 10300 -> 0.01f
+  this in 10300..10549 -> 0.1f
+  this in 10550..10699 -> 0.2f
+  this in 10700..10799 -> 0.3f
+  this in 10800..10899 -> 0.4f
+  this in 10900..11099 -> 0.5f
+  this in 11100..11349 -> 0.6f
+  this in 11350..11699 -> 0.7f
+  this in 11700..11999 -> 0.8f
+  this in 12000..12299 -> 0.9f
+  else -> 1f
 }

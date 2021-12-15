@@ -102,9 +102,9 @@ data class ConfigKey(val id: String) : Key<Unit>
 
       item {
         FloatSliderListItem(
-          value = model.bassGain,
-          onValueChange = model.updateBassGain,
-          title = { Text("Bass gain") },
+          value = model.bassBoost,
+          onValueChange = model.updateBassBoost,
+          title = { Text("Bass boost") },
           stepPolicy = incrementingStepPolicy(0.05f),
           valueText = { ScaledPercentageUnitText(it) }
         )
@@ -196,8 +196,8 @@ data class ConfigModel(
   val updateBand4: (Float) -> Unit,
   val band5: Float,
   val updateBand5: (Float) -> Unit,
-  val bassGain: Float,
-  val updateBassGain: (Float) -> Unit,
+  val bassBoost: Float,
+  val updateBassBoost: (Float) -> Unit,
   val loud: Boolean,
   val updateLoud: (Boolean) -> Unit,
   val gain: Float,
@@ -245,9 +245,9 @@ data class ConfigModel(
     updateBand5 = action { value ->
       configRepository.updateConfig(config.get()?.copy(band5 = value) ?: return@action)
     },
-    bassGain = config.map { it?.bassGain }.getOrNull() ?: 0f,
-    updateBassGain = action { value ->
-      configRepository.updateConfig(config.get()?.copy(bassGain = value) ?: return@action)
+    bassBoost = config.map { it?.bassBoost }.getOrNull() ?: 0f,
+    updateBassBoost = action { value ->
+      configRepository.updateConfig(config.get()?.copy(bassBoost = value) ?: return@action)
     },
     loud = config.map { it?.loud }.getOrNull() ?: false,
     updateLoud = action { value ->
