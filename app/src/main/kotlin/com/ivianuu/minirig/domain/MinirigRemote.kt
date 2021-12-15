@@ -30,6 +30,7 @@ import java.util.*
   private val L: Logger
 ) {
   private val sockets = RefCountedResource<String, MinirigSocket>(
+    timeout = 2.seconds,
     create = { address ->
       MinirigSocket(address)
     },
@@ -57,17 +58,7 @@ import java.util.*
     block: suspend MinirigSocket.() -> R
   ): R? = withContext(context) {
     if (!address.isConnected()) null
-    else {
-      val socket = sockets.acquire(address)
-      try {
-        block(socket)
-      } finally {
-        scope.launch {
-          delay(2000)
-          sockets.release(address)
-        }
-      }
-    }
+    else sockets.withResource(address, block)
   }
 
   fun bondedDeviceChanges() = broadcastsFactory(

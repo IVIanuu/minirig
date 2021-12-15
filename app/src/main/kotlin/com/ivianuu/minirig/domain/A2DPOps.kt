@@ -8,6 +8,7 @@ import android.bluetooth.*
 import com.ivianuu.essentials.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
+import com.ivianuu.essentials.time.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
 import com.ivianuu.injekt.common.*
@@ -23,6 +24,7 @@ import kotlin.coroutines.*
   private val scope: NamedCoroutineScope<AppScope>
 ) {
   private val proxy = RefCountedResource<Unit, BluetoothA2dp>(
+    timeout = 2.seconds,
     create = {
       log { "acquire proxy" }
       suspendCancellableCoroutine { cont ->
@@ -49,15 +51,5 @@ import kotlin.coroutines.*
   )
 
   suspend fun <R> withProxy(block: suspend BluetoothA2dp.() -> R): R? =
-    withContext(ioContext) {
-      try {
-        val proxy = proxy.acquire(Unit)
-        block(proxy)
-      } finally {
-        scope.launch {
-          delay(2000)
-          proxy.release(Unit)
-        }
-      }
-    }
+    withContext(ioContext) { proxy.withResource(Unit, block) }
 }

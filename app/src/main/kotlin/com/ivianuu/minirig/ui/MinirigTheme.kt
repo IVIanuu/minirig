@@ -13,8 +13,8 @@ import com.ivianuu.essentials.ui.material.*
 import com.ivianuu.injekt.*
 
 object MinirigTheme {
-  val Primary = Color(0xFF5F27CD)
-  val Secondary = Color(0xFFFF6B6B)
+  val Primary = Color(0xFF222F3E)
+  val Secondary = Color(0xFFFF9F43)
 }
 
 @Provide fun minirigTheme(RP: ResourceProvider) = AppTheme { content ->

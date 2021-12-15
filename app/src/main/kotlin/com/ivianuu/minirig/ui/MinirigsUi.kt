@@ -226,7 +226,12 @@ data class MinirigsModel(
     addresses: Collection<String>,
     transform: MinirigConfig.(MinirigConfig) -> MinirigConfig
   ) {
-    val pickedConfig = navigator.push(ConfigPickerKey) ?: return
+    val configs = configRepository.configs
+      .first()
+      .filter { !it.id.isMinirigAddress() }
+
+    val pickedConfig = navigator.push(ConfigPickerKey(configs)) ?: return
+
     for (address in addresses) {
       val minirigConfig = configRepository.config(address).first()!!
       configRepository.updateConfig(minirigConfig.transform(pickedConfig))
@@ -287,9 +292,13 @@ data class MinirigsModel(
     joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },
     cancelLinkup = action { minirig -> linkupUseCases.cancelLinkup(minirig.address) },
     startLinkupWithSelected = action {
-      val hostAddress = navigator.push(MinirigPickerKey(selectedMinirigs.toList()))
+      val pickerMinirigs = selectedMinirigs
+        .parMap { minirigRepository.minirig(it).first()!! }
+
+      val host = navigator.push(MinirigPickerKey(pickerMinirigs))
         ?: return@action
-      linkupUseCases.startLinkup(hostAddress, selectedMinirigs.filterNot { it == hostAddress })
+
+      linkupUseCases.startLinkup(host.address, selectedMinirigs.filterNot { it == host.address })
     },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
     rename = action { minirig ->
