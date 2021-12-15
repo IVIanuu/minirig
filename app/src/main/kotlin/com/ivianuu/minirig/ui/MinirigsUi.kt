@@ -4,11 +4,16 @@
 
 package com.ivianuu.minirig.ui
 
+import android.bluetooth.*
+import android.media.*
+import android.media.session.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
+import com.ivianuu.essentials.*
+import com.ivianuu.essentials.logging.*
 import com.ivianuu.essentials.resource.*
 import com.ivianuu.essentials.state.*
 import com.ivianuu.essentials.ui.layout.*
@@ -19,6 +24,7 @@ import com.ivianuu.essentials.ui.navigation.*
 import com.ivianuu.essentials.ui.popup.*
 import com.ivianuu.essentials.ui.resource.*
 import com.ivianuu.injekt.*
+import com.ivianuu.injekt.android.*
 import com.ivianuu.injekt.coroutines.*
 import com.ivianuu.minirig.data.*
 import com.ivianuu.minirig.domain.*
@@ -76,6 +82,9 @@ fun interface MinirigsUi : @Composable () -> Unit
               },
               PopupMenu.Item(onSelected = { model.applyGain(minirig) }) {
                 Text("Apply gain")
+              },
+              PopupMenu.Item(onSelected = { model.setAsOutputDevice(minirig) }) {
+                Text("Set as output device")
               }
             )
           )
@@ -93,13 +102,15 @@ data class MinirigsModel(
   val applyGain: (Minirig) -> Unit,
   val applyConfigToAll: () -> Unit,
   val applyEqToAll: () -> Unit,
-  val applyGainToAll: () -> Unit
+  val applyGainToAll: () -> Unit,
+  val setAsOutputDevice: (Minirig) -> Unit
 )
 
 @Provide fun minirigsModel(
   navigator: Navigator,
   repository: MinirigRepository,
-  S: NamedCoroutineScope<KeyUiScope>
+  S: NamedCoroutineScope<KeyUiScope>,
+  setOutputDevice: SetOutputDeviceUseCase
 ) = state {
   suspend fun apply(id: String, transform: MinirigConfig.() -> MinirigConfig) {
     val minirigConfig = repository.config(id).first()!!
@@ -150,6 +161,7 @@ data class MinirigsModel(
       repository.minirigs.first().forEach { minirig ->
         applyGain(minirig.address, gainConfig)
       }
-    }
+    },
+    setAsOutputDevice = action { minirig -> setOutputDevice(minirig.address) }
   )
 }

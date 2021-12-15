@@ -40,8 +40,8 @@ import java.util.*
   fun minirig(address: String): Flow<Minirig?> = bondedDeviceChanges()
     .onStart<Any> { emit(Unit) }
     .map {
-      bluetoothManager.adapter?.bondedDevices
-        ?.singleOrNull { it.address == address }
+      bluetoothManager.adapter
+        ?.getRemoteDevice(address)
         ?.toMinirig()
     }
 
