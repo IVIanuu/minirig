@@ -11,6 +11,8 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material.*
+import androidx.compose.material.icons.*
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.*
@@ -20,6 +22,9 @@ import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
 import com.ivianuu.essentials.resource.*
 import com.ivianuu.essentials.state.*
+import com.ivianuu.essentials.ui.animation.*
+import com.ivianuu.essentials.ui.backpress.*
+import com.ivianuu.essentials.ui.common.*
 import com.ivianuu.essentials.ui.layout.*
 import com.ivianuu.essentials.ui.material.*
 import com.ivianuu.essentials.ui.material.Scaffold
@@ -30,6 +35,7 @@ import com.ivianuu.essentials.ui.resource.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
 import com.ivianuu.injekt.coroutines.*
+import com.ivianuu.minirig.R
 import com.ivianuu.minirig.data.*
 import com.ivianuu.minirig.domain.*
 import kotlinx.coroutines.*
@@ -39,26 +45,45 @@ fun interface MinirigsUi : @Composable () -> Unit
 
 @Provide fun minirigsUi(models: StateFlow<MinirigsModel>) = MinirigsUi {
   val model by models.collectAsState()
+
+  if (model.isSelectionMode)
+    BackHandler(model.deselectAll)
+
   Scaffold(
     topBar = {
-      TopAppBar(
-        title = { Text("Minirig") },
-        actions = {
-          PopupMenuButton(
-            items = listOf(
-              PopupMenu.Item(onSelected = model.applyConfigToAll) {
-                Text("Apply config to all")
-              },
-              PopupMenu.Item(onSelected = model.applyEqToAll) {
-                Text("Apply equalizer to all")
-              },
-              PopupMenu.Item(onSelected = model.applyGainToAll) {
-                Text("Apply gain to all")
+      AnimatedBox(model.isSelectionMode) { currentSelectionMode ->
+        if (currentSelectionMode) {
+          TopAppBar(
+            leading = {
+              IconButton(onClick = model.deselectAll) {
+                Icon(Icons.Default.Clear)
               }
-            )
+            },
+            title = { Spacer(Modifier.fillMaxWidth()) },
+            actions = {
+              IconButton(onClick = model.selectAll) {
+                Icon(R.drawable.ic_select_all)
+              }
+
+              PopupMenuButton(
+                items = listOf(
+                  PopupMenu.Item(onSelected = model.applyConfigToSelected) {
+                    Text("Apply config")
+                  },
+                  PopupMenu.Item(onSelected = model.applyEqToSelected) {
+                    Text("Apply equalizer")
+                  },
+                  PopupMenu.Item(onSelected = model.applyGainToSelected) {
+                    Text("Apply gain")
+                  }
+                )
+              )
+            }
           )
+        } else {
+          TopAppBar(title = { Text("Minirig") })
         }
-      )
+      }
     }
   ) {
     ResourceVerticalListFor(
@@ -73,7 +98,18 @@ fun interface MinirigsUi : @Composable () -> Unit
       }
     ) { minirig ->
       ListItem(
-        modifier = Modifier.clickable { model.openMinirig(minirig) },
+        modifier = Modifier
+          .combinedClickable(
+            onClick = {
+              if (model.isSelectionMode) model.toggleSelectMinirig(minirig)
+              else model.openMinirig(minirig)
+            },
+            onLongClick = { model.toggleSelectMinirig(minirig) }
+          )
+          .background(
+            if (minirig.address in model.selectedMinirigs) LocalContentColor.current.copy(alpha = 0.12f)
+            else Color.Transparent
+          ),
         leading = {
           Box(
             modifier = Modifier
@@ -139,13 +175,17 @@ data class UiMinirig(
 
 data class MinirigsModel(
   val minirigs: Resource<List<UiMinirig>>,
+  val selectedMinirigs: Set<String>,
+  val selectAll: () -> Unit,
+  val deselectAll: () -> Unit,
   val openMinirig: (UiMinirig) -> Unit,
+  val toggleSelectMinirig: (UiMinirig) -> Unit,
   val applyConfig: (UiMinirig) -> Unit,
   val applyEq: (UiMinirig) -> Unit,
   val applyGain: (UiMinirig) -> Unit,
-  val applyConfigToAll: () -> Unit,
-  val applyEqToAll: () -> Unit,
-  val applyGainToAll: () -> Unit,
+  val applyConfigToSelected: () -> Unit,
+  val applyEqToSelected: () -> Unit,
+  val applyGainToSelected: () -> Unit,
   val setAsOutputDevice: (UiMinirig) -> Unit,
   val startLinkup: (UiMinirig) -> Unit,
   val joinLinkup: (UiMinirig) -> Unit,
@@ -154,7 +194,10 @@ data class MinirigsModel(
   val rename: (UiMinirig) -> Unit,
   val clearPairedDevices: (UiMinirig) -> Unit,
   val factoryReset: (UiMinirig) -> Unit
-)
+) {
+  val isSelectionMode: Boolean
+    get() = selectedMinirigs.isNotEmpty()
+}
 
 @Provide fun minirigsModel(
   configRepository: ConfigRepository,
@@ -166,70 +209,59 @@ data class MinirigsModel(
   L: Logger,
   S: NamedCoroutineScope<KeyUiScope>
 ) = state {
-  suspend fun apply(id: String, transform: MinirigConfig.() -> MinirigConfig) {
-    val minirigConfig = configRepository.config(id).first()!!
-    configRepository.updateConfig(minirigConfig.transform())
+  suspend fun apply(
+    addresses: Collection<String>,
+    transform: MinirigConfig.(MinirigConfig) -> MinirigConfig
+  ) {
+    val pickedConfig = navigator.push(ConfigPickerKey) ?: return
+    for (address in addresses) {
+      val minirigConfig = configRepository.config(address).first()!!
+      configRepository.updateConfig(minirigConfig.transform(pickedConfig))
+    }
   }
 
-  suspend fun apply(id: String, other: MinirigConfig) {
-    apply(id) { apply(other) }
-  }
+  suspend fun applyConfig(addresses: Collection<String>) = apply(addresses) { apply(it) }
 
-  suspend fun applyEq(id: String, other: MinirigConfig) {
-    apply(id) { applyEq(other) }
-  }
+  suspend fun applyEq(addresses: Collection<String>) = apply(addresses) { applyEq(it) }
 
-  suspend fun applyGain(id: String, other: MinirigConfig) {
-    apply(id) { applyGain(other) }
-  }
+  suspend fun applyGain(addresses: Collection<String>) = apply(addresses) { applyGain(it) }
+
+  val minirigs = minirigRepository.minirigs
+    .flatMapLatest { minirigs ->
+      if (minirigs.isEmpty()) flowOf(emptyList())
+      else combine(
+        minirigs
+          .map { minirig ->
+            minirigRepository.minirigState(minirig.address)
+              .map {
+                log { "${minirig.readableName()} -> $it" }
+                UiMinirig(minirig.address, minirig.name, it.isConnected)
+              }
+          }
+      ) { it.toList() }
+    }
+    .bindResource()
+
+  var selectedMinirigs by memo { stateVar(emptySet<String>()) }
 
   MinirigsModel(
-    minirigs = minirigRepository.minirigs
-      .flatMapLatest { minirigs ->
-        if (minirigs.isEmpty()) flowOf(emptyList())
-        else combine(
-          minirigs
-            .map { minirig ->
-              minirigRepository.minirigState(minirig.address)
-                .map {
-                  log { "${minirig.readableName()} -> $it" }
-                  UiMinirig(minirig.address, minirig.name, it.isConnected)
-                }
-            }
-        ) { it.toList() }
-      }
-      .bindResource(),
+    minirigs = minirigs,
+    selectedMinirigs = selectedMinirigs,
+    selectAll = {
+      minirigs.getOrNull()?.forEach { selectedMinirigs = selectedMinirigs + it.address }
+    },
+    deselectAll = { selectedMinirigs = emptySet() },
+    toggleSelectMinirig = {
+      selectedMinirigs = if (it.address !in selectedMinirigs) selectedMinirigs + it.address
+      else selectedMinirigs - it.address
+    },
     openMinirig = action { minirig -> navigator.push(ConfigKey(minirig.address)) },
-    applyConfig = action { minirig ->
-      val config = navigator.push(ConfigPickerKey) ?: return@action
-      apply(minirig.address, config)
-    },
-    applyConfigToAll = action {
-      val config = navigator.push(ConfigPickerKey) ?: return@action
-      minirigRepository.minirigs.first().forEach { minirig ->
-        apply(minirig.address, config)
-      }
-    },
-    applyEq = action { minirig ->
-      val eqConfig = navigator.push(ConfigPickerKey) ?: return@action
-      applyEq(minirig.address, eqConfig)
-    },
-    applyEqToAll = action {
-      val eqConfig = navigator.push(ConfigPickerKey) ?: return@action
-      minirigRepository.minirigs.first().forEach { minirig ->
-        applyEq(minirig.address, eqConfig)
-      }
-    },
-    applyGain = action { minirig ->
-      val gainConfig = navigator.push(ConfigPickerKey) ?: return@action
-      applyGain(minirig.address, gainConfig)
-    },
-    applyGainToAll = action {
-      val gainConfig = navigator.push(ConfigPickerKey) ?: return@action
-      minirigRepository.minirigs.first().forEach { minirig ->
-        applyGain(minirig.address, gainConfig)
-      }
-    },
+    applyConfig = action { minirig -> applyConfig(listOf(minirig.address)) },
+    applyConfigToSelected = action { applyConfig(selectedMinirigs) },
+    applyEq = action { minirig -> applyEq(listOf(minirig.address)) },
+    applyEqToSelected = action { applyEq(selectedMinirigs) },
+    applyGain = action { minirig -> applyGain(listOf(minirig.address)) },
+    applyGainToSelected = action { applyGain(selectedMinirigs) },
     setAsOutputDevice = action { minirig -> setOutputDevice(minirig.address) },
     startLinkup = action { minirig -> linkupUseCases.startLinkup(minirig.address) },
     joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },
