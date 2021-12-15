@@ -16,6 +16,7 @@ import androidx.compose.ui.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.unit.*
 import com.ivianuu.essentials.*
+import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
 import com.ivianuu.essentials.resource.*
 import com.ivianuu.essentials.state.*
@@ -158,10 +159,11 @@ data class MinirigsModel(
 @Provide fun minirigsModel(
   configRepository: ConfigRepository,
   linkupUseCases: LinkupUseCases,
+  minirigRepository: MinirigRepository,
   navigator: Navigator,
-  remote: MinirigRemote,
   setOutputDevice: SetOutputDeviceUseCase,
   troubleshootingUseCases: TroubleshootingUseCases,
+  L: Logger,
   S: NamedCoroutineScope<KeyUiScope>
 ) = state {
   suspend fun apply(id: String, transform: MinirigConfig.() -> MinirigConfig) {
@@ -182,15 +184,16 @@ data class MinirigsModel(
   }
 
   MinirigsModel(
-    minirigs = remote.minirigs
+    minirigs = minirigRepository.minirigs
       .flatMapLatest { minirigs ->
         if (minirigs.isEmpty()) flowOf(emptyList())
         else combine(
           minirigs
             .map { minirig ->
-              remote.isConnected(minirig.address)
+              minirigRepository.minirigState(minirig.address)
                 .map {
-                  UiMinirig(minirig.address, minirig.name, it)
+                  log { "${minirig.readableName()} -> $it" }
+                  UiMinirig(minirig.address, minirig.name, it.isConnected)
                 }
             }
         ) { it.toList() }
@@ -203,7 +206,7 @@ data class MinirigsModel(
     },
     applyConfigToAll = action {
       val config = navigator.push(ConfigPickerKey) ?: return@action
-      remote.minirigs.first().forEach { minirig ->
+      minirigRepository.minirigs.first().forEach { minirig ->
         apply(minirig.address, config)
       }
     },
@@ -213,7 +216,7 @@ data class MinirigsModel(
     },
     applyEqToAll = action {
       val eqConfig = navigator.push(ConfigPickerKey) ?: return@action
-      remote.minirigs.first().forEach { minirig ->
+      minirigRepository.minirigs.first().forEach { minirig ->
         applyEq(minirig.address, eqConfig)
       }
     },
@@ -223,7 +226,7 @@ data class MinirigsModel(
     },
     applyGainToAll = action {
       val gainConfig = navigator.push(ConfigPickerKey) ?: return@action
-      remote.minirigs.first().forEach { minirig ->
+      minirigRepository.minirigs.first().forEach { minirig ->
         applyGain(minirig.address, gainConfig)
       }
     },

@@ -53,3 +53,8 @@ fun MinirigConfig.applyGain(other: MinirigConfig) = other.copy(
   band4 = band4,
   band5 = band5
 )
+
+data class MinirigState(
+  val isConnected: Boolean = false,
+  val batteryPercentage: Float = 0f
+)

@@ -213,64 +213,65 @@ data class ConfigModel(
 
 @Provide fun configModel(
   key: ConfigKey,
+  configRepository: ConfigRepository,
+  minirigRepository: MinirigRepository,
   navigator: Navigator,
   remote: MinirigRemote,
-  repository: ConfigRepository,
   SS: StateScope
 ): ConfigModel {
-  val config = repository.config(key.id).bindResource()
+  val config = configRepository.config(key.id).bindResource()
   return ConfigModel(
     name = if (!key.id.isMinirigAddress()) key.id
-    else remote.minirig(key.id)
+    else minirigRepository.minirig(key.id)
       .map { it?.name ?: key.id }
       .bind(key.id),
     band1 = config.map { it?.band1 }.getOrNull() ?: 0f,
     updateBand1 = action { value ->
-      repository.updateConfig(config.get()?.copy(band1 = value) ?: return@action)
+      configRepository.updateConfig(config.get()?.copy(band1 = value) ?: return@action)
     },
     band2 = config.map { it?.band2 }.getOrNull() ?: 0f,
     updateBand2 = action { value ->
-      repository.updateConfig(config.get()?.copy(band2 = value) ?: return@action)
+      configRepository.updateConfig(config.get()?.copy(band2 = value) ?: return@action)
     },
     band3 = config.map { it?.band3 }.getOrNull() ?: 0f,
     updateBand3 = action { value ->
-      repository.updateConfig(config.get()?.copy(band3 = value) ?: return@action)
+      configRepository.updateConfig(config.get()?.copy(band3 = value) ?: return@action)
     },
     band4 = config.map { it?.band4 }.getOrNull() ?: 0f,
     updateBand4 = action { value ->
-      repository.updateConfig(config.get()?.copy(band4 = value) ?: return@action)
+      configRepository.updateConfig(config.get()?.copy(band4 = value) ?: return@action)
     },
     band5 = config.map { it?.band5 }.getOrNull() ?: 0f,
     updateBand5 = action { value ->
-      repository.updateConfig(config.get()?.copy(band5 = value) ?: return@action)
+      configRepository.updateConfig(config.get()?.copy(band5 = value) ?: return@action)
     },
     bassGain = config.map { it?.bassGain }.getOrNull() ?: 0f,
     updateBassGain = action { value ->
-      repository.updateConfig(config.get()?.copy(bassGain = value) ?: return@action)
+      configRepository.updateConfig(config.get()?.copy(bassGain = value) ?: return@action)
     },
     loud = config.map { it?.loud }.getOrNull() ?: false,
     updateLoud = action { value ->
-      repository.updateConfig(config.get()?.copy(loud = value) ?: return@action)
+      configRepository.updateConfig(config.get()?.copy(loud = value) ?: return@action)
     },
     gain = config.map { it?.gain }.getOrNull() ?: 0f,
     updateGain = action { value ->
-      repository.updateConfig(config.get()?.copy(gain = value) ?: return@action)
+      configRepository.updateConfig(config.get()?.copy(gain = value) ?: return@action)
     },
     auxGain = config.map { it?.auxGain }.getOrNull() ?: 0f,
     updateAuxGain = action { value ->
-      repository.updateConfig(config.get()?.copy(auxGain = value) ?: return@action)
+      configRepository.updateConfig(config.get()?.copy(auxGain = value) ?: return@action)
     },
     channel = config.map { it?.channel }.getOrNull() ?: 0f,
     updateChannel = action { value ->
-      repository.updateConfig(config.get()?.copy(channel = value) ?: return@action)
+      configRepository.updateConfig(config.get()?.copy(channel = value) ?: return@action)
     },
     auxChannel = config.map { it?.auxChannel }.getOrNull() ?: 0f,
     updateAuxChannel = action { value ->
-      repository.updateConfig(config.get()?.copy(auxChannel = value) ?: return@action)
+      configRepository.updateConfig(config.get()?.copy(auxChannel = value) ?: return@action)
     },
     saveAs = action {
       val id = navigator.push(ConfigIdPickerKey()) ?: return@action
-      repository.updateConfig(config.get()?.copy(id = id) ?: return@action)
+      configRepository.updateConfig(config.get()?.copy(id = id) ?: return@action)
     }
   )
 }

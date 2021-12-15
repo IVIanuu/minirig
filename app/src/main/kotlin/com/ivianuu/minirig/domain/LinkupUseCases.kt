@@ -8,18 +8,18 @@ import com.ivianuu.injekt.*
 import kotlinx.coroutines.*
 
 @Provide class LinkupUseCases(private val remote: MinirigRemote) {
-  suspend fun startLinkup(address: String) = remote.withMinirig(address) { socket ->
-    socket.outputStream.write("HBROADCAST_START".toByteArray())
+  suspend fun startLinkup(address: String) = remote.withMinirig(address) {
+    send("HBROADCAST_START")
   }
 
-  suspend fun joinLinkup(address: String) = remote.withMinirig(address) { socket ->
-    socket.outputStream.write("IBROADCAST_JOIN".toByteArray())
+  suspend fun joinLinkup(address: String) = remote.withMinirig(address) {
+    send("IBROADCAST_JOIN")
   }
 
   suspend fun cancelLinkup(address: String) {
     // disconnect
-    remote.withMinirig(address) { socket ->
-      socket.outputStream.write("JBROADCAST_LEAVE".toByteArray())
+    remote.withMinirig(address) {
+      send("JBROADCAST_LEAVE")
     }
 
     delay(1000)

@@ -7,117 +7,147 @@ package com.ivianuu.minirig.domain
 import android.bluetooth.*
 import com.ivianuu.essentials.*
 import com.ivianuu.essentials.coroutines.*
-import com.ivianuu.essentials.db.*
 import com.ivianuu.essentials.logging.*
+import com.ivianuu.essentials.time.*
 import com.ivianuu.essentials.util.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
+import com.ivianuu.injekt.common.*
 import com.ivianuu.injekt.coroutines.*
 import com.ivianuu.minirig.data.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import java.nio.charset.*
 import java.util.*
 
-@Provide class MinirigRemote(
+@Provide @Scoped<AppScope> class MinirigRemote(
   private val bluetoothManager: @SystemService BluetoothManager,
   private val broadcastsFactory: BroadcastsFactory,
   private val context: IOContext,
+  private val scope: NamedCoroutineScope<AppScope>,
   private val L: Logger
 ) {
-  val minirigs: Flow<List<Minirig>>
-    get() = bondedDeviceChanges()
-      .onStart<Any> { emit(Unit) }
-      .map {
-        bluetoothManager.adapter?.bondedDevices
-          ?.filter { it.address.isMinirigAddress() }
-          ?.map { it.toMinirig() }
-          ?: emptyList()
-      }
-      .distinctUntilChanged()
-
-  fun minirig(address: String): Flow<Minirig?> = bondedDeviceChanges()
-    .onStart<Any> { emit(Unit) }
-    .map {
-      bluetoothManager.adapter
-        ?.getRemoteDevice(address)
-        ?.toMinirig()
-    }
-
-  fun isConnected(address: String) = bondedDeviceChanges()
-    .onStart<Any> { emit(Unit) }
-    .map {
+  private val sockets = RefCountedResource<String, MinirigSocket>(
+    create = { address ->
       val device = bluetoothManager.adapter.getRemoteDevice(address)
-      device.javaClass.getDeclaredMethod("isConnected").invoke(device).cast<Boolean>()
-    }
-    .distinctUntilChanged()
-
-  suspend fun <R> withMinirig(
-    address: String,
-    block: suspend (BluetoothSocket) -> R
-  ): R? = withContext(context) {
-    val device = bluetoothManager.adapter.bondedDevices.firstOrNull { it.address == address }!!
-
-    if (!isConnected(address).first()) {
-      log { "skip not connected device ${device.readableName()}" }
-      return@withContext null
-    }
-
-    val socket = device.createRfcommSocketToServiceRecord(CLIENT_ID)
-      .also { socket ->
-        val connectComplete = CompletableDeferred<Unit>()
-        par(
-          {
-            log { "connect ${device.readableName()} on ${Thread.currentThread().name}" }
-            try {
-              var attempt = 0
-              while (attempt < 5) {
+      MinirigSocket(
+        socket = device.createRfcommSocketToServiceRecord(CLIENT_ID)
+          .also { socket ->
+            val connectComplete = CompletableDeferred<Unit>()
+            par(
+              {
+                log { "connect ${device.readableName()}" }
                 try {
-                  socket.connect()
-                  if (socket.isConnected) break
-                } catch (e: Throwable) {
-                  e.nonFatalOrThrow()
-                  attempt++
-                  delay(1000)
+                  var attempt = 0
+                  while (attempt < 5) {
+                    try {
+                      socket.connect()
+                      if (socket.isConnected) {
+                        log { "connected to ${device.readableName()}" }
+                        break
+                      }
+                    } catch (e: Throwable) {
+                      log { "connect failed ${device.readableName()} attempt $attempt" }
+                      e.nonFatalOrThrow()
+                      attempt++
+                      delay(1000)
+                    }
+                  }
+                } finally {
+                  connectComplete.complete(Unit)
                 }
-              }
-            } finally {
-              connectComplete.complete(Unit)
-            }
-          },
-          {
-            onCancel(
-              block = { connectComplete.await() },
-              onCancel = {
-                log { "cancel connect ${device.readableName()} on ${Thread.currentThread().name}" }
-                catch { socket.close() }
+              },
+              {
+                onCancel(
+                  block = { connectComplete.await() },
+                  onCancel = {
+                    log { "cancel connect ${device.readableName()}" }
+                    catch { socket.close() }
+                  }
+                )
               }
             )
           }
-        )
-      }
-
-    if (!socket.isConnected) {
-      log { "could not connect to ${device.readableName()}" }
-      return@withContext null
+      )
+    },
+    release = { _, socket ->
+      log { "release connection ${socket.device.readableName()}" }
+      socket.close()
     }
+  )
 
-    log { "connected to ${device.readableName()}" }
+  fun isConnected(address: String) = bondedDeviceChanges()
+    .onStart<Any> { emit(Unit) }
+    .map { address.isConnected() }
+    .distinctUntilChanged()
 
-    return@withContext guarantee(
-      block = { block(socket) },
+  private fun String.isConnected(): Boolean =
+    bluetoothManager.adapter.getRemoteDevice(this)
+      ?.let {
+        BluetoothDevice::class.java.getDeclaredMethod("isConnected").invoke(it)
+          .cast<Boolean>()
+      } ?: false
+
+  suspend fun <R> withMinirig(
+    address: String,
+    block: suspend MinirigSocket.() -> R
+  ): R? = withContext(context) {
+    if (!address.isConnected()) null
+    else guarantee(
+      block = {
+        val socket = sockets.acquire(address)
+        block(socket)
+      },
       finalizer = {
-        log { "disconnect from ${device.readableName()}" }
-        catch { socket.close() }
+        sockets.release(address)
       }
     )
   }
 
-  private fun bondedDeviceChanges() = broadcastsFactory(
+  fun bondedDeviceChanges() = broadcastsFactory(
     BluetoothAdapter.ACTION_STATE_CHANGED,
     BluetoothDevice.ACTION_BOND_STATE_CHANGED,
     BluetoothDevice.ACTION_ACL_CONNECTED,
     BluetoothDevice.ACTION_ACL_DISCONNECTED
   )
+}
+
+class MinirigSocket(
+  private val socket: BluetoothSocket,
+  @Inject context: IOContext,
+  scope: NamedCoroutineScope<AppScope>,
+  L: Logger
+) {
+  private val scope = scope.childCoroutineScope(context)
+
+  val device get() = socket.remoteDevice
+
+  val messages = channelFlow {
+    while (currentCoroutineContext().isActive && socket.isConnected) {
+      if (socket.inputStream.available() > 0) {
+        val arr = ByteArray(socket.inputStream.available())
+        socket.inputStream.read(arr)
+        val current = arr.toString(StandardCharsets.UTF_8)
+        log { "${socket.remoteDevice.readableName()} stats $current" }
+        send(current)
+      }
+    }
+  }.shareIn(scope, SharingStarted.Eagerly)
+
+  private val sendLimiter = RateLimiter(1, 100.milliseconds)
+
+  suspend fun send(message: String) {
+    // the minirig cannot keep with our speed to debounce each write
+    sendLimiter.acquire()
+    socket.outputStream.write(message.toByteArray())
+  }
+
+  fun close() {
+    scope.cancel()
+    catch {
+      socket.close()
+    }
+  }
 }
 
 val CLIENT_ID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")!!

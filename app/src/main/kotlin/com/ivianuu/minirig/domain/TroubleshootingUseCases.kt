@@ -7,35 +7,30 @@ package com.ivianuu.minirig.domain
 import android.bluetooth.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
-import kotlinx.coroutines.*
 
 @Provide class TroubleshootingUseCases(
   private val bluetoothManager: @SystemService BluetoothManager,
   private val remote: MinirigRemote
 ) {
-  suspend fun powerOff(address: String) = remote.withMinirig(address) { socket ->
-    socket.outputStream.write("OPOWER_TOGGLE".toByteArray())
+  suspend fun powerOff(address: String) = remote.withMinirig(address) {
+    send("OPOWER_TOGGLE")
   }
 
-  suspend fun rename(address: String, newName: String) = remote.withMinirig(address) { socket ->
-    socket.outputStream.write("N SET NAME=$newName".toByteArray())
-    delay(500)
-    socket.outputStream.write("N SET NAME_SHORT=${newName.take(7)}".toByteArray())
-    delay(500)
-    socket.outputStream.write("N WRITEN WRITE".toByteArray())
-    delay(1000)
-    socket.outputStream.write("OPOWER_TOGGLE".toByteArray())
-    delay(500)
+  suspend fun rename(address: String, newName: String) = remote.withMinirig(address) {
+    send("N SET NAME=$newName")
+    send("N SET NAME_SHORT=${newName.take(7)}")
+    send("N WRITEN WRITE")
+    send("OPOWER_TOGGLE")
     val device = bluetoothManager.adapter.getRemoteDevice(address)
     BluetoothDevice::class.java.getDeclaredMethod("setAlias", String::class.java)
       .invoke(device, newName)
   }
 
-  suspend fun clearPairedDevices(address: String) = remote.withMinirig(address) { socket ->
-    socket.outputStream.write("N UNPAIRCLEAR_PAIRED".toByteArray())
+  suspend fun clearPairedDevices(address: String) = remote.withMinirig(address) {
+    send("N UNPAIRCLEAR_PAIRED")
   }
 
-  suspend fun factoryReset(address: String) = remote.withMinirig(address) { socket ->
-    socket.outputStream.write("*RESET".toByteArray())
+  suspend fun factoryReset(address: String) = remote.withMinirig(address) {
+    send("*RESET")
   }
 }

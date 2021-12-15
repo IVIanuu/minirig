@@ -4,36 +4,32 @@
 
 package com.ivianuu.minirig.domain
 
-import android.bluetooth.*
-import android.bluetooth.le.*
 import com.ivianuu.essentials.*
 import com.ivianuu.essentials.app.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
-import com.ivianuu.essentials.state.*
 import com.ivianuu.essentials.time.*
 import com.ivianuu.essentials.util.*
 import com.ivianuu.injekt.*
-import com.ivianuu.injekt.android.*
 import com.ivianuu.injekt.coroutines.*
 import com.ivianuu.minirig.data.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import java.nio.charset.*
-import kotlin.coroutines.*
 
 @Provide fun minirigConfigSynchronizer(
   context: IOContext,
   configRepository: ConfigRepository,
+  minirigRepository: MinirigRepository,
   remote: MinirigRemote,
   L: Logger,
   T: ToastContext
 ) = ScopeWorker<AppScope> {
   withContext(context) {
-    remote.minirigs.collectLatest { minirigs ->
-      minirigs.forEach { minirig ->
+    minirigRepository.minirigs.collectLatest { minirigs ->
+      minirigs.parForEach { minirig ->
         remote.isConnected(minirig.address).collectLatest { isConnected ->
           if (isConnected) {
+            log { "observe config changes ${minirig.readableName()}" }
             configRepository.config(minirig.address).collectLatest { config ->
               log { "apply config ${minirig.readableName()}" }
               catch {
@@ -43,6 +39,8 @@ import kotlin.coroutines.*
                 showToast("Could not apply config to ${minirig.readableName()}")
               }
             }
+          } else {
+            log { "ignore config changes ${minirig.readableName()}" }
           }
         }
       }
@@ -55,10 +53,10 @@ private suspend fun applyConfig(
   @Inject L: Logger,
   remote: MinirigRemote
 ) {
-  remote.withMinirig(config.id) { socket ->
+  remote.withMinirig(config.id) {
     log { "${config.id} apply config $config" }
 
-    val currentConfig = socket.readMinirigConfig()
+    val currentConfig = readMinirigConfig()
 
     log { "${config.id} current config $currentConfig" }
 
@@ -74,10 +72,8 @@ private suspend fun applyConfig(
 
       // only write if the value has changed
       if (currentConfig[key] != value) {
-        log { "${socket.remoteDevice.readableName()} update $finalKey -> $finalValue" }
-        socket.outputStream.write("q p $finalKey $finalValue".toByteArray())
-        // the minirig cannot keep with our speed to debounce each write
-        delay(100)
+        log { "${device.readableName()} update $finalKey -> $finalValue" }
+        send("q p $finalKey $finalValue")
       }
     }
 
@@ -126,46 +122,27 @@ private suspend fun applyConfig(
   }
 }
 
-private suspend fun BluetoothSocket.readMinirigConfig(@Inject L: Logger): Map<Int, Int> {
+private suspend fun MinirigSocket.readMinirigConfig(@Inject L: Logger): Map<Int, Int> {
   // sending this message triggers the state output
-  outputStream.write("q p 00 50".toByteArray())
+  send("q p 00 50")
 
   withTimeoutOrNull(5.seconds) {
-    while (isActive && isConnected) {
-      if (inputStream.available() > 0) {
-        val arr = ByteArray(inputStream.available())
-        inputStream.read(arr)
-        val curr = arr.toString(StandardCharsets.UTF_8)
-        log { "${remoteDevice.readableName()} received $curr" }
-        if (curr.startsWith("q")) {
-          return@withTimeoutOrNull curr.removePrefix("q ")
-            .split(" ")
-            .withIndex()
-            .associateBy { it.index + 1 }
-            .mapValues { it.value.value.toInt() }
+    messages
+      .first { it.startsWith("q") }
+      .removePrefix("q ")
+      .split(" ")
+      .withIndex()
+      .associateBy { it.index + 1 }
+      .mapValues {
+        try {
+          it.value.value.toInt()
+        } catch (e: Throwable) {
+          e.nonFatalOrThrow()
+          log { "wtf $it" }
+          throw e
         }
       }
-    }
-
-    awaitCancellation()
   }?.let { return it }
 
-  throw IllegalStateException("Could not read minirig config for ${remoteDevice.name}")
-}
-
-private suspend fun BluetoothSocket.readMinirigStatus(@Inject L: Logger) {
-  // sending this message triggers the state output
-  outputStream.write("xGET_STATUS".toByteArray())
-  outputStream.write("BGET_BATTERY".toByteArray())
-
-  withTimeoutOrNull(5.seconds) {
-    while (isActive && isConnected) {
-      if (inputStream.available() > 0) {
-        val arr = ByteArray(inputStream.available())
-        inputStream.read(arr)
-        val curr = arr.toString(StandardCharsets.UTF_8)
-        log { "${remoteDevice.readableName()} stats $curr" }
-      }
-    }
-  }
+  throw IllegalStateException("Could not read minirig config for ${device.name}")
 }
