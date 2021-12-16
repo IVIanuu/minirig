@@ -76,9 +76,18 @@ fun interface MinirigsUi : @Composable () -> Unit
                   PopupMenu.Item(onSelected = model.applyGainToSelected) {
                     Text("Apply gain")
                   },
+                  PopupMenu.Item(onSelected = model.connectSelected) {
+                    Text("Connect")
+                  },
                   PopupMenu.Item(onSelected = model.startLinkupWithSelected) {
                     Text("Start linkup")
-                  }
+                  },
+                  PopupMenu.Item(onSelected = model.cancelLinkupForSelected) {
+                    Text("Cancel linkup")
+                  },
+                  PopupMenu.Item(onSelected = model.powerOffSelected) {
+                    Text("Power off")
+                  },
                 )
               )
             }
@@ -202,12 +211,16 @@ data class MinirigsModel(
   val applyEqToSelected: () -> Unit,
   val applyGainToSelected: () -> Unit,
   val connect: (UiMinirig) -> Unit,
+  val connectSelected: () -> Unit,
   val makeActive: (UiMinirig) -> Unit,
   val startLinkup: (UiMinirig) -> Unit,
   val startLinkupWithSelected: () -> Unit,
   val joinLinkup: (UiMinirig) -> Unit,
+  val joinLinkupSelected: () -> Unit,
   val cancelLinkup: (UiMinirig) -> Unit,
+  val cancelLinkupForSelected: () -> Unit,
   val powerOff: (UiMinirig) -> Unit,
+  val powerOffSelected: () -> Unit,
   val rename: (UiMinirig) -> Unit,
   val clearPairedDevices: (UiMinirig) -> Unit,
   val factoryReset: (UiMinirig) -> Unit
@@ -295,10 +308,17 @@ data class MinirigsModel(
     applyGain = action { minirig -> applyGain(listOf(minirig.address)) },
     applyGainToSelected = action { applyGain(selectedMinirigs) },
     connect = action { minirig -> connectToMinirigUseCase(minirig.address) },
+    connectSelected = action { selectedMinirigs.forEach { connectToMinirigUseCase(it) } },
     makeActive = action { minirig -> activeMinirigOps.setActiveMinirig(minirig.address) },
     startLinkup = action { minirig -> linkupUseCases.startLinkup(minirig.address) },
     joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },
+    joinLinkupSelected = action {
+      selectedMinirigs.forEach { linkupUseCases.joinLinkup(it) }
+    },
     cancelLinkup = action { minirig -> linkupUseCases.cancelLinkup(minirig.address) },
+    cancelLinkupForSelected = action {
+      selectedMinirigs.forEach { linkupUseCases.cancelLinkup(it) }
+    },
     startLinkupWithSelected = action {
       val pickerMinirigs = selectedMinirigs
         .parMap { minirigRepository.minirig(it).first()!! }
@@ -309,6 +329,9 @@ data class MinirigsModel(
       linkupUseCases.startLinkup(host.address, selectedMinirigs.filterNot { it == host.address })
     },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
+    powerOffSelected = action {
+      selectedMinirigs.forEach { troubleshootingUseCases.powerOff(it) }
+    },
     rename = action { minirig ->
       val newName = navigator.push(RenameMinirigKey()) ?: return@action
       troubleshootingUseCases.rename(minirig.address, newName)
