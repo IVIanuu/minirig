@@ -92,9 +92,7 @@ class MinirigSocket(
   val device: BluetoothDevice
     get() = bluetoothManager.adapter.getRemoteDevice(address)
 
-  private val isClosed = Atomic(false)
-
-  val messages = channelFlow<String> {
+  val messages: Flow<String> = channelFlow {
     while (currentCoroutineContext().isActive) {
       if (!bluetoothManager.adapter.isEnabled) {
         delay(5000)
@@ -123,25 +121,28 @@ class MinirigSocket(
   private val sendLimiter = RateLimiter(1, 100.milliseconds)
 
   suspend fun send(message: String) = catch {
-    withContext(scope.coroutineContext) {
-      // the minirig cannot keep with our speed to debounce each write
-      sendLimiter.acquire()
+    runJob("send message ${device.debugName()}") {
+      withTimeout(10000) {
+        withContext(scope.coroutineContext) {
+          // the minirig cannot keep with our speed to debounce each write
+          sendLimiter.acquire()
 
-      log { "send ${device.debugName()} -> $message" }
+          log { "send ${device.debugName()} -> $message" }
 
-      try {
-        withSocket("send message ${device.debugName()}") {
-          outputStream.write(message.toByteArray())
+          try {
+            withSocket("send message ${device.debugName()}") {
+              outputStream.write(message.toByteArray())
+            }
+          } catch (e: IOException) {
+            closeCurrentSocket(e)
+            throw e
+          }
         }
-      } catch (e: IOException) {
-        closeCurrentSocket(e)
-        throw e
       }
     }
   }
 
   suspend fun close() {
-    isClosed.set(true)
     withContext(scope.coroutineContext) {
       scope.cancel()
       closeCurrentSocket(null)
@@ -154,15 +155,13 @@ class MinirigSocket(
     }
   }
 
-  private suspend fun closeCurrentSocketImpl(reason: Throwable?) {
-    withContext(NonCancellable) {
-      catch {
-        socket
-          ?.also { log { "${device.debugName()} close current socket ${reason?.asLog()}" } }
-          ?.close()
-      }
-      socket = null
+  private fun closeCurrentSocketImpl(reason: Throwable?) {
+    catch {
+      socket
+        ?.also { log { "${device.debugName()} close current socket ${reason?.asLog()}" } }
+        ?.close()
     }
+    socket = null
   }
 
   private suspend fun withSocket(

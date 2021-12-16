@@ -130,7 +130,7 @@ private suspend fun applyConfig(
 private suspend fun MinirigSocket.readMinirigConfig(@Inject L: Logger): Map<Int, Int> {
   // sending this message triggers the state output
   send("q p 00 50")
-  return withTimeoutOrNull(2000) {
+  return withTimeoutOrNull(5000) {
     messages
       .first { it.startsWith("q") }
       .removePrefix("q ")
@@ -138,9 +138,5 @@ private suspend fun MinirigSocket.readMinirigConfig(@Inject L: Logger): Map<Int,
       .withIndex()
       .associateBy { it.index + 1 }
       .mapValues { it.value.value.toInt() }
-  } ?: run {
-    val errorMessage = "could not get minirig config from ${device.debugName()}"
-    log { errorMessage }
-    throw IllegalStateException(errorMessage)
-  }
+  } ?: error("could not get minirig config from ${device.debugName()}")
 }

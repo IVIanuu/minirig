@@ -72,33 +72,37 @@ import kotlinx.coroutines.flow.*
       // sending this message triggers the state output
       catch { send("BGET_BATTERY") }
 
-      val batteryPercentage = messages
-        .mapNotNull { message ->
-          if (!message.startsWith("B")) return@mapNotNull null
-          message
-            .removePrefix("B")
-            .take(5)
-            .toIntOrNull()
-            ?.toBatteryPercentage()
-        }
-        .first()
+      val batteryPercentage = withTimeout(5000) {
+        messages
+          .mapNotNull { message ->
+            if (!message.startsWith("B")) return@mapNotNull null
+            message
+              .removePrefix("B")
+              .take(5)
+              .toIntOrNull()
+              ?.toBatteryPercentage()
+          }
+          .first()
+      }
 
       catch { send("xGET_STATUS") }
 
-      val linkupState = messages
-        .mapNotNull { message ->
-          message
-            .takeIf { it.length >= 36 }
-            ?.substring(35, 36)
-            ?.let {
-              when (it) {
-                "1", "2", "3", "4" -> LinkupState.SLAVE
-                "5", "6", "7", "8" -> LinkupState.MASTER
-                else -> LinkupState.NONE
+      val linkupState = withTimeout(5000) {
+        messages
+          .mapNotNull { message ->
+            message
+              .takeIf { it.length >= 36 }
+              ?.substring(35, 36)
+              ?.let {
+                when (it) {
+                  "1", "2", "3", "4" -> LinkupState.SLAVE
+                  "5", "6", "7", "8" -> LinkupState.MASTER
+                  else -> LinkupState.NONE
+                }
               }
-            }
-        }
-        .first()
+          }
+          .first()
+      }
 
       return@withMinirig MinirigState(
         isConnected = true,

@@ -81,6 +81,9 @@ fun interface MinirigsUi : @Composable () -> Unit
                   PopupMenu.Item(onSelected = model.connectSelected) {
                     Text("Connect")
                   },
+                  PopupMenu.Item(onSelected = model.disconnectSelected) {
+                    Text("Disconnect")
+                  },
                   PopupMenu.Item(onSelected = model.startLinkupWithSelected) {
                     Text("Start linkup")
                   },
@@ -160,11 +163,14 @@ fun interface MinirigsUi : @Composable () -> Unit
           PopupMenu.Item(onSelected = { model.applyGain(minirig) }) {
             Text("Apply gain")
           },
+          PopupMenu.Item(onSelected = { model.makeActive(minirig) }) {
+            Text("Set active")
+          },
           PopupMenu.Item(onSelected = { model.connect(minirig) }) {
             Text("Connect")
           },
-          PopupMenu.Item(onSelected = { model.makeActive(minirig) }) {
-            Text("Set active")
+          PopupMenu.Item(onSelected = { model.disconnect(minirig) }) {
+            Text("Disconnect")
           },
           PopupMenu.Item(onSelected = { model.startLinkup(minirig) }) {
             Text("Start linkup")
@@ -216,6 +222,8 @@ data class MinirigsModel(
   val applyGainToSelected: () -> Unit,
   val connect: (UiMinirig) -> Unit,
   val connectSelected: () -> Unit,
+  val disconnect: (UiMinirig) -> Unit,
+  val disconnectSelected: () -> Unit,
   val makeActive: (UiMinirig) -> Unit,
   val startLinkup: (UiMinirig) -> Unit,
   val startLinkupWithSelected: () -> Unit,
@@ -237,7 +245,7 @@ data class MinirigsModel(
   activeMinirigOps: ActiveMinirigOps,
   appForegroundState: Flow<AppForegroundState>,
   configRepository: ConfigRepository,
-  connectToMinirigUseCase: ConnectToMinirigUseCase,
+  connectionUseCases: MinirigConnectionUseCases,
   linkupUseCases: LinkupUseCases,
   minirigRepository: MinirigRepository,
   navigator: Navigator,
@@ -316,8 +324,10 @@ data class MinirigsModel(
     applyEqToSelected = action { applyEq(selectedMinirigs) },
     applyGain = action { minirig -> applyGain(listOf(minirig.address)) },
     applyGainToSelected = action { applyGain(selectedMinirigs) },
-    connect = action { minirig -> connectToMinirigUseCase(minirig.address) },
-    connectSelected = action { selectedMinirigs.forEach { connectToMinirigUseCase(it) } },
+    connect = action { minirig -> connectionUseCases.connectMinirig(minirig.address) },
+    connectSelected = action { selectedMinirigs.forEach { connectionUseCases.connectMinirig(it) } },
+    disconnect = action { minirig -> connectionUseCases.disconnectMinirig(minirig.address) },
+    disconnectSelected = action { selectedMinirigs.forEach { connectionUseCases.disconnectMinirig(it) } },
     makeActive = action { minirig -> activeMinirigOps.setActiveMinirig(minirig.address) },
     startLinkup = action { minirig -> linkupUseCases.startLinkup(minirig.address) },
     joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },

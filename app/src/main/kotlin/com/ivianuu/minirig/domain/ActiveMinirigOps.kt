@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.*
 @Provide class ActiveMinirigOps(
   private val a2DPOps: A2DPOps,
   private val bluetoothManager: @SystemService BluetoothManager,
-  private val connectToMinirigUseCase: ConnectToMinirigUseCase,
+  private val connectionUseCases: MinirigConnectionUseCases,
   private val L: Logger
 ) {
   val activeMinirig: Flow<String?>
@@ -37,7 +37,7 @@ import kotlinx.coroutines.flow.*
 
   suspend fun setActiveMinirig(address: String) {
     a2DPOps.withProxy("set active minirig") {
-      connectToMinirigUseCase(address)
+      connectionUseCases.connectMinirig(address)
       val device = bluetoothManager.adapter.getRemoteDevice(address)!!
       javaClass.getDeclaredMethod("setActiveDevice", BluetoothDevice::class.java)
         .invoke(this, device)

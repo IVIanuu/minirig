@@ -11,7 +11,7 @@ import kotlinx.coroutines.*
 
 @Provide class LinkupUseCases(
   private val activeMinirigOps: ActiveMinirigOps,
-  private val connectToMinirigUseCase: ConnectToMinirigUseCase,
+  private val connectionUseCases: MinirigConnectionUseCases,
   private val remote: MinirigRemote,
   private val L: Logger
 ) {
@@ -24,7 +24,7 @@ import kotlinx.coroutines.*
     delay(5000)
 
     log { "reconnect to guests" }
-    guestAddresses.parForEach { connectToMinirigUseCase(it) }
+    guestAddresses.parForEach { connectionUseCases.connectMinirig(it) }
 
     delay(1000)
 
@@ -48,6 +48,6 @@ import kotlinx.coroutines.*
 
     delay(10000)
 
-    connectToMinirigUseCase(address)
+    connectionUseCases.connectMinirig(address)
   }
 }

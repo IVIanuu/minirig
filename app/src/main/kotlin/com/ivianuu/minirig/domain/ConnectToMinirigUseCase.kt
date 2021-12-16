@@ -8,27 +8,35 @@ import android.bluetooth.*
 import com.ivianuu.essentials.logging.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
-import com.ivianuu.minirig.data.*
 import kotlinx.coroutines.flow.*
 
-fun interface ConnectToMinirigUseCase : suspend (String) -> Boolean
+@Provide class MinirigConnectionUseCases(
+  private val a2DPOps: A2DPOps,
+  private val bluetoothManager: @SystemService BluetoothManager,
+  private val remote: MinirigRemote,
+  private val L: Logger
+) {
+  suspend fun connectMinirig(address: String): Boolean {
+    val device = bluetoothManager.adapter.getRemoteDevice(address)!!
 
-@Provide fun connectToMinirigUseCase(
-  a2DPOps: A2DPOps,
-  bluetoothManager: @SystemService BluetoothManager,
-  remote: MinirigRemote,
-  L: Logger
-) = ConnectToMinirigUseCase { address ->
-  val device = bluetoothManager.adapter.getRemoteDevice(address)!!
+    if (remote.isConnected(address).first()) return true
 
-  if (remote.isConnected(address).first()) return@ConnectToMinirigUseCase true
+    a2DPOps.withProxy("connect minirig") {
+      javaClass.getDeclaredMethod(
+        "connect",
+        BluetoothDevice::class.java
+      ).invoke(this, device)
+    }
 
-  a2DPOps.withProxy("connect minirig") {
-    javaClass.getDeclaredMethod(
-      "connect",
-      BluetoothDevice::class.java
-    ).invoke(this, device)
+    return remote.isConnected(address).first { it }
   }
 
-  remote.isConnected(address).first { it }
+  suspend fun disconnectMinirig(address: String) {
+    a2DPOps.withProxy("disconnect minirig") {
+      javaClass.getDeclaredMethod(
+        "disconnect",
+        BluetoothDevice::class.java
+      ).invoke(this, bluetoothManager.adapter.getRemoteDevice(address)!!)
+    }
+  }
 }
