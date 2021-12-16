@@ -254,6 +254,7 @@ data class MinirigsModel(
       if (minirigs.isEmpty()) flowOf(emptyList())
       else combine(
         minirigs
+          .sortedBy { it.name }
           .map { minirig ->
             minirigRepository.minirigState(minirig.address)
               .map {
