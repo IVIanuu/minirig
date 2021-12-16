@@ -21,8 +21,8 @@ import kotlinx.coroutines.flow.*
 ) {
   val activeMinirig: Flow<String?>
     get() = channelFlow {
-      a2DPOps.withProxy("active minirig") {
-        while (currentCoroutineContext().isActive) {
+      while (currentCoroutineContext().isActive) {
+        a2DPOps.withProxy("active minirig") {
           send(
             javaClass.getDeclaredMethod("getActiveDevice")
               .invoke(this)
@@ -30,8 +30,8 @@ import kotlinx.coroutines.flow.*
               ?.address
               ?.takeIf { it.isMinirigAddress() }
           )
-          delay(1000)
         }
+        delay(1000)
       }
     }.distinctUntilChanged()
 

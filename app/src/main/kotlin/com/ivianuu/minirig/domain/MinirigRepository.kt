@@ -6,21 +6,24 @@ package com.ivianuu.minirig.domain
 
 import android.bluetooth.*
 import com.ivianuu.essentials.*
+import com.ivianuu.essentials.cache.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
 import com.ivianuu.essentials.time.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
+import com.ivianuu.injekt.common.*
 import com.ivianuu.injekt.coroutines.*
 import com.ivianuu.minirig.data.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
-@Provide class MinirigRepository(
+@Provide @Scoped<AppScope> class MinirigRepository(
   private val bluetoothManager: @SystemService BluetoothManager,
   private val context: IOContext,
   private val remote: MinirigRemote,
-  private val L: Logger
+  private val L: Logger,
+  private val scope: NamedCoroutineScope<AppScope>
 ) {
   val minirigs: Flow<List<Minirig>>
     get() = remote.bondedDeviceChanges()
@@ -43,11 +46,26 @@ import kotlinx.coroutines.flow.*
     }
     .flowOn(context)
 
-  fun minirigState(address: String) = timer(5.seconds)
-    .mapLatest { readMinirigState(address) }
-    .onStart { emit(MinirigState(false)) }
-    .distinctUntilChanged()
-    .flowOn(context)
+  private val states = Cache<String, Flow<MinirigState>>()
+
+  fun minirigState(address: String): Flow<MinirigState> = flow {
+    emitAll(
+      states.get(address) {
+        timer(5.seconds)
+          .mapLatest { readMinirigState(address) }
+          .distinctUntilChanged()
+          .flowOn(context)
+          .shareIn(scope, SharingStarted.WhileSubscribed(), 1)
+          .let { sharedFlow ->
+            sharedFlow
+              .onStart {
+                if (sharedFlow.replayCache.isEmpty())
+                  emit(MinirigState(false))
+              }
+          }
+      }
+    )
+  }
 
   private suspend fun readMinirigState(address: String, @Inject L: Logger): MinirigState =
     remote.withMinirig(address, "read minirig state $address") {
