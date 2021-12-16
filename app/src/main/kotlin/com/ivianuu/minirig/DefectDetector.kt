@@ -12,7 +12,9 @@ import kotlinx.coroutines.sync.*
 
 private val job = GlobalScope.launch {
   while (coroutineContext.isActive) {
-    println("jobs: open jobs $openJobs")
+    openJobsLock.withLock {
+      println("jobs: open jobs $openJobs")
+    }
     delay(3000)
   }
 }
