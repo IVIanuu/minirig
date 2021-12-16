@@ -134,24 +134,29 @@ class MinirigSocket(
   }
 
   private suspend fun closeCurrentSocket(reason: Throwable?) {
+    socketLock.withLock {
+      closeCurrentSocketImpl(reason)
+    }
+  }
+
+  private suspend fun closeCurrentSocketImpl(reason: Throwable?) {
     withContext(NonCancellable) {
-      socketLock.withLock {
-        catch {
-          socket
-            ?.also { log { "${device.debugName()} close current socket ${reason?.asLog()}" } }
-            ?.close()
-        }
-        socket = null
+      catch {
+        socket
+          ?.also { log { "${device.debugName()} close current socket ${reason?.asLog()}" } }
+          ?.close()
       }
+      socket = null
     }
   }
 
   private suspend fun withSocket(block: suspend BluetoothSocket.() -> Unit) {
     val socket = socketLock.withLock {
       var socket = socket
-      check(socket == null || socket.isConnected)
-      if (socket != null)
+      if (socket != null && socket.isConnected)
         return@withLock socket
+
+      closeCurrentSocketImpl(null)
 
       socket = device.createRfcommSocketToServiceRecord(CLIENT_ID)
 
