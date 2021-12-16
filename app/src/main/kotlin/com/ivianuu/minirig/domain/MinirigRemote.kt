@@ -35,9 +35,12 @@ import java.util.*
     timeout = 2.seconds,
     create = { address ->
       MinirigSocket(address)
+        .also {
+          log { "create socket $it" }
+        }
     },
     release = { _, socket ->
-      log { "release connection ${socket.device.debugName()}" }
+      log { "release socket $socket ${socket.device.debugName()}" }
       socket.close()
     }
   )
@@ -99,7 +102,7 @@ class MinirigSocket(
       }
 
       try {
-        withSocket("message receiver ${device.debugName()}") {
+        withSocket("message receiver ${device.debugName()} ${this@MinirigSocket}") {
           while (currentCoroutineContext().isActive) {
             if (inputStream.available() > 0) {
               val arr = ByteArray(inputStream.available())

@@ -7,6 +7,7 @@ package com.ivianuu.minirig.ui
 import android.bluetooth.*
 import android.media.*
 import android.media.session.*
+import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
@@ -129,8 +130,10 @@ fun interface MinirigsUi : @Composable () -> Unit
     leading = {
       Surface(
         modifier = Modifier.size(36.dp),
-        color = if (minirig.isConnected) MaterialTheme.colors.secondary
-        else LocalContentColor.current.copy(alpha = 0.12f),
+        color = animateColorAsState(
+          if (minirig.isConnected) MaterialTheme.colors.secondary
+          else LocalContentColor.current.copy(alpha = 0.12f)
+        ).value,
         shape = CircleShape
       ) {
         if (minirig.isActive || minirig.isLinkupSlave)

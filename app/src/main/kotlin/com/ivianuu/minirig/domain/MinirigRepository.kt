@@ -8,6 +8,7 @@ import android.bluetooth.*
 import com.ivianuu.essentials.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
+import com.ivianuu.essentials.time.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
 import com.ivianuu.injekt.coroutines.*
@@ -42,77 +43,51 @@ import kotlinx.coroutines.flow.*
     }
     .flowOn(context)
 
-  fun minirigState(address: String) = remote.bondedDeviceChanges()
-    .onStart<Any> { emit(Unit) }
-    .transformLatest {
-      remote.withMinirig(address, "minirig state $address") {
-        var batteryPercentage = 0f
-        var linkupState = LinkupState.NONE
-
-        suspend fun emit() {
-          emit(
-            MinirigState(
-              isConnected = true,
-              batteryPercentage = batteryPercentage,
-              linkupState = linkupState
-            )
-          )
-        }
-
-        emit()
-
-        par(
-          {
-            messages.collect { message ->
-              log { "received $message" }
-              when {
-                message.startsWith("B") -> {
-                  val newBatteryPercentage = message
-                    .removePrefix("B")
-                    .take(5)
-                    .toIntOrNull()
-                    ?.toBatteryPercentage()
-                    ?: return@collect
-
-                  if (newBatteryPercentage != batteryPercentage) {
-                    batteryPercentage = newBatteryPercentage
-                    emit()
-                  }
-                }
-                message.startsWith("x") -> {
-                  val newLinkupState = message
-                    .takeIf { it.length >= 36 }
-                    ?.substring(35, 36)
-                    ?.let {
-                      when (it) {
-                        "1", "2", "3", "4" -> LinkupState.SLAVE
-                        "5", "6", "7", "8" -> LinkupState.MASTER
-                        else -> LinkupState.NONE
-                      }
-                    } ?: LinkupState.NONE
-
-                  if (newLinkupState != linkupState) {
-                    linkupState = newLinkupState
-                    emit()
-                  }
-
-                  log { "${device.debugName()} broadcast state -> $newLinkupState" }
-                }
-              }
-            }
-          },
-          {
-            while (currentCoroutineContext().isActive) {
-              catch { send("BGET_BATTERY") }
-              catch { send("xGET_STATUS") }
-              delay(5000)
-            }
-          }
-        )
-      } ?: emit(MinirigState(isConnected = false))
-    }
+  fun minirigState(address: String) = timer(5.seconds)
+    .mapLatest { readMinirigState(address) }
+    .onStart { emit(MinirigState(false)) }
     .distinctUntilChanged()
     .flowOn(context)
+
+  private suspend fun readMinirigState(address: String, @Inject L: Logger): MinirigState =
+    remote.withMinirig(address, "read minirig state $address") {
+      // sending this message triggers the state output
+      catch { send("BGET_BATTERY") }
+
+      val batteryPercentage = messages
+        .mapNotNull { message ->
+          if (!message.startsWith("B")) return@mapNotNull null
+          message
+            .removePrefix("B")
+            .take(5)
+            .toIntOrNull()
+            ?.toBatteryPercentage()
+        }
+        .first()
+
+      catch { send("xGET_STATUS") }
+
+      val linkupState = messages
+        .mapNotNull { message ->
+          message
+            .takeIf { it.length >= 36 }
+            ?.substring(35, 36)
+            ?.let {
+              when (it) {
+                "1", "2", "3", "4" -> LinkupState.SLAVE
+                "5", "6", "7", "8" -> LinkupState.MASTER
+                else -> LinkupState.NONE
+              }
+            }
+        }
+        .first()
+
+      return@withMinirig MinirigState(
+        isConnected = true,
+        batteryPercentage = batteryPercentage,
+        linkupState = linkupState
+      )
+    } ?: MinirigState(isConnected = false)
 }
 
 private fun Int.toBatteryPercentage(): Float = when {
