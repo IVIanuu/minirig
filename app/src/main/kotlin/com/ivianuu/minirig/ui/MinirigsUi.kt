@@ -103,10 +103,7 @@ fun interface MinirigsUi : @Composable () -> Unit
   }
 }
 
-@Composable private fun Minirig(
-  minirig: UiMinirig,
-  model: MinirigsModel
-) {
+@Composable private fun Minirig(minirig: UiMinirig, model: MinirigsModel) {
   ListItem(
     modifier = Modifier
       .combinedClickable(
@@ -148,8 +145,11 @@ fun interface MinirigsUi : @Composable () -> Unit
           PopupMenu.Item(onSelected = { model.applyGain(minirig) }) {
             Text("Apply gain")
           },
+          PopupMenu.Item(onSelected = { model.connect(minirig) }) {
+            Text("Connect")
+          },
           PopupMenu.Item(onSelected = { model.makeActive(minirig) }) {
-            Text("Play music")
+            Text("Set active")
           },
           PopupMenu.Item(onSelected = { model.startLinkup(minirig) }) {
             Text("Start linkup")
@@ -198,6 +198,7 @@ data class MinirigsModel(
   val applyConfigToSelected: () -> Unit,
   val applyEqToSelected: () -> Unit,
   val applyGainToSelected: () -> Unit,
+  val connect: (UiMinirig) -> Unit,
   val makeActive: (UiMinirig) -> Unit,
   val startLinkup: (UiMinirig) -> Unit,
   val startLinkupWithSelected: () -> Unit,
@@ -215,6 +216,7 @@ data class MinirigsModel(
 @Provide fun minirigsModel(
   activeMinirigOps: ActiveMinirigOps,
   configRepository: ConfigRepository,
+  connectToMinirigUseCase: ConnectToMinirigUseCase,
   linkupUseCases: LinkupUseCases,
   minirigRepository: MinirigRepository,
   navigator: Navigator,
@@ -287,6 +289,7 @@ data class MinirigsModel(
     applyEqToSelected = action { applyEq(selectedMinirigs) },
     applyGain = action { minirig -> applyGain(listOf(minirig.address)) },
     applyGainToSelected = action { applyGain(selectedMinirigs) },
+    connect = action { minirig -> connectToMinirigUseCase(minirig.address) },
     makeActive = action { minirig -> activeMinirigOps.setActiveMinirig(minirig.address) },
     startLinkup = action { minirig -> linkupUseCases.startLinkup(minirig.address) },
     joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },
