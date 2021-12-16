@@ -124,10 +124,12 @@ fun interface MinirigsUi : @Composable () -> Unit
         else LocalContentColor.current.copy(alpha = 0.12f),
         shape = CircleShape
       ) {
-        if (minirig.isActive)
+        if (minirig.isActive || minirig.isLinkupSlave)
           Icon(
             modifier = Modifier.center(),
-            painterResId = R.drawable.ic_volume_up
+            painterResId = if (minirig.isActive)
+              R.drawable.ic_volume_up
+            else R.drawable.es_ic_done
           )
       }
     },
@@ -182,7 +184,8 @@ data class UiMinirig(
   val address: String,
   val name: String,
   val isConnected: Boolean,
-  val isActive: Boolean
+  val isActive: Boolean,
+  val isLinkupSlave: Boolean
 )
 
 data class MinirigsModel(
@@ -262,7 +265,8 @@ data class MinirigsModel(
                   minirig.address,
                   minirig.name,
                   it.isConnected,
-                  minirig.address == activeMinirig
+                  minirig.address == activeMinirig,
+                  it.linkupState == LinkupState.SLAVE
                 )
               }
           }

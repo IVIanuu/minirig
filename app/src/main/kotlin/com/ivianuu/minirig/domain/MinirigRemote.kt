@@ -112,19 +112,21 @@ class MinirigSocket(
 
   private val sendLimiter = RateLimiter(1, 100.milliseconds)
 
-  suspend fun send(message: String) = withContext(scope.coroutineContext) {
-    // the minirig cannot keep with our speed to debounce each write
-    sendLimiter.acquire()
+  suspend fun send(message: String) = catch {
+    withContext(scope.coroutineContext) {
+      // the minirig cannot keep with our speed to debounce each write
+      sendLimiter.acquire()
 
-    log { "send ${device.debugName()} -> $message" }
+      log { "send ${device.debugName()} -> $message" }
 
-    try {
-      withSocket {
-        outputStream.write(message.toByteArray())
+      try {
+        withSocket {
+          outputStream.write(message.toByteArray())
+        }
+      } catch (e: IOException) {
+        closeCurrentSocket(e)
+        throw e
       }
-    } catch (e: IOException) {
-      closeCurrentSocket(e)
-      throw e
     }
   }
 

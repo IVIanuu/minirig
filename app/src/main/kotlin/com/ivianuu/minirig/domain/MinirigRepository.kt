@@ -47,9 +47,16 @@ import kotlinx.coroutines.flow.*
     .transformLatest {
       remote.withMinirig(address) {
         var batteryPercentage = 0f
+        var linkupState = LinkupState.NONE
 
         suspend fun emit() {
-          emit(MinirigState(isConnected = true, batteryPercentage = batteryPercentage))
+          emit(
+            MinirigState(
+              isConnected = true,
+              batteryPercentage = batteryPercentage,
+              linkupState = linkupState
+            )
+          )
         }
 
         emit()
@@ -57,6 +64,7 @@ import kotlinx.coroutines.flow.*
         par(
           {
             messages.collect { message ->
+              log { "received $message" }
               when {
                 message.startsWith("B") -> {
                   val newBatteryPercentage = message
@@ -71,12 +79,32 @@ import kotlinx.coroutines.flow.*
                     emit()
                   }
                 }
+                message.startsWith("x") -> {
+                  val newLinkupState = message
+                    .takeIf { it.length >= 36 }
+                    ?.substring(35, 36)
+                    ?.let {
+                      when (it) {
+                        "1", "2", "3", "4" -> LinkupState.SLAVE
+                        "5", "6", "7", "8" -> LinkupState.MASTER
+                        else -> LinkupState.NONE
+                      }
+                    } ?: LinkupState.NONE
+
+                  if (newLinkupState != linkupState) {
+                    linkupState = newLinkupState
+                    emit()
+                  }
+
+                  log { "${device.debugName()} broadcast state -> $newLinkupState" }
+                }
               }
             }
           },
           {
             while (currentCoroutineContext().isActive) {
               catch { send("BGET_BATTERY") }
+              catch { send("xGET_STATUS") }
               delay(5000)
             }
           }
