@@ -12,7 +12,7 @@ data class Minirig(val address: String, val name: String)
 
 fun BluetoothDevice.toMinirig() = Minirig(address, alias ?: name)
 
-fun String.isMinirigAddress() = startsWith("00:12:6F")
+fun String.isMinirigAddress() = contains(":")// todo startsWith("00:12:6F")
 
 fun BluetoothDevice.debugName() = "[${alias ?: name} ~ $address]"
 
