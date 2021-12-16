@@ -12,11 +12,11 @@ import com.ivianuu.injekt.android.*
   private val bluetoothManager: @SystemService BluetoothManager,
   private val remote: MinirigRemote
 ) {
-  suspend fun powerOff(address: String) = remote.withMinirig(address) {
+  suspend fun powerOff(address: String) = remote.withMinirig(address, "power off") {
     send("OPOWER_TOGGLE")
   }
 
-  suspend fun rename(address: String, newName: String) = remote.withMinirig(address) {
+  suspend fun rename(address: String, newName: String) = remote.withMinirig(address, "rename") {
     send("N SET NAME=$newName")
     send("N SET NAME_SHORT=${newName.take(7)}")
     send("N WRITEN WRITE")
@@ -26,11 +26,12 @@ import com.ivianuu.injekt.android.*
       .invoke(device, newName)
   }
 
-  suspend fun clearPairedDevices(address: String) = remote.withMinirig(address) {
-    send("N UNPAIRCLEAR_PAIRED")
-  }
+  suspend fun clearPairedDevices(address: String) =
+    remote.withMinirig(address, "clear paired devices") {
+      send("N UNPAIRCLEAR_PAIRED")
+    }
 
-  suspend fun factoryReset(address: String) = remote.withMinirig(address) {
+  suspend fun factoryReset(address: String) = remote.withMinirig(address, "factory reset") {
     send("*RESET")
   }
 }

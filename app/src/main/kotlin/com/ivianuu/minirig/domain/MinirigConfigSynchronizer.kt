@@ -58,7 +58,7 @@ private suspend fun applyConfig(
   @Inject L: Logger,
   remote: MinirigRemote
 ) {
-  remote.withMinirig(config.id) {
+  remote.withMinirig(config.id, "apply config") {
     log { "${config.id} apply config $config" }
 
     val currentConfig = readMinirigConfig()
@@ -130,11 +130,13 @@ private suspend fun applyConfig(
 private suspend fun MinirigSocket.readMinirigConfig(@Inject L: Logger): Map<Int, Int> {
   // sending this message triggers the state output
   send("q p 00 50")
-  return messages
-    .first { it.startsWith("q") }
-    .removePrefix("q ")
-    .split(" ")
-    .withIndex()
-    .associateBy { it.index + 1 }
-    .mapValues { it.value.value.toInt() }
+  return withTimeout(5000) {
+    messages
+      .first { it.startsWith("q") }
+      .removePrefix("q ")
+      .split(" ")
+      .withIndex()
+      .associateBy { it.index + 1 }
+      .mapValues { it.value.value.toInt() }
+  }
 }

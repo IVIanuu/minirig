@@ -32,17 +32,17 @@ import kotlinx.coroutines.*
     activeMinirigOps.setActiveMinirig(hostAddress)
   }
 
-  suspend fun startLinkup(address: String) = remote.withMinirig(address) {
+  suspend fun startLinkup(address: String) = remote.withMinirig(address, "start linkup") {
     send("HBROADCAST_START")
   }
 
-  suspend fun joinLinkup(address: String) = remote.withMinirig(address) {
+  suspend fun joinLinkup(address: String) = remote.withMinirig(address, "join linkup") {
     send("IBROADCAST_JOIN")
   }
 
   suspend fun cancelLinkup(address: String) {
     // disconnect
-    remote.withMinirig(address) {
+    remote.withMinirig(address, "cancel linkup") {
       send("JBROADCAST_LEAVE")
     }
 

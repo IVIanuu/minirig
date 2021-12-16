@@ -45,7 +45,7 @@ import kotlinx.coroutines.flow.*
   fun minirigState(address: String) = remote.bondedDeviceChanges()
     .onStart<Any> { emit(Unit) }
     .transformLatest {
-      remote.withMinirig(address) {
+      remote.withMinirig(address, "minirig state $address") {
         var batteryPercentage = 0f
         var linkupState = LinkupState.NONE
 

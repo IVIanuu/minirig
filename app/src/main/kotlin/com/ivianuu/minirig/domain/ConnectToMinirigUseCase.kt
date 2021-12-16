@@ -23,7 +23,7 @@ fun interface ConnectToMinirigUseCase : suspend (String) -> Boolean
 
   if (remote.isConnected(address).first()) return@ConnectToMinirigUseCase true
 
-  a2DPOps.withProxy {
+  a2DPOps.withProxy("connect minirig") {
     javaClass.getDeclaredMethod(
       "connect",
       BluetoothDevice::class.java
