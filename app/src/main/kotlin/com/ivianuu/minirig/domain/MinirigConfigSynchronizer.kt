@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.*
   remote: MinirigRemote,
   L: Logger,
   T: ToastContext
-) = ScopeWorker<AppScope> {
+) = ScopeWorker<AppForegroundScope> {
   withContext(context) {
     minirigRepository.minirigs.collectLatest { minirigs ->
       minirigs.parForEach { minirig ->
@@ -130,7 +130,7 @@ private suspend fun applyConfig(
 private suspend fun MinirigSocket.readMinirigConfig(@Inject L: Logger): Map<Int, Int> {
   // sending this message triggers the state output
   send("q p 00 50")
-  return withTimeoutOrNull(10000) {
+  return withTimeoutOrNull(2000) {
     messages
       .first { it.startsWith("q") }
       .removePrefix("q ")

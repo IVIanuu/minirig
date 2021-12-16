@@ -19,6 +19,7 @@ import androidx.compose.ui.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.unit.*
 import com.ivianuu.essentials.*
+import com.ivianuu.essentials.app.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
 import com.ivianuu.essentials.resource.*
@@ -234,6 +235,7 @@ data class MinirigsModel(
 
 @Provide fun minirigsModel(
   activeMinirigOps: ActiveMinirigOps,
+  appForegroundState: Flow<AppForegroundState>,
   configRepository: ConfigRepository,
   connectToMinirigUseCase: ConnectToMinirigUseCase,
   linkupUseCases: LinkupUseCases,
@@ -265,28 +267,32 @@ data class MinirigsModel(
 
   suspend fun applyGain(addresses: Collection<String>) = apply(addresses) { applyGain(it) }
 
-  val minirigs = combine(
-    minirigRepository.minirigs,
-    activeMinirigOps.activeMinirig.onStart { emit(null) }
-  )
-    .flatMapLatest { (minirigs, activeMinirig) ->
-      if (minirigs.isEmpty()) flowOf(emptyList())
+  val minirigs = appForegroundState
+    .flatMapLatest {
+      if (it == AppForegroundState.BACKGROUND) infiniteEmptyFlow()
       else combine(
-        minirigs
-          .sortedBy { it.name }
-          .map { minirig ->
-            minirigRepository.minirigState(minirig.address)
-              .map {
-                UiMinirig(
-                  minirig.address,
-                  minirig.name,
-                  it.isConnected,
-                  minirig.address == activeMinirig,
-                  it.linkupState == LinkupState.SLAVE
-                )
+        minirigRepository.minirigs,
+        activeMinirigOps.activeMinirig.onStart { emit(null) }
+      )
+        .flatMapLatest { (minirigs, activeMinirig) ->
+          if (minirigs.isEmpty()) flowOf(emptyList())
+          else combine(
+            minirigs
+              .sortedBy { it.name }
+              .map { minirig ->
+                minirigRepository.minirigState(minirig.address)
+                  .map {
+                    UiMinirig(
+                      minirig.address,
+                      minirig.name,
+                      it.isConnected,
+                      minirig.address == activeMinirig,
+                      it.linkupState == LinkupState.SLAVE
+                    )
+                  }
               }
-          }
-      ) { it.toList() }
+          ) { it.toList() }
+        }
     }
     .bindResource()
 
