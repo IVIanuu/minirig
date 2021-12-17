@@ -187,6 +187,9 @@ fun interface MinirigsUi : @Composable () -> Unit
           PopupMenu.Item(onSelected = { model.powerOff(minirig) }) {
             Text("Power off")
           },
+          PopupMenu.Item(onSelected = { model.debug(minirig) }) {
+            Text("Debug")
+          },
           PopupMenu.Item(onSelected = { model.rename(minirig) }) {
             Text("Rename")
           },
@@ -236,6 +239,7 @@ data class MinirigsModel(
   val cancelLinkupForSelected: () -> Unit,
   val powerOff: (UiMinirig) -> Unit,
   val powerOffSelected: () -> Unit,
+  val debug: (UiMinirig) -> Unit,
   val rename: (UiMinirig) -> Unit,
   val clearPairedDevices: (UiMinirig) -> Unit,
   val factoryReset: (UiMinirig) -> Unit
@@ -354,6 +358,7 @@ data class MinirigsModel(
     powerOffSelected = action {
       selectedMinirigs.forEach { troubleshootingUseCases.powerOff(it) }
     },
+    debug = action { minirig -> navigator.push(MinirigDebugKey(minirig.address)) },
     rename = action { minirig ->
       val newName = navigator.push(RenameMinirigKey()) ?: return@action
       troubleshootingUseCases.rename(minirig.address, newName)
