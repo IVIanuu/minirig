@@ -59,11 +59,11 @@ private suspend fun applyConfig(
   remote: MinirigRemote
 ) {
   remote.withMinirig(config.id, "apply config") {
-    log { "${config.id} apply config $config" }
+    log { "${device.debugName()} apply config $config" }
 
     val currentConfig = readMinirigConfig()
 
-    log { "${config.id} current config $currentConfig" }
+    log { "${device.debugName()} current config $currentConfig" }
 
     suspend fun updateConfigIfNeeded(key: Int, value: Int) {
       // format key and value to match the minirig format
