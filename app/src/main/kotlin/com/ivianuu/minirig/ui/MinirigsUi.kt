@@ -87,6 +87,9 @@ fun interface MinirigsUi : @Composable () -> Unit
                   PopupMenu.Item(onSelected = model.startLinkupWithSelected) {
                     Text("Start linkup")
                   },
+                  PopupMenu.Item(onSelected = model.joinLinkupSelected) {
+                    Text("Join linkup")
+                  },
                   PopupMenu.Item(onSelected = model.cancelLinkupForSelected) {
                     Text("Cancel linkup")
                   },
