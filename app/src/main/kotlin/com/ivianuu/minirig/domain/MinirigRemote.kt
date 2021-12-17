@@ -77,6 +77,8 @@ import java.util.*
   )
 }
 
+private val sendLimiter = RateLimiter(1, 100.milliseconds)
+
 class MinirigSocket(
   private val address: String,
   @Inject private val bluetoothManager: @SystemService BluetoothManager,
@@ -117,8 +119,6 @@ class MinirigSocket(
       }
     }
   }.shareIn(scope, SharingStarted.Eagerly)
-
-  private val sendLimiter = RateLimiter(1, 100.milliseconds)
 
   suspend fun send(message: String) = catch {
     runJob("send message ${device.debugName()}") {
