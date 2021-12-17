@@ -30,18 +30,22 @@ suspend fun <R> runJob(
 ): R {
   val id = lastId.getAndUpdate { it.inc() }
   return try {
-    openJobsLock.withLock {
-      openJobs.getOrPut(name) { mutableSetOf() }.add(id)
+    withContext(NonCancellable) {
+      openJobsLock.withLock {
+        openJobs.getOrPut(name) { mutableSetOf() }.add(id)
+      }
     }
     log { "jobs $name $id start" }
     block()
   } finally {
     log { "jobs $name $id stop" }
-    openJobsLock.withLock {
-      val jobs = openJobs[name]!!
-      jobs.remove(id)
-      if (jobs.isEmpty())
-        openJobs.remove(name)
+    withContext(NonCancellable) {
+      openJobsLock.withLock {
+        val jobs = openJobs[name]!!
+        jobs.remove(id)
+        if (jobs.isEmpty())
+          openJobs.remove(name)
+      }
     }
   }
 }
