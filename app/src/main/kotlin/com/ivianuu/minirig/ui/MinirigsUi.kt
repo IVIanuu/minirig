@@ -153,7 +153,7 @@ fun interface MinirigsUi : @Composable () -> Unit
       }
     },
     title = { Text(minirig.name) },
-    subtitle = { Text(minirig.address) },
+    subtitle = { Text("${minirig.address} • ${minirig.batteryPercentage}%") },
     trailing = {
       PopupMenuButton(
         items = listOf(
@@ -210,7 +210,8 @@ data class UiMinirig(
   val name: String,
   val isConnected: Boolean,
   val isActive: Boolean,
-  val isLinkupSlave: Boolean
+  val isLinkupSlave: Boolean,
+  val batteryPercentage: Int
 )
 
 data class MinirigsModel(
@@ -302,7 +303,8 @@ data class MinirigsModel(
                       minirig.name,
                       it.isConnected,
                       minirig.address == activeMinirig,
-                      it.linkupState == LinkupState.SLAVE
+                      it.linkupState == LinkupState.SLAVE,
+                      (it.batteryPercentage * 100).toInt()
                     )
                   }
               }
