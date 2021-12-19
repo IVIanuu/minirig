@@ -216,7 +216,6 @@ data class ConfigModel(
   configRepository: ConfigRepository,
   minirigRepository: MinirigRepository,
   navigator: Navigator,
-  remote: MinirigRemote,
   SS: StateScope
 ): ConfigModel {
   val config = configRepository.config(key.id).bindResource()

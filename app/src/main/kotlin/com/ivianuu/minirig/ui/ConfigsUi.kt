@@ -93,7 +93,6 @@ data class ConfigsModel(
     },
     createConfig = action {
       val id = navigator.push(ConfigIdPickerKey()) ?: return@action
-
       repository.updateConfig(MinirigConfig(id = id))
     },
     deleteConfig = action { config ->
