@@ -122,7 +122,7 @@ class MinirigSocket(
 
   suspend fun send(message: String) = catch {
     runJob("send message ${device.debugName()}") {
-      withTimeout(10000) {
+      withTimeout(5000) {
         withContext(scope.coroutineContext) {
           // the minirig cannot keep with our speed to debounce each write
           sendLimiter.acquire()

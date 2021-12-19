@@ -30,11 +30,10 @@ import kotlinx.coroutines.flow.*
           if (isConnected) {
             log { "observe config changes ${minirig.debugName()}" }
             configRepository.config(minirig.address).collectLatest { config ->
-              log { "apply config ${minirig.debugName()}" }
               suspend fun applyConfig(attempt: Int) {
-                if (attempt >= 5) {
+                log { "apply config ${minirig.debugName()} attempt $attempt" }
+                if (attempt == 5) {
                   showToast("Could not apply config to ${minirig.debugName()}")
-                  return
                 }
 
                 catch {
