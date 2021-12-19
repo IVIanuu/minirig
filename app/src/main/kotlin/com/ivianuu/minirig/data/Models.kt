@@ -56,7 +56,7 @@ fun MinirigConfig.applyGain(other: MinirigConfig) = other.copy(
 
 data class MinirigState(
   val isConnected: Boolean = false,
-  val batteryPercentage: Float = 0f,
+  val batteryPercentage: Float? = null,
   val linkupState: LinkupState = LinkupState.NONE
 )
 

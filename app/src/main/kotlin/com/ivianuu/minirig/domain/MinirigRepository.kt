@@ -72,7 +72,7 @@ import kotlinx.coroutines.flow.*
       // sending this message triggers the state output
       catch { send("BGET_BATTERY") }
 
-      val batteryPercentage = withTimeout(5000) {
+      val batteryPercentage = withTimeoutOrNull(5000) {
         messages
           .mapNotNull { message ->
             if (!message.startsWith("B")) return@mapNotNull null
@@ -87,7 +87,7 @@ import kotlinx.coroutines.flow.*
 
       catch { send("xGET_STATUS") }
 
-      val linkupState = withTimeout(5000) {
+      val linkupState = withTimeoutOrNull(5000) {
         messages
           .mapNotNull { message ->
             message
@@ -102,7 +102,7 @@ import kotlinx.coroutines.flow.*
               }
           }
           .first()
-      }
+      } ?: LinkupState.NONE
 
       return@withMinirig MinirigState(
         isConnected = true,
@@ -112,16 +112,7 @@ import kotlinx.coroutines.flow.*
     } ?: MinirigState(isConnected = false)
 }
 
-private fun Int.toBatteryPercentage(): Float = when {
-  this < 10300 -> 0.01f
-  this in 10300..10549 -> 0.1f
-  this in 10550..10699 -> 0.2f
-  this in 10700..10799 -> 0.3f
-  this in 10800..10899 -> 0.4f
-  this in 10900..11099 -> 0.5f
-  this in 11100..11349 -> 0.6f
-  this in 11350..11699 -> 0.7f
-  this in 11700..11999 -> 0.8f
-  this in 12000..12299 -> 0.9f
-  else -> 1f
+private fun Int.toBatteryPercentage(): Float {
+  val voltageRange = 10200..12400
+  return ((this - voltageRange.first) * 100) / (voltageRange.last - voltageRange.first) / 100f
 }

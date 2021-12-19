@@ -32,7 +32,7 @@ import java.util.*
   private val L: Logger
 ) {
   private val sockets = RefCountedResource<String, MinirigSocket>(
-    timeout = 2.seconds,
+    timeout = 10.seconds,
     create = { address ->
       MinirigSocket(address)
         .also {
