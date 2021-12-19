@@ -122,23 +122,35 @@ class MinirigSocket(
 
   suspend fun send(message: String) = catch {
     runJob("send message ${device.debugName()}") {
-      withTimeout(5000) {
-        withContext(scope.coroutineContext) {
-          // the minirig cannot keep with our speed to debounce each write
-          sendLimiter.acquire()
+      suspend fun sendImpl(message: String, attempt: Int) {
+        try {
+          withTimeout(5000) {
+            withContext(scope.coroutineContext) {
+              // the minirig cannot keep with our speed to debounce each write
+              sendLimiter.acquire()
 
-          log { "send ${device.debugName()} -> $message" }
+              log { "send ${device.debugName()} -> $message attempt $attempt" }
 
-          try {
-            withSocket("send message ${device.debugName()}") {
-              outputStream.write(message.toByteArray())
+              try {
+                withSocket("send message ${device.debugName()}") {
+                  outputStream.write(message.toByteArray())
+                }
+              } catch (e: IOException) {
+                closeCurrentSocket(e)
+                throw e
+              }
             }
-          } catch (e: IOException) {
-            closeCurrentSocket(e)
-            throw e
+          }
+        } catch (e: Throwable) {
+          e.nonFatalOrThrow()
+          if (attempt < 5) {
+            delay(2000)
+            sendImpl(message, attempt + 1)
           }
         }
       }
+
+      sendImpl(message, 0)
     }
   }
 
