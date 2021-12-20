@@ -51,7 +51,22 @@ fun MinirigConfig.applyGain(other: MinirigConfig) = other.copy(
   band2 = band2,
   band3 = band3,
   band4 = band4,
-  band5 = band5
+  band5 = band5,
+  channel = channel,
+  auxChannel = auxChannel
+)
+
+fun MinirigConfig.applyChannel(other: MinirigConfig) = other.copy(
+  id = id,
+  band1 = band1,
+  band2 = band2,
+  band3 = band3,
+  band4 = band4,
+  band5 = band5,
+  bassBoost = bassBoost,
+  loud = loud,
+  gain = gain,
+  auxGain = auxGain,
 )
 
 fun List<MinirigConfig>.merge(id: String) = MinirigConfig(

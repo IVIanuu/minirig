@@ -83,6 +83,9 @@ fun interface MinirigsUi : @Composable () -> Unit
                   PopupMenu.Item(onSelected = model.applyEqToSelected) {
                     Text("Apply equalizer")
                   },
+                  PopupMenu.Item(onSelected = model.applyChannelToSelected) {
+                    Text("Apply channel")
+                  },
                   PopupMenu.Item(onSelected = model.applyGainToSelected) {
                     Text("Apply gain")
                   },
@@ -185,6 +188,9 @@ fun interface MinirigsUi : @Composable () -> Unit
           PopupMenu.Item(onSelected = { model.applyGain(minirig) }) {
             Text("Apply gain")
           },
+          PopupMenu.Item(onSelected = { model.applyChannel(minirig) }) {
+            Text("Apply channel")
+          },
           PopupMenu.Item(onSelected = { model.makeActive(minirig) }) {
             Text("Set active")
           },
@@ -243,8 +249,10 @@ data class MinirigsModel(
   val applyConfig: (UiMinirig) -> Unit,
   val applyEq: (UiMinirig) -> Unit,
   val applyGain: (UiMinirig) -> Unit,
+  val applyChannel: (UiMinirig) -> Unit,
   val applyConfigToSelected: () -> Unit,
   val applyEqToSelected: () -> Unit,
+  val applyChannelToSelected: () -> Unit,
   val applyGainToSelected: () -> Unit,
   val editConfigOfSelected: () -> Unit,
   val editAll: () -> Unit,
@@ -305,6 +313,8 @@ data class MinirigsModel(
 
   suspend fun applyGain(addresses: Collection<String>) = apply(addresses) { applyGain(it) }
 
+  suspend fun applyChannel(addresses: Collection<String>) = apply(addresses) { applyChannel(it) }
+
   val minirigs = appForegroundState
     .flatMapLatest { foregroundState ->
       if (foregroundState == AppForegroundState.BACKGROUND) infiniteEmptyFlow()
@@ -355,6 +365,8 @@ data class MinirigsModel(
     applyEqToSelected = action { applyEq(selectedMinirigs) },
     applyGain = action { minirig -> applyGain(listOf(minirig.address)) },
     applyGainToSelected = action { applyGain(selectedMinirigs) },
+    applyChannel = action { minirig -> applyChannel(listOf(minirig.address)) },
+    applyChannelToSelected = action { applyChannel(selectedMinirigs) },
     editConfigOfSelected = action { multiConfigEditUseCase(selectedMinirigs.toList()) },
     editAll = action {
       multiConfigEditUseCase(minirigs.getOrNull()?.map { it.address } ?: return@action)
