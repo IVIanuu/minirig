@@ -33,7 +33,7 @@ import kotlin.system.*
   private val L: Logger
 ) {
   private val sockets = RefCountedResource<String, MinirigSocket>(
-    timeout = 2.seconds,
+    timeout = 10.seconds,
     create = { address ->
       MinirigSocket(address)
         .also {
@@ -98,7 +98,7 @@ class MinirigSocket(
   val messages: Flow<String> = channelFlow {
     while (currentCoroutineContext().isActive) {
       if (!bluetoothManager.adapter.isEnabled) {
-        delay(5000)
+        delay(5.seconds)
         continue
       }
 

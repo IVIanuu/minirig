@@ -14,6 +14,7 @@ import com.ivianuu.essentials.app.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
 import com.ivianuu.essentials.state.*
+import com.ivianuu.essentials.time.*
 import com.ivianuu.essentials.ui.common.*
 import com.ivianuu.essentials.ui.insets.*
 import com.ivianuu.essentials.ui.material.Scaffold
@@ -134,7 +135,7 @@ data class MinirigDebugModel(
                 send("/GET_RUNTIME_DATA2")
                 send("q p 00 50")
 
-                delay(10000)
+                delay(5.seconds)
               }
             }
           )

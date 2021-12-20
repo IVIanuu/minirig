@@ -6,6 +6,7 @@ package com.ivianuu.minirig.domain
 
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
+import com.ivianuu.essentials.time.*
 import com.ivianuu.injekt.*
 import kotlinx.coroutines.*
 
@@ -21,12 +22,12 @@ import kotlinx.coroutines.*
     startLinkup(hostAddress)
     guestAddresses.forEach { joinLinkup(it) }
 
-    delay(5000)
+    delay(5.seconds)
 
     log { "reconnect to guests" }
     guestAddresses.parForEach { connectionUseCases.connectMinirig(it) }
 
-    delay(1000)
+    delay(1.seconds)
 
     log { "reconnect to host $hostAddress" }
     activeMinirigOps.setActiveMinirig(hostAddress)
@@ -46,7 +47,7 @@ import kotlinx.coroutines.*
       send("JBROADCAST_LEAVE")
     }
 
-    delay(10000)
+    delay(10.seconds)
 
     connectionUseCases.connectMinirig(address)
   }

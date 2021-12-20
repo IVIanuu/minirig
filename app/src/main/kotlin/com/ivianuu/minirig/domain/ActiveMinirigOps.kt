@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.*
 ) {
   val activeMinirig: Flow<String?>
     get() = merge(
-      timer(10.seconds),
+      timer(5.seconds),
       remote.bondedDeviceChanges()
     )
       .transformLatest {

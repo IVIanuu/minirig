@@ -6,6 +6,7 @@ package com.ivianuu.minirig
 
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
+import com.ivianuu.essentials.time.*
 import com.ivianuu.injekt.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.*
@@ -15,7 +16,7 @@ private val job = GlobalScope.launch {
     openJobsLock.withLock {
       println("jobs: open jobs $openJobs")
     }
-    delay(3000)
+    delay(3.seconds)
   }
 }
 
