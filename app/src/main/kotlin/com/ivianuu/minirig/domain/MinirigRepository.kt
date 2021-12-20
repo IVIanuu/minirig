@@ -52,7 +52,7 @@ import kotlinx.coroutines.flow.*
     emitAll(
       states.get(address) {
         merge(
-          timer(5.seconds),
+          timer(10.seconds),
           remote.bondedDeviceChanges()
         )
           .mapLatest { readMinirigState(address) }
@@ -75,7 +75,7 @@ import kotlinx.coroutines.flow.*
       // sending this message triggers the state output
       catch { send("BGET_BATTERY") }
 
-      val batteryPercentage = withTimeoutOrNull(5000) {
+      val batteryPercentage = withTimeoutOrNull(PingPongTimeout) {
         messages
           .mapNotNull { message ->
             if (!message.startsWith("B")) return@mapNotNull null
@@ -90,7 +90,7 @@ import kotlinx.coroutines.flow.*
 
       catch { send("xGET_STATUS") }
 
-      val linkupState = withTimeoutOrNull(5000) {
+      val linkupState = withTimeoutOrNull(PingPongTimeout) {
         messages
           .mapNotNull { message ->
             message

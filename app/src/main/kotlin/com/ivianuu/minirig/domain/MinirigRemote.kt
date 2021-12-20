@@ -23,6 +23,7 @@ import kotlinx.coroutines.sync.*
 import java.io.*
 import java.nio.charset.*
 import java.util.*
+import kotlin.system.*
 
 @Provide @Scoped<AppScope> class MinirigRemote(
   private val bluetoothManager: @SystemService BluetoothManager,
@@ -32,11 +33,11 @@ import java.util.*
   private val L: Logger
 ) {
   private val sockets = RefCountedResource<String, MinirigSocket>(
-    timeout = 10.seconds,
+    timeout = 2.seconds,
     create = { address ->
       MinirigSocket(address)
         .also {
-          log { "create socket $it" }
+          log { "create socket ${it.device.debugName()}" }
         }
     },
     release = { _, socket ->
@@ -115,7 +116,7 @@ class MinirigSocket(
         }
       } catch (e: IOException) {
         closeCurrentSocket(e)
-        delay(2000)
+        delay(RetryDelay)
       }
     }
   }.shareIn(scope, SharingStarted.Eagerly)
@@ -124,11 +125,11 @@ class MinirigSocket(
     runJob("send message ${device.debugName()}") {
       suspend fun sendImpl(message: String, attempt: Int) {
         try {
-          withTimeout(5000) {
-            withContext(scope.coroutineContext) {
-              // the minirig cannot keep with our speed to debounce each write
-              sendLimiter.acquire()
+          // the minirig cannot keep with our speed to debounce each write
+          sendLimiter.acquire()
 
+          withTimeout(PingPongTimeout) {
+            withContext(scope.coroutineContext) {
               log { "send ${device.debugName()} -> $message attempt $attempt" }
 
               try {
@@ -144,7 +145,7 @@ class MinirigSocket(
         } catch (e: Throwable) {
           e.nonFatalOrThrow()
           if (attempt < 5) {
-            delay(2000)
+            delay(RetryDelay)
             sendImpl(message, attempt + 1)
           }
         }
@@ -207,7 +208,7 @@ class MinirigSocket(
                   log { "connect failed ${device.debugName()} attempt $attempt" }
                   e.nonFatalOrThrow()
                   attempt++
-                  delay(1000)
+                  delay(RetryDelay)
                 }
               }
             } finally {

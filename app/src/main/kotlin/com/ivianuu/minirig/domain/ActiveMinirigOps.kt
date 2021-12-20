@@ -6,24 +6,29 @@ package com.ivianuu.minirig.domain
 
 import android.bluetooth.*
 import com.ivianuu.essentials.*
+import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
+import com.ivianuu.essentials.time.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
 import com.ivianuu.minirig.data.*
-import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
 @Provide class ActiveMinirigOps(
   private val a2DPOps: A2DPOps,
   private val bluetoothManager: @SystemService BluetoothManager,
   private val connectionUseCases: MinirigConnectionUseCases,
+  private val remote: MinirigRemote,
   private val L: Logger
 ) {
   val activeMinirig: Flow<String?>
-    get() = channelFlow {
-      while (currentCoroutineContext().isActive) {
+    get() = merge(
+      timer(10.seconds),
+      remote.bondedDeviceChanges()
+    )
+      .transformLatest {
         a2DPOps.withProxy("active minirig") {
-          send(
+          emit(
             javaClass.getDeclaredMethod("getActiveDevice")
               .invoke(this)
               .safeAs<BluetoothDevice?>()
@@ -31,9 +36,8 @@ import kotlinx.coroutines.flow.*
               ?.takeIf { it.isMinirigAddress() }
           )
         }
-        delay(1000)
       }
-    }.distinctUntilChanged()
+      .distinctUntilChanged()
 
   suspend fun setActiveMinirig(address: String) {
     a2DPOps.withProxy("set active minirig") {

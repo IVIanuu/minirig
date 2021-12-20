@@ -40,7 +40,7 @@ import kotlinx.coroutines.flow.*
                   applyConfig(config!!)
                 }.onFailure {
                   log { "failed to apply config to ${minirig.debugName()} $attempt -> ${it.asLog()}" }
-                  delay(2000)
+                  delay(RetryDelay)
                   applyConfig(attempt + 1)
                 }
               }
@@ -133,7 +133,7 @@ private suspend fun applyConfig(
 private suspend fun MinirigSocket.readMinirigConfig(@Inject L: Logger): Map<Int, Int> {
   // sending this message triggers the state output
   send("q p 00 50")
-  return withTimeoutOrNull(5000) {
+  return withTimeoutOrNull(PingPongTimeout) {
     messages
       .first { it.startsWith("q") }
       .parseEq()

@@ -134,7 +134,7 @@ data class MinirigDebugModel(
                 send("/GET_RUNTIME_DATA2")
                 send("q p 00 50")
 
-                delay(5000)
+                delay(10000)
               }
             }
           )
