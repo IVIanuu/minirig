@@ -284,8 +284,8 @@ data class MinirigsModel(
   suspend fun applyGain(addresses: Collection<String>) = apply(addresses) { applyGain(it) }
 
   val minirigs = appForegroundState
-    .flatMapLatest {
-      if (it == AppForegroundState.BACKGROUND) infiniteEmptyFlow()
+    .flatMapLatest { foregroundState ->
+      if (foregroundState == AppForegroundState.BACKGROUND) infiniteEmptyFlow()
       else combine(
         minirigRepository.minirigs,
         activeMinirigOps.activeMinirig.onStart { emit(null) }
