@@ -64,6 +64,10 @@ fun interface MinirigsUi : @Composable () -> Unit
             },
             title = { Spacer(Modifier.fillMaxWidth()) },
             actions = {
+              IconButton(onClick = model.editConfigOfSelected) {
+                Icon(R.drawable.ic_edit)
+              }
+
               IconButton(onClick = model.selectAll) {
                 Icon(R.drawable.ic_select_all)
               }
@@ -105,7 +109,18 @@ fun interface MinirigsUi : @Composable () -> Unit
             }
           )
         } else {
-          TopAppBar(title = { Text("Minirig") })
+          TopAppBar(
+            title = { Text("Minirig") },
+            actions = {
+              IconButton(onClick = model.editAll) {
+                Icon(R.drawable.ic_app_registration)
+              }
+
+              IconButton(onClick = model.selectAll) {
+                Icon(R.drawable.ic_select_all)
+              }
+            }
+          )
         }
       }
     }
@@ -232,6 +247,7 @@ data class MinirigsModel(
   val applyEqToSelected: () -> Unit,
   val applyGainToSelected: () -> Unit,
   val editConfigOfSelected: () -> Unit,
+  val editAll: () -> Unit,
   val connect: (UiMinirig) -> Unit,
   val connectSelected: () -> Unit,
   val disconnect: (UiMinirig) -> Unit,
@@ -340,6 +356,9 @@ data class MinirigsModel(
     applyGain = action { minirig -> applyGain(listOf(minirig.address)) },
     applyGainToSelected = action { applyGain(selectedMinirigs) },
     editConfigOfSelected = action { multiConfigEditUseCase(selectedMinirigs.toList()) },
+    editAll = action {
+      multiConfigEditUseCase(minirigs.getOrNull()?.map { it.address } ?: return@action)
+    },
     connect = action { minirig -> connectionUseCases.connectMinirig(minirig.address) },
     connectSelected = action { selectedMinirigs.forEach { connectionUseCases.connectMinirig(it) } },
     disconnect = action { minirig -> connectionUseCases.disconnectMinirig(minirig.address) },

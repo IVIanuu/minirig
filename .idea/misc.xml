@@ -3,7 +3,9 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="app/src/main/res/drawable/baseline_app_registration_24.xml" value="0.1" />
         <entry key="app/src/main/res/drawable/baseline_deselect_24.xml" value="0.11018518518518519" />
+        <entry key="app/src/main/res/drawable/baseline_edit_24.xml" value="0.1" />
         <entry key="app/src/main/res/drawable/baseline_volume_up_24.xml" value="0.1" />
         <entry key="app/src/main/res/drawable/ic_select_all.xml" value="0.11018518518518519" />
       </map>

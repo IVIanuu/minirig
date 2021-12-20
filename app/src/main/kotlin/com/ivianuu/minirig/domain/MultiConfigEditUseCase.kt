@@ -19,12 +19,6 @@ fun interface MultiConfigEditUseCase : suspend (List<String>) -> Unit
 ) = MultiConfigEditUseCase { minirigAddresses ->
   val tmpConfigId = "Tmp"
 
-  val initialConfig = minirigAddresses
-    .parMap { configRepository.config(it).first()!! }
-    .merge(tmpConfigId)
-
-  configRepository.updateConfig(initialConfig)
-
   race(
     {
       guarantee(
@@ -33,6 +27,12 @@ fun interface MultiConfigEditUseCase : suspend (List<String>) -> Unit
       )
     },
     {
+      val initialConfig = minirigAddresses
+        .parMap { configRepository.config(it).first()!! }
+        .merge(tmpConfigId)
+
+      configRepository.updateConfig(initialConfig)
+
       minirigAddresses.parForEach { minirigAddress ->
         var latestConfig = initialConfig
         configRepository.config(tmpConfigId)
