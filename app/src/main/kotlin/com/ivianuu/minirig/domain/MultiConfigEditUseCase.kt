@@ -5,10 +5,12 @@
 package com.ivianuu.minirig.domain
 
 import com.ivianuu.essentials.coroutines.*
+import com.ivianuu.essentials.time.*
 import com.ivianuu.essentials.ui.navigation.*
 import com.ivianuu.injekt.*
 import com.ivianuu.minirig.data.*
 import com.ivianuu.minirig.ui.*
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
 fun interface MultiConfigEditUseCase : suspend (List<String>) -> Unit
@@ -23,7 +25,10 @@ fun interface MultiConfigEditUseCase : suspend (List<String>) -> Unit
     {
       guarantee(
         block = { navigator.push(ConfigKey(tmpConfigId)) },
-        finalizer = { configRepository.deleteConfig(tmpConfigId) }
+        finalizer = {
+          delay(500.milliseconds) // wait for ui to complete exit animation
+          configRepository.deleteConfig(tmpConfigId)
+        }
       )
     },
     {
