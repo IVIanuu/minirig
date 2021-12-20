@@ -351,7 +351,11 @@ data class MinirigsModel(
     minirigs = minirigs,
     selectedMinirigs = selectedMinirigs,
     selectAll = {
-      minirigs.getOrNull()?.forEach { selectedMinirigs = selectedMinirigs + it.address }
+      selectedMinirigs = minirigs.getOrNull()
+        ?.mapNotNullTo(mutableSetOf()) {
+          if (it.isConnected) it.address
+          else null
+        } ?: emptySet()
     },
     deselectAll = { selectedMinirigs = emptySet() },
     toggleSelectMinirig = {

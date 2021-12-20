@@ -6,5 +6,5 @@ package com.ivianuu.minirig.domain
 
 import com.ivianuu.essentials.time.*
 
-val RetryDelay = 2.seconds
+val RetryDelay = 500.milliseconds
 val PingPongTimeout = 5.seconds
