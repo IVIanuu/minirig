@@ -136,10 +136,12 @@ private suspend fun MinirigSocket.readMinirigConfig(@Inject L: Logger): Map<Int,
   return withTimeoutOrNull(5000) {
     messages
       .first { it.startsWith("q") }
-      .removePrefix("q ")
-      .split(" ")
-      .withIndex()
-      .associateBy { it.index + 1 }
-      .mapValues { it.value.value.toInt() }
+      .parseEq()
   } ?: error("could not get minirig config from ${device.debugName()}")
 }
+
+fun String.parseEq(): Map<Int, Int> = removePrefix("q ")
+  .split(" ")
+  .withIndex()
+  .associateBy { it.index + 1 }
+  .mapValues { it.value.value.toInt() }

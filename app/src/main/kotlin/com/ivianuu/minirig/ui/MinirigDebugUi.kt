@@ -12,6 +12,7 @@ import androidx.compose.ui.*
 import androidx.compose.ui.unit.*
 import com.ivianuu.essentials.app.*
 import com.ivianuu.essentials.coroutines.*
+import com.ivianuu.essentials.logging.*
 import com.ivianuu.essentials.state.*
 import com.ivianuu.essentials.ui.common.*
 import com.ivianuu.essentials.ui.insets.*
@@ -19,6 +20,7 @@ import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.navigation.*
 import com.ivianuu.injekt.*
+import com.ivianuu.minirig.data.*
 import com.ivianuu.minirig.domain.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -94,7 +96,8 @@ data class MinirigDebugModel(
   appForegroundState: Flow<AppForegroundState>,
   key: MinirigDebugKey,
   remote: MinirigRemote,
-  SS: StateScope
+  SS: StateScope,
+  L: Logger
 ) = MinirigDebugModel(
   output = appForegroundState
     .transformLatest {
@@ -102,14 +105,33 @@ data class MinirigDebugModel(
         remote.withMinirig(key.address, "debug messages") {
           par(
             {
+              var lastRuntimeData1: String? = null
+              var lastRuntimeData2: String? = null
+
+              suspend fun emitRuntimeDataIfPossible() {
+                if (lastRuntimeData1 != null && lastRuntimeData2 != null)
+                  emit(MinirigRuntimeData(lastRuntimeData1!!, lastRuntimeData2!!).toString())
+              }
+
               messages.collect { message ->
-                emit(message)
+                when {
+                  message.startsWith("o") -> {
+                    lastRuntimeData1 = message
+                    emitRuntimeDataIfPossible()
+                  }
+                  message.startsWith("/") -> {
+                    lastRuntimeData2 = message
+                    emitRuntimeDataIfPossible()
+                  }
+                  message.startsWith("q") ->
+                    emit("eq: ${message.parseEq().toString().removeSurrounding("{", "}")}")
+                }
               }
             },
             {
               while (currentCoroutineContext().isActive) {
-                send("GET_RUNTIME_DATA")
-                send("GET_RUNTIME_DATA2")
+                send("oGET_RUNTIME_DATA")
+                send("/GET_RUNTIME_DATA2")
                 send("q p 00 50")
 
                 delay(5000)

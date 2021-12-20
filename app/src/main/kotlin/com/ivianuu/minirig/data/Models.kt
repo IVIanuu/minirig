@@ -65,3 +65,20 @@ enum class LinkupState {
   MASTER,
   SLAVE
 }
+
+data class MinirigRuntimeData(
+  val minsSinceLastCharge: Int,
+  val minsInStandbySinceLastCharge: Int,
+  //val minsOnCharge: Int,
+  val chargeCablesInserted: Int
+)
+
+fun MinirigRuntimeData(
+  runtimeData1: String,
+  runtimeData2: String
+): MinirigRuntimeData = MinirigRuntimeData(
+  minsSinceLastCharge = runtimeData1.substring(2, 6).toInt(),
+  minsInStandbySinceLastCharge = runtimeData1.substring(7, 11).toInt(),
+  //minsOnCharge = runtimeData1.substring(57, 65).toInt(),
+  chargeCablesInserted = runtimeData1.substring(114, 119).toInt()
+)
