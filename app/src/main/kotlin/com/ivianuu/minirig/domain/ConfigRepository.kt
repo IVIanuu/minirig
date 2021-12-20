@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.*
   }
 
   suspend fun deleteConfig(id: String) = db.transaction {
+    log { "delete config $id" }
     db.deleteById<MinirigConfig>(id)
   }
 }

@@ -42,6 +42,7 @@ import com.ivianuu.minirig.data.*
 import com.ivianuu.minirig.domain.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import java.util.*
 
 fun interface MinirigsUi : @Composable () -> Unit
 
@@ -69,6 +70,9 @@ fun interface MinirigsUi : @Composable () -> Unit
 
               PopupMenuButton(
                 items = listOf(
+                  PopupMenu.Item(onSelected = model.editConfigOfSelected) {
+                    Text("Edit config")
+                  },
                   PopupMenu.Item(onSelected = model.applyConfigToSelected) {
                     Text("Apply config")
                   },
@@ -227,6 +231,7 @@ data class MinirigsModel(
   val applyConfigToSelected: () -> Unit,
   val applyEqToSelected: () -> Unit,
   val applyGainToSelected: () -> Unit,
+  val editConfigOfSelected: () -> Unit,
   val connect: (UiMinirig) -> Unit,
   val connectSelected: () -> Unit,
   val disconnect: (UiMinirig) -> Unit,
@@ -256,6 +261,7 @@ data class MinirigsModel(
   connectionUseCases: MinirigConnectionUseCases,
   linkupUseCases: LinkupUseCases,
   minirigRepository: MinirigRepository,
+  multiConfigEditUseCase: MultiConfigEditUseCase,
   navigator: Navigator,
   troubleshootingUseCases: TroubleshootingUseCases,
   L: Logger,
@@ -333,6 +339,7 @@ data class MinirigsModel(
     applyEqToSelected = action { applyEq(selectedMinirigs) },
     applyGain = action { minirig -> applyGain(listOf(minirig.address)) },
     applyGainToSelected = action { applyGain(selectedMinirigs) },
+    editConfigOfSelected = action { multiConfigEditUseCase(selectedMinirigs.toList()) },
     connect = action { minirig -> connectionUseCases.connectMinirig(minirig.address) },
     connectSelected = action { selectedMinirigs.forEach { connectionUseCases.connectMinirig(it) } },
     disconnect = action { minirig -> connectionUseCases.disconnectMinirig(minirig.address) },
