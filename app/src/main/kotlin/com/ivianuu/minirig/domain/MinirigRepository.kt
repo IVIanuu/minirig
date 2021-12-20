@@ -51,7 +51,10 @@ import kotlinx.coroutines.flow.*
   fun minirigState(address: String): Flow<MinirigState> = flow {
     emitAll(
       states.get(address) {
-        timer(5.seconds)
+        merge(
+          timer(5.seconds),
+          remote.bondedDeviceChanges()
+        )
           .mapLatest { readMinirigState(address) }
           .distinctUntilChanged()
           .flowOn(context)
