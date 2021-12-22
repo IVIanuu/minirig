@@ -7,13 +7,17 @@ package com.ivianuu.minirig.domain
 import android.bluetooth.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
+import kotlinx.coroutines.*
 
 @Provide class TroubleshootingUseCases(
   private val bluetoothManager: @SystemService BluetoothManager,
-  private val remote: MinirigRemote
+  private val remote: MinirigRemote,
+  private val repository: MinirigRepository
 ) {
-  suspend fun togglePowerOut(address: String) = remote.withMinirig(address, "toggle power out") {
+  suspend fun enablePowerOut(address: String) = remote.withMinirig(address, "enable power out") {
     send("^")
+    delay(300)
+    repository.stateChanged(address)
   }
 
   suspend fun powerOff(address: String) = remote.withMinirig(address, "power off") {

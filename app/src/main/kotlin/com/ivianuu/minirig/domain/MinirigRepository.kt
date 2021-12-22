@@ -48,12 +48,19 @@ import kotlinx.coroutines.flow.*
 
   private val states = Cache<String, Flow<MinirigState>>()
 
+  private val stateChanges = EventFlow<String>()
+
+  suspend fun stateChanged(address: String) {
+    stateChanges.emit(address)
+  }
+
   fun minirigState(address: String): Flow<MinirigState> = flow {
     emitAll(
       states.get(address) {
         merge(
           timer(5.seconds),
-          remote.bondedDeviceChanges()
+          remote.bondedDeviceChanges(),
+          stateChanges.filter { it == address }
         )
           .mapLatest { readMinirigState(address) }
           .distinctUntilChanged()

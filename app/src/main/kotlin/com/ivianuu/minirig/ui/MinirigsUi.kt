@@ -226,7 +226,7 @@ fun interface MinirigsUi : @Composable () -> Unit
             Text("Cancel linkup")
           },
           PopupMenu.Item(onSelected = { model.enablePowerOut(minirig) }) {
-            Text("Toggle power out")
+            Text("Enable power out")
           },
           PopupMenu.Item(onSelected = { model.powerOff(minirig) }) {
             Text("Power off")
@@ -420,7 +420,7 @@ data class MinirigsModel(
 
       linkupUseCases.startLinkup(host.address, selectedMinirigs.filterNot { it == host.address })
     },
-    enablePowerOut = action { minirig -> troubleshootingUseCases.togglePowerOut(minirig.address) },
+    enablePowerOut = action { minirig -> troubleshootingUseCases.enablePowerOut(minirig.address) },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
     powerOffSelected = action {
       selectedMinirigs.forEach { troubleshootingUseCases.powerOff(it) }
