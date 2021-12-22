@@ -175,7 +175,23 @@ fun interface MinirigsUi : @Composable () -> Unit
       }
     },
     title = { Text(minirig.name) },
-    subtitle = { Text("${minirig.address} • ${minirig.batteryPercentage?.let { "$it%" } ?: "Unknown battery"}") },
+    subtitle = {
+      Text(
+        "${minirig.address} • " +
+            (minirig.batteryPercentage?.let { "$it%" } ?: "Unknown battery") +
+            "${
+              minirig.powerState.takeIf { it != PowerState.NORMAL }?.let { powerState ->
+                " • ${
+                  when (powerState) {
+                    PowerState.NORMAL -> throw AssertionError()
+                    PowerState.CHARGING -> "Charging"
+                    PowerState.POWER_OUT -> "Power out"
+                  }
+                }"
+              }.orEmpty()
+            }"
+      )
+    },
     trailing = {
       PopupMenuButton(
         items = listOf(
@@ -209,6 +225,9 @@ fun interface MinirigsUi : @Composable () -> Unit
           PopupMenu.Item(onSelected = { model.cancelLinkup(minirig) }) {
             Text("Cancel linkup")
           },
+          PopupMenu.Item(onSelected = { model.enablePowerOut(minirig) }) {
+            Text("Toggle power out")
+          },
           PopupMenu.Item(onSelected = { model.powerOff(minirig) }) {
             Text("Power off")
           },
@@ -236,7 +255,8 @@ data class UiMinirig(
   val isConnected: Boolean,
   val isActive: Boolean,
   val isLinkupSlave: Boolean,
-  val batteryPercentage: Int?
+  val batteryPercentage: Int?,
+  val powerState: PowerState
 )
 
 data class MinirigsModel(
@@ -267,6 +287,7 @@ data class MinirigsModel(
   val joinLinkupSelected: () -> Unit,
   val cancelLinkup: (UiMinirig) -> Unit,
   val cancelLinkupForSelected: () -> Unit,
+  val enablePowerOut: (UiMinirig) -> Unit,
   val powerOff: (UiMinirig) -> Unit,
   val powerOffSelected: () -> Unit,
   val debug: (UiMinirig) -> Unit,
@@ -336,7 +357,8 @@ data class MinirigsModel(
                       it.isConnected,
                       minirig.address == activeMinirig,
                       it.linkupState == LinkupState.SLAVE,
-                      (it.batteryPercentage?.let { it * 100 })?.toInt()
+                      (it.batteryPercentage?.let { it * 100 })?.toInt(),
+                      it.powerState
                     )
                   }
               }
@@ -398,6 +420,7 @@ data class MinirigsModel(
 
       linkupUseCases.startLinkup(host.address, selectedMinirigs.filterNot { it == host.address })
     },
+    enablePowerOut = action { minirig -> troubleshootingUseCases.togglePowerOut(minirig.address) },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
     powerOffSelected = action {
       selectedMinirigs.forEach { troubleshootingUseCases.powerOff(it) }

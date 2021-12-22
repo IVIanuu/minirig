@@ -73,7 +73,7 @@ import kotlinx.coroutines.flow.*
   private suspend fun readMinirigState(address: String, @Inject L: Logger): MinirigState =
     remote.withMinirig(address, "read minirig state $address") {
       // sending this message triggers the state output
-      catch { send("BGET_BATTERY") }
+      catch { send("B") }
 
       val batteryPercentage = withTimeoutOrNull(PingPongTimeout) {
         messages
@@ -88,29 +88,38 @@ import kotlinx.coroutines.flow.*
           .first()
       }
 
-      catch { send("xGET_STATUS") }
+      catch { send("x") }
 
-      val linkupState = withTimeoutOrNull(PingPongTimeout) {
-        messages
-          .mapNotNull { message ->
-            message
-              .takeIf { it.length >= 36 }
-              ?.substring(35, 36)
-              ?.let {
-                when (it) {
-                  "1", "2", "3", "4" -> LinkupState.SLAVE
-                  "5", "6", "7", "8" -> LinkupState.MASTER
-                  else -> LinkupState.NONE
-                }
-              }
+      var linkupState = LinkupState.NONE
+      var powerState = PowerState.NORMAL
+
+      withTimeoutOrNull(PingPongTimeout) {
+        val status = messages
+          .first { it.startsWith("x ") }
+
+        if (status.length >= 9) {
+          powerState = when (status.substring(8, 9)) {
+            "1" -> PowerState.NORMAL
+            "2" -> PowerState.CHARGING
+            "3", "4" -> PowerState.POWER_OUT
+            else -> PowerState.NORMAL
           }
-          .first()
-      } ?: LinkupState.NONE
+        }
+
+        if (status.length >= 36) {
+          linkupState = when (status.substring(35, 36)) {
+            "1", "2", "3", "4" -> LinkupState.SLAVE
+            "5", "6", "7", "8" -> LinkupState.MASTER
+            else -> LinkupState.NONE
+          }
+        }
+      }
 
       return@withMinirig MinirigState(
         isConnected = true,
         batteryPercentage = batteryPercentage,
-        linkupState = linkupState
+        linkupState = linkupState,
+        powerState = powerState
       )
     } ?: MinirigState(isConnected = false)
 }

@@ -34,17 +34,17 @@ import kotlinx.coroutines.*
   }
 
   suspend fun startLinkup(address: String) = remote.withMinirig(address, "start linkup") {
-    send("HBROADCAST_START")
+    send("H")
   }
 
   suspend fun joinLinkup(address: String) = remote.withMinirig(address, "join linkup") {
-    send("IBROADCAST_JOIN")
+    send("I")
   }
 
   suspend fun cancelLinkup(address: String) {
     // disconnect
     remote.withMinirig(address, "cancel linkup") {
-      send("JBROADCAST_LEAVE")
+      send("J")
     }
 
     delay(10.seconds)

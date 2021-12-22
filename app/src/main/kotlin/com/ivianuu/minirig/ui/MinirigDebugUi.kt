@@ -131,8 +131,8 @@ data class MinirigDebugModel(
             },
             {
               while (currentCoroutineContext().isActive) {
-                send("oGET_RUNTIME_DATA")
-                send("/GET_RUNTIME_DATA2")
+                send("o")
+                send("/")
                 send("q p 00 50")
 
                 delay(5.seconds)

@@ -87,13 +87,18 @@ fun List<MinirigConfig>.merge(id: String) = MinirigConfig(
 data class MinirigState(
   val isConnected: Boolean = false,
   val batteryPercentage: Float? = null,
-  val linkupState: LinkupState = LinkupState.NONE
+  val linkupState: LinkupState = LinkupState.NONE,
+  val powerState: PowerState = PowerState.NORMAL
 )
 
 enum class LinkupState {
   NONE,
   MASTER,
   SLAVE
+}
+
+enum class PowerState {
+  NORMAL, CHARGING, POWER_OUT
 }
 
 data class MinirigRuntimeData(
