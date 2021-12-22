@@ -22,7 +22,7 @@ import com.ivianuu.injekt.android.*
 
   suspend fun disconnectMinirig(address: String) {
     a2DPOps.withProxy("disconnect minirig") {
-      javaClass.getDeclaredMethod(
+      BluetoothA2dp::class.java.getDeclaredMethod(
         "disconnect",
         BluetoothDevice::class.java
       ).invoke(this, bluetoothManager.adapter.getRemoteDevice(address)!!)

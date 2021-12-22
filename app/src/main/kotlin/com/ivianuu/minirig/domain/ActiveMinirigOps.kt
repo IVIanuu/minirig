@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.*
       .transformLatest {
         a2DPOps.withProxy("active minirig") {
           emit(
-            javaClass.getDeclaredMethod("getActiveDevice")
+            BluetoothA2dp::class.java.getDeclaredMethod("getActiveDevice")
               .invoke(this)
               .safeAs<BluetoothDevice?>()
               ?.address
@@ -39,10 +39,10 @@ import kotlinx.coroutines.flow.*
       .distinctUntilChanged()
 
   suspend fun setActiveMinirig(address: String) {
-    a2DPOps.withProxy("set active minirig") {
-      remote.withMinirig(address, "set active minirig") {
+    remote.withMinirig(address, "set active minirig") {
+      a2DPOps.withProxy("set active minirig") {
         val device = bluetoothManager.adapter.getRemoteDevice(address)!!
-        javaClass.getDeclaredMethod("setActiveDevice", BluetoothDevice::class.java)
+        BluetoothA2dp::class.java.getDeclaredMethod("setActiveDevice", BluetoothDevice::class.java)
           .invoke(this, device)
       }
     }
