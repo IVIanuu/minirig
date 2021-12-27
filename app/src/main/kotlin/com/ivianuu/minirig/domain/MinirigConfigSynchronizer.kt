@@ -119,8 +119,8 @@ private suspend fun applyConfig(
 
     updateConfigIfNeeded(
       7,
-      // everything above 10 sounds not healthy
-      (10 * config.bassBoost).toInt()
+      // everything above 7 sounds not healthy
+      (7 * config.bassBoost).toInt()
     )
 
     updateConfigIfNeeded(

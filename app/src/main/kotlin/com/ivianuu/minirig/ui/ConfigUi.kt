@@ -105,7 +105,7 @@ data class ConfigKey(val id: String) : Key<Unit>
           value = model.bassBoost,
           onValueChange = model.updateBassBoost,
           title = { Text("Bass boost") },
-          stepPolicy = incrementingStepPolicy(0.05f),
+          stepPolicy = incrementingStepPolicy(0.1f),
           valueText = { ScaledPercentageUnitText(it) }
         )
       }
@@ -133,7 +133,7 @@ data class ConfigKey(val id: String) : Key<Unit>
           value = model.auxGain,
           onValueChange = model.updateAuxGain,
           title = { Text("Aux gain") },
-          stepPolicy = incrementingStepPolicy(0.05f),
+          stepPolicy = incrementingStepPolicy(0.1f),
           valueText = { ScaledPercentageUnitText(it) }
         )
       }
@@ -158,7 +158,7 @@ data class ConfigKey(val id: String) : Key<Unit>
             value = value,
             onValueChange = onValueChange,
             title = { Text(title) },
-            stepPolicy = incrementingStepPolicy(0.05f)
+            stepPolicy = incrementingStepPolicy(0.5f)
           )
 
           Text("R")
