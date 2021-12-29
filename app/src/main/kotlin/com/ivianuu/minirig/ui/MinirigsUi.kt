@@ -179,17 +179,15 @@ fun interface MinirigsUi : @Composable () -> Unit
       Text(
         "${minirig.address} • " +
             (minirig.batteryPercentage?.let { "$it%" } ?: "Unknown battery") +
-            "${
-              minirig.powerState.takeIf { it != PowerState.NORMAL }?.let { powerState ->
-                " • ${
-                  when (powerState) {
-                    PowerState.NORMAL -> throw AssertionError()
-                    PowerState.CHARGING -> "Charging"
-                    PowerState.POWER_OUT -> "Power out"
-                  }
-                }"
-              }.orEmpty()
-            }"
+            minirig.powerState.takeIf { it != PowerState.NORMAL }?.let { powerState ->
+              " • ${
+                when (powerState) {
+                  PowerState.NORMAL -> throw AssertionError()
+                  PowerState.CHARGING -> "Charging"
+                  PowerState.POWER_OUT -> "Power out"
+                }
+              }"
+            }.orEmpty()
       )
     },
     trailing = {
@@ -373,11 +371,7 @@ data class MinirigsModel(
     minirigs = minirigs,
     selectedMinirigs = selectedMinirigs,
     selectAll = {
-      selectedMinirigs = minirigs.getOrNull()
-        ?.mapNotNullTo(mutableSetOf()) {
-          if (it.isConnected) it.address
-          else null
-        } ?: emptySet()
+      selectedMinirigs = minirigs.getOrNull()?.mapTo(mutableSetOf()) { it.address } ?: emptySet()
     },
     deselectAll = { selectedMinirigs = emptySet() },
     toggleSelectMinirig = {
