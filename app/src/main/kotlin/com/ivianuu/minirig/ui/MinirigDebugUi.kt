@@ -126,6 +126,8 @@ data class MinirigDebugModel(
                   }
                   message.startsWith("q") ->
                     emit("eq: ${message.parseEq().toString().removeSurrounding("{", "}")}")
+                  message.startsWith("B") ->
+                    emit("B: ${message.removePrefix("B")}")
                 }
               }
             },
@@ -134,6 +136,7 @@ data class MinirigDebugModel(
                 send("o")
                 send("/")
                 send("q p 00 50")
+                send("B")
 
                 delay(5.seconds)
               }
