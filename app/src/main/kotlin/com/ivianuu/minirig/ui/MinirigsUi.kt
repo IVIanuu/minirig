@@ -177,8 +177,8 @@ fun interface MinirigsUi : @Composable () -> Unit
     title = { Text(minirig.name) },
     subtitle = {
       Text(
-        "${minirig.address} • " +
-            (minirig.batteryPercentage?.let { "$it%" } ?: "Unknown battery") +
+        if (!minirig.isConnected) "Not connected"
+        else (minirig.batteryPercentage?.let { "Battery $it%" } ?: "Unknown battery") +
             minirig.powerState.takeIf { it != PowerState.NORMAL }?.let { powerState ->
               " • ${
                 when (powerState) {
