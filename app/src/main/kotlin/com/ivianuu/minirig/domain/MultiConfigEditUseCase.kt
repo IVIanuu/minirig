@@ -53,6 +53,8 @@ fun interface MultiConfigEditUseCase : suspend (List<String>) -> Unit
                 add { copy(band3 = currentConfig.band3) }
               if (currentConfig.band4 != latestConfig.band4)
                 add { copy(band4 = currentConfig.band4) }
+              if (currentConfig.band5 != latestConfig.band5)
+                add { copy(band5 = currentConfig.band5) }
               if (currentConfig.bassBoost != latestConfig.bassBoost)
                 add { copy(bassBoost = currentConfig.bassBoost) }
               if (currentConfig.loud != latestConfig.loud)
