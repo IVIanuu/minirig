@@ -4,10 +4,17 @@
 
 package com.ivianuu.minirig.ui
 
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
+import androidx.compose.material.OutlinedButton
+import androidx.compose.ui.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.unit.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.state.*
+import com.ivianuu.essentials.time.*
 import com.ivianuu.essentials.ui.dialog.*
+import com.ivianuu.essentials.ui.material.*
 import com.ivianuu.essentials.ui.navigation.*
 import com.ivianuu.injekt.*
 import com.ivianuu.minirig.domain.*
@@ -20,10 +27,41 @@ data class SoundTestKey(val addresses: List<String>) : DialogKey<Unit>
   DialogScaffold {
     Dialog(
       title = { Text("Sound test") },
-      content = { Text("Playing: ${model.playing}, with sub ${model.withSub}") },
-      buttons = {
-        TextButton(onClick = model.finish) {
-          Text("Finish")
+      content = {
+        Column {
+          Text(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            text = "${model.playing} ${if (model.mode == SoundTestMode.SUBS) "sub " else ""} playing ${
+              if (model.mode == SoundTestMode.MINIRIGS_AND_SUBS)
+                if (model.withSub) "with sub" else "without sub"
+              else ""
+            }"
+          )
+
+          Subheader { Text("Mode") }
+          Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+          ) {
+            SoundTestMode.values().forEach { mode ->
+              OutlinedButton(
+                modifier = Modifier.weight(1f),
+                onClick = { model.updateMode(mode) },
+                border = ButtonDefaults.outlinedBorder.copy(
+                  brush = SolidColor(
+                    value = if (mode == model.mode)
+                      MaterialTheme.colors.secondary
+                    else LocalContentColor.current.copy(alpha = 0.12f)
+                  )
+                )
+              ) {
+                Text(
+                  text = mode.name.toLowerCase().capitalize(),
+                  color = MaterialTheme.colors.onSurface
+                    .copy(alpha = LocalContentAlpha.current)
+                )
+              }
+            }
+          }
         }
       }
     )
@@ -33,8 +71,13 @@ data class SoundTestKey(val addresses: List<String>) : DialogKey<Unit>
 data class SoundTestModel(
   val playing: String?,
   val withSub: Boolean,
-  val finish: () -> Unit
+  val mode: SoundTestMode,
+  val updateMode: (SoundTestMode) -> Unit
 )
+
+enum class SoundTestMode {
+  MINIRIGS_AND_SUBS, MINIRIGS, SUBS
+}
 
 @Provide fun soundTestModel(
   configRepository: ConfigRepository,
@@ -43,6 +86,7 @@ data class SoundTestModel(
 ): SoundTestModel {
   var playing: String? by memo { stateVar(null) }
   var withSub by memo { stateVar(false) }
+  val mode = memo { MutableStateFlow(SoundTestMode.MINIRIGS_AND_SUBS) }
 
   memoLaunch {
     val initialConfigs = ctx.key.addresses
@@ -50,39 +94,63 @@ data class SoundTestModel(
 
     guarantee(
       block = {
-        while (true) {
-          for (playingAddress in ctx.key.addresses) {
-            playing = minirigRepository.minirig(playingAddress).first()!!.name
-            par(
-              *ctx.key.addresses
-                .map { address ->
-                  suspend {
-                    if (address == playingAddress) {
-                      configRepository.updateConfig(
-                        configRepository.config(address).first()!!
-                          .copy(gain = 0.5f)
-                      )
-                      withSub = false
+        mode.collectLatest { currentMode ->
+          while (true) {
+            for (playingAddress in ctx.key.addresses) {
+              playing = minirigRepository.minirig(playingAddress).first()!!.name
+              par(
+                *ctx.key.addresses
+                  .map { address ->
+                    suspend {
+                      if (address == playingAddress) {
+                        when (currentMode) {
+                          SoundTestMode.MINIRIGS_AND_SUBS -> {
+                            configRepository.updateConfig(
+                              configRepository.config(address).first()!!
+                                .copy(gain = 0.5f, auxGain = 0f)
+                            )
+                            withSub = false
 
-                      delay(3000)
+                            delay(PlayTime)
 
-                      configRepository.updateConfig(
-                        configRepository.config(address).first()!!
-                          .copy(gain = 0.5f, auxGain = 0.5f)
-                      )
-                      withSub = true
-                    } else {
-                      configRepository.updateConfig(
-                        configRepository.config(address).first()!!
-                          .copy(gain = 0f, auxGain = 0f)
-                      )
+                            configRepository.updateConfig(
+                              configRepository.config(address).first()!!
+                                .copy(gain = 0.5f, auxGain = 1f)
+                            )
+                            withSub = true
+
+                            delay(PlayTime)
+                          }
+                          SoundTestMode.MINIRIGS -> {
+                            configRepository.updateConfig(
+                              configRepository.config(address).first()!!
+                                .copy(gain = 0.5f, auxGain = 0f)
+                            )
+                            withSub = false
+
+                            delay(PlayTime)
+                          }
+                          SoundTestMode.SUBS -> {
+                            configRepository.updateConfig(
+                              configRepository.config(address).first()!!
+                                .copy(gain = 0f, auxGain = 1f)
+                            )
+                            withSub = true
+
+                            delay(PlayTime)
+                          }
+                        }
+                      } else {
+                        configRepository.updateConfig(
+                          configRepository.config(address).first()!!
+                            .copy(gain = 0f, auxGain = 0f)
+                        )
+                      }
                     }
                   }
-                }
-                .toTypedArray()
-            )
-
-            delay(5000)
+                  .toTypedArray()
+              )
+            }
           }
         }
       },
@@ -95,6 +163,9 @@ data class SoundTestModel(
   return SoundTestModel(
     playing = playing,
     withSub = withSub,
-    finish = action { ctx.navigator.pop(ctx.key) }
+    mode = mode.bind(),
+    updateMode = { value -> mode.value = value }
   )
 }
+
+private val PlayTime = 4.seconds
