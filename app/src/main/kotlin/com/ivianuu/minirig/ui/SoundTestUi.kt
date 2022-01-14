@@ -86,7 +86,7 @@ enum class SoundTestMode {
 ): SoundTestModel {
   var playing: String? by memo { stateVar(null) }
   var withSub by memo { stateVar(false) }
-  val mode = memo { MutableStateFlow(SoundTestMode.MINIRIGS_AND_SUBS) }
+  val mode = memo { MutableStateFlow(SoundTestMode.MINIRIGS) }
 
   memoLaunch {
     val initialConfigs = ctx.key.addresses
