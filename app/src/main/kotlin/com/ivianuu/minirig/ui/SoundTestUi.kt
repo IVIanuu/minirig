@@ -31,9 +31,8 @@ data class SoundTestKey(val addresses: List<String>) : DialogKey<Unit>
         Column {
           Text(
             modifier = Modifier.padding(horizontal = 16.dp),
-            text = "${model.playing} ${if (model.mode == SoundTestMode.SUBS) "sub " else ""} playing ${
-              if (model.mode == SoundTestMode.MINIRIGS_AND_SUBS)
-                if (model.withSub) "with sub" else "without sub"
+            text = "${model.playing} ${if (model.mode == SoundTestMode.SUBS) "sub" else ""} playing ${
+              if (model.mode == SoundTestMode.MINIRIGS_AND_SUBS) "with sub"
               else ""
             }"
           )
@@ -70,7 +69,6 @@ data class SoundTestKey(val addresses: List<String>) : DialogKey<Unit>
 
 data class SoundTestModel(
   val playing: String?,
-  val withSub: Boolean,
   val mode: SoundTestMode,
   val updateMode: (SoundTestMode) -> Unit
 )
@@ -85,8 +83,7 @@ enum class SoundTestMode {
   ctx: KeyUiContext<SoundTestKey>
 ): SoundTestModel {
   var playing: String? by memo { stateVar(null) }
-  var withSub by memo { stateVar(false) }
-  val mode = memo { MutableStateFlow(SoundTestMode.MINIRIGS) }
+  val mode = memo { MutableStateFlow(SoundTestMode.MINIRIGS_AND_SUBS) }
 
   memoLaunch {
     val initialConfigs = ctx.key.addresses
@@ -103,43 +100,13 @@ enum class SoundTestMode {
                   .map { address ->
                     suspend {
                       if (address == playingAddress) {
-                        when (currentMode) {
-                          SoundTestMode.MINIRIGS_AND_SUBS -> {
-                            configRepository.updateConfig(
-                              configRepository.config(address).first()!!
-                                .copy(gain = 0.5f, auxGain = 0f)
+                        configRepository.updateConfig(
+                          configRepository.config(address).first()!!
+                            .copy(
+                              gain = if (currentMode != SoundTestMode.SUBS) 0.5f else 0f,
+                              auxGain = if (currentMode != SoundTestMode.MINIRIGS) 1f else 0f
                             )
-                            withSub = false
-
-                            delay(PlayTime)
-
-                            configRepository.updateConfig(
-                              configRepository.config(address).first()!!
-                                .copy(gain = 0.5f, auxGain = 1f)
-                            )
-                            withSub = true
-
-                            delay(PlayTime)
-                          }
-                          SoundTestMode.MINIRIGS -> {
-                            configRepository.updateConfig(
-                              configRepository.config(address).first()!!
-                                .copy(gain = 0.5f, auxGain = 0f)
-                            )
-                            withSub = false
-
-                            delay(PlayTime)
-                          }
-                          SoundTestMode.SUBS -> {
-                            configRepository.updateConfig(
-                              configRepository.config(address).first()!!
-                                .copy(gain = 0f, auxGain = 1f)
-                            )
-                            withSub = true
-
-                            delay(PlayTime)
-                          }
-                        }
+                        )
                       } else {
                         configRepository.updateConfig(
                           configRepository.config(address).first()!!
@@ -150,6 +117,8 @@ enum class SoundTestMode {
                   }
                   .toTypedArray()
               )
+
+              delay(PlayTime)
             }
           }
         }
@@ -162,7 +131,6 @@ enum class SoundTestMode {
 
   return SoundTestModel(
     playing = playing,
-    withSub = withSub,
     mode = mode.bind(),
     updateMode = { value -> mode.value = value }
   )
