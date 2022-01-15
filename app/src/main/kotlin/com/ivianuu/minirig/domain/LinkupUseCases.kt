@@ -20,7 +20,7 @@ import kotlinx.coroutines.*
     log { "start linkup host: $hostAddress guests: $guestAddresses" }
 
     startLinkup(hostAddress)
-    guestAddresses.forEach { joinLinkup(it) }
+    guestAddresses.parForEach { joinLinkup(it) }
 
     delay(5.seconds)
 

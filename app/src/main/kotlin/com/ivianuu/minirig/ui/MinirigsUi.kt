@@ -324,7 +324,7 @@ data class MinirigsModel(
 
     val pickedConfig = navigator.push(ConfigPickerKey(configs)) ?: return
 
-    for (address in addresses) {
+    addresses.parForEach { address ->
       val minirigConfig = configRepository.config(address).first()!!
       configRepository.updateConfig(minirigConfig.transform(pickedConfig))
     }
@@ -396,18 +396,24 @@ data class MinirigsModel(
       multiConfigEditUseCase(minirigs.getOrNull()?.map { it.address } ?: return@action)
     },
     connect = action { minirig -> connectionUseCases.connectMinirig(minirig.address) },
-    connectSelected = action { selectedMinirigs.forEach { connectionUseCases.connectMinirig(it) } },
+    connectSelected = action { selectedMinirigs.parForEach { connectionUseCases.connectMinirig(it) } },
     disconnect = action { minirig -> connectionUseCases.disconnectMinirig(minirig.address) },
-    disconnectSelected = action { selectedMinirigs.forEach { connectionUseCases.disconnectMinirig(it) } },
+    disconnectSelected = action {
+      selectedMinirigs.parForEach {
+        connectionUseCases.disconnectMinirig(
+          it
+        )
+      }
+    },
     makeActive = action { minirig -> activeMinirigOps.setActiveMinirig(minirig.address) },
     startLinkup = action { minirig -> linkupUseCases.startLinkup(minirig.address) },
     joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },
     joinLinkupSelected = action {
-      selectedMinirigs.forEach { linkupUseCases.joinLinkup(it) }
+      selectedMinirigs.parForEach { linkupUseCases.joinLinkup(it) }
     },
     cancelLinkup = action { minirig -> linkupUseCases.cancelLinkup(minirig.address) },
     cancelLinkupForSelected = action {
-      selectedMinirigs.forEach { linkupUseCases.cancelLinkup(it) }
+      selectedMinirigs.parForEach { linkupUseCases.cancelLinkup(it) }
     },
     startLinkupWithSelected = action {
       val pickerMinirigs = selectedMinirigs
@@ -421,7 +427,7 @@ data class MinirigsModel(
     enablePowerOut = action { minirig -> troubleshootingUseCases.enablePowerOut(minirig.address) },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
     powerOffSelected = action {
-      selectedMinirigs.forEach { troubleshootingUseCases.powerOff(it) }
+      selectedMinirigs.parForEach { troubleshootingUseCases.powerOff(it) }
     },
     soundTestSelected = action { navigator.push(SoundTestKey(selectedMinirigs.toList())) },
     debug = action { minirig -> navigator.push(MinirigDebugKey(minirig.address)) },
