@@ -14,9 +14,13 @@ fun RenameMinirigKey() =
   TextInputKey(label = "Specify the new name for the minirig..", predicate = { it.isNotEmpty() })
 
 fun ConfigPickerKey(configs: List<MinirigConfig>) = ListKey(
-  items = configs.map { ListKey.Item(it, it.id) }
+  items = configs
+    .sortedBy { it.id }
+    .map { ListKey.Item(it, it.id) }
 )
 
 fun MinirigPickerKey(minirigs: List<Minirig>) = ListKey(
-  items = minirigs.map { ListKey.Item(it, it.name) }
+  items = minirigs
+    .sortedBy { it.name }
+    .map { ListKey.Item(it, it.name) }
 )

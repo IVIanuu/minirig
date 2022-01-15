@@ -86,6 +86,7 @@ data class ConfigsModel(
       .map { configs ->
         configs
           .filter { !it.id.isMinirigAddress() }
+          .sortedBy { it.id }
       }
       .bindResource(),
     openConfig = action { config ->
