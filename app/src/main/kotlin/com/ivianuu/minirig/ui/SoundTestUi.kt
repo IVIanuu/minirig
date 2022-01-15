@@ -124,7 +124,7 @@ enum class SoundTestMode {
         }
       },
       finalizer = {
-        initialConfigs.forEach { configRepository.updateConfig(it) }
+        initialConfigs.parForEach { configRepository.updateConfig(it) }
       }
     )
   }
