@@ -21,7 +21,7 @@ import com.ivianuu.minirig.domain.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
-data class SoundTestKey(val addresses: List<String>) : DialogKey<Unit>
+data class SoundTestKey(val addresses: List<String>) : PopupKey<Unit>
 
 @Provide val soundTestUi = ModelKeyUi<SoundTestKey, SoundTestModel> {
   DialogScaffold {

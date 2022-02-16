@@ -61,7 +61,7 @@ private suspend fun applyConfig(
   @Inject L: Logger,
   remote: MinirigRemote
 ) {
-  remote.withMinirig(config.id, "apply config") {
+  remote.withMinirig(config.id) {
     log { "${device.debugName()} apply config $config" }
 
     val currentConfig = readMinirigConfig()

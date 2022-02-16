@@ -78,7 +78,7 @@ import kotlinx.coroutines.flow.*
   }
 
   private suspend fun readMinirigState(address: String, @Inject L: Logger): MinirigState =
-    remote.withMinirig(address, "read minirig state $address") {
+    remote.withMinirig(address) {
       // sending this message triggers the state output
       catch { send("B") }
 

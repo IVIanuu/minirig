@@ -14,17 +14,17 @@ import kotlinx.coroutines.*
   private val remote: MinirigRemote,
   private val repository: MinirigRepository
 ) {
-  suspend fun enablePowerOut(address: String) = remote.withMinirig(address, "enable power out") {
+  suspend fun enablePowerOut(address: String) = remote.withMinirig(address) {
     send("^")
     delay(300)
     repository.stateChanged(address)
   }
 
-  suspend fun powerOff(address: String) = remote.withMinirig(address, "power off") {
+  suspend fun powerOff(address: String) = remote.withMinirig(address) {
     send("O")
   }
 
-  suspend fun rename(address: String, newName: String) = remote.withMinirig(address, "rename") {
+  suspend fun rename(address: String, newName: String) = remote.withMinirig(address) {
     send("N SET NAME=$newName")
     send("N SET NAME_SHORT=${newName.take(7)}")
     send("N WRITEN WRITE")
@@ -34,12 +34,11 @@ import kotlinx.coroutines.*
       .invoke(device, newName)
   }
 
-  suspend fun clearPairedDevices(address: String) =
-    remote.withMinirig(address, "clear paired devices") {
-      send("N UNPAIRCLEAR_PAIRED")
-    }
+  suspend fun clearPairedDevices(address: String) = remote.withMinirig(address) {
+    send("N UNPAIRCLEAR_PAIRED")
+  }
 
-  suspend fun factoryReset(address: String) = remote.withMinirig(address, "factory reset") {
+  suspend fun factoryReset(address: String) = remote.withMinirig(address) {
     send("*")
   }
 }

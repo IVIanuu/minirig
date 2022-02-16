@@ -13,7 +13,6 @@ import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
 import com.ivianuu.injekt.common.*
 import com.ivianuu.injekt.coroutines.*
-import com.ivianuu.minirig.*
 import kotlinx.coroutines.*
 import kotlin.coroutines.*
 
@@ -51,10 +50,6 @@ import kotlin.coroutines.*
     }
   )
 
-  suspend fun <R> withProxy(
-    jobName: String,
-    block: suspend BluetoothA2dp.() -> R
-  ): R? = runJob(jobName) {
+  suspend fun <R> withProxy(block: suspend BluetoothA2dp.() -> R): R? =
     withContext(ioContext) { proxy.withResource(Unit, block) }
-  }
 }

@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.*
       remote.bondedDeviceChanges()
     )
       .transformLatest {
-        a2DPOps.withProxy("active minirig") {
+        a2DPOps.withProxy {
           emit(
             BluetoothA2dp::class.java.getDeclaredMethod("getActiveDevice")
               .invoke(this)
@@ -39,8 +39,8 @@ import kotlinx.coroutines.flow.*
       .distinctUntilChanged()
 
   suspend fun setActiveMinirig(address: String) {
-    remote.withMinirig(address, "set active minirig") {
-      a2DPOps.withProxy("set active minirig") {
+    remote.withMinirig(address) {
+      a2DPOps.withProxy {
         val device = bluetoothManager.adapter.getRemoteDevice(address)!!
         BluetoothA2dp::class.java.getDeclaredMethod("setActiveDevice", BluetoothDevice::class.java)
           .invoke(this, device)

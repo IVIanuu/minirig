@@ -103,7 +103,7 @@ data class MinirigDebugModel(
   output = appForegroundState
     .transformLatest {
       if (it == AppForegroundState.FOREGROUND) {
-        remote.withMinirig(key.address, "debug messages") {
+        remote.withMinirig(key.address) {
           par(
             {
               var lastRuntimeData1: String? = null
@@ -148,7 +148,7 @@ data class MinirigDebugModel(
     .scan("") { acc, next -> acc + "\n$next" }
     .bind(""),
   sendMessage = action { message ->
-    remote.withMinirig(key.address, "send message") {
+    remote.withMinirig(key.address) {
       send(message)
     }
   }

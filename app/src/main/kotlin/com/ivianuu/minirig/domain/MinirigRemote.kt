@@ -5,7 +5,6 @@
 package com.ivianuu.minirig.domain
 
 import android.bluetooth.*
-import androidx.compose.ui.platform.*
 import com.ivianuu.essentials.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
@@ -15,7 +14,6 @@ import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
 import com.ivianuu.injekt.common.*
 import com.ivianuu.injekt.coroutines.*
-import com.ivianuu.minirig.*
 import com.ivianuu.minirig.data.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -23,7 +21,6 @@ import kotlinx.coroutines.sync.*
 import java.io.*
 import java.nio.charset.*
 import java.util.*
-import kotlin.system.*
 
 @Provide @Scoped<AppScope> class MinirigRemote(
   private val bluetoothManager: @SystemService BluetoothManager,
@@ -61,13 +58,10 @@ import kotlin.system.*
 
   suspend fun <R> withMinirig(
     address: String,
-    jobName: String,
     block: suspend MinirigSocket.() -> R
-  ): R? = runJob(jobName) {
-    withContext(context) {
-      if (!address.isConnected()) null
-      else sockets.withResource(address, block)
-    }
+  ): R? = withContext(context) {
+    if (!address.isConnected()) null
+    else sockets.withResource(address, block)
   }
 
   fun bondedDeviceChanges() = broadcastsFactory(
@@ -122,37 +116,35 @@ class MinirigSocket(
   }.shareIn(scope, SharingStarted.Eagerly)
 
   suspend fun send(message: String) = catch {
-    runJob("send message ${device.debugName()}") {
-      suspend fun sendImpl(message: String, attempt: Int) {
-        try {
-          // the minirig cannot keep with our speed to debounce each write
-          sendLimiter.acquire()
+    suspend fun sendImpl(message: String, attempt: Int) {
+      try {
+        // the minirig cannot keep with our speed to debounce each write
+        sendLimiter.acquire()
 
-          withTimeout(PingPongTimeout) {
-            withContext(scope.coroutineContext) {
-              log { "send ${device.debugName()} -> $message attempt $attempt" }
+        withTimeout(PingPongTimeout) {
+          withContext(scope.coroutineContext) {
+            log { "send ${device.debugName()} -> $message attempt $attempt" }
 
-              try {
-                withSocket("send message ${device.debugName()}") {
-                  outputStream.write(message.toByteArray())
-                }
-              } catch (e: IOException) {
-                closeCurrentSocket(e)
-                throw e
+            try {
+              withSocket("send message ${device.debugName()}") {
+                outputStream.write(message.toByteArray())
               }
+            } catch (e: IOException) {
+              closeCurrentSocket(e)
+              throw e
             }
           }
-        } catch (e: Throwable) {
-          e.nonFatalOrThrow()
-          if (attempt < 5) {
-            delay(RetryDelay)
-            sendImpl(message, attempt + 1)
-          }
+        }
+      } catch (e: Throwable) {
+        e.nonFatalOrThrow()
+        if (attempt < 5) {
+          delay(RetryDelay)
+          sendImpl(message, attempt + 1)
         }
       }
-
-      sendImpl(message, 0)
     }
+
+    sendImpl(message, 0)
   }
 
   suspend fun close() {
@@ -181,58 +173,56 @@ class MinirigSocket(
     jobName: String,
     block: suspend BluetoothSocket.() -> Unit
   ) {
-    runJob(jobName) {
-      val socket = socketLock.withLock {
-        var socket = socket
-        if (socket != null && socket.isConnected)
-          return@withLock socket
+    val socket = socketLock.withLock {
+      var socket = socket
+      if (socket != null && socket.isConnected)
+        return@withLock socket
 
-        closeCurrentSocketImpl(null)
+      closeCurrentSocketImpl(null)
 
-        socket = device.createRfcommSocketToServiceRecord(CLIENT_ID)
+      socket = device.createRfcommSocketToServiceRecord(CLIENT_ID)
 
-        val connectComplete = CompletableDeferred<Unit>()
-        par(
-          {
-            log { "connect ${device.debugName()}" }
-            try {
-              var attempt = 0
-              while (attempt < 5) {
-                try {
-                  socket.connect()
-                  if (socket.isConnected) {
-                    log { "connected to ${device.debugName()}" }
-                    break
-                  }
-                } catch (e: Throwable) {
-                  log { "connect failed ${device.debugName()} attempt $attempt" }
-                  e.nonFatalOrThrow()
-                  attempt++
-                  delay(RetryDelay)
+      val connectComplete = CompletableDeferred<Unit>()
+      par(
+        {
+          log { "connect ${device.debugName()}" }
+          try {
+            var attempt = 0
+            while (attempt < 5) {
+              try {
+                socket.connect()
+                if (socket.isConnected) {
+                  log { "connected to ${device.debugName()}" }
+                  break
                 }
+              } catch (e: Throwable) {
+                log { "connect failed ${device.debugName()} attempt $attempt" }
+                e.nonFatalOrThrow()
+                attempt++
+                delay(RetryDelay)
               }
-            } finally {
-              connectComplete.complete(Unit)
             }
-          },
-          {
-            onCancel(
-              block = { connectComplete.await() },
-              onCancel = {
-                log { "cancel connect ${device.debugName()}" }
-                catch { socket.close() }
-              }
-            )
+          } finally {
+            connectComplete.complete(Unit)
           }
-        )
+        },
+        {
+          onCancel(
+            block = { connectComplete.await() },
+            onCancel = {
+              log { "cancel connect ${device.debugName()}" }
+              catch { socket.close() }
+            }
+          )
+        }
+      )
 
-        this.socket = socket
+      this.socket = socket
 
-        socket
-      }
-
-      block(socket)
+      socket
     }
+
+    block(socket)
   }
 }
 

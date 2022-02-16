@@ -16,12 +16,12 @@ import com.ivianuu.injekt.android.*
   private val L: Logger
 ) {
   suspend fun connectMinirig(address: String) {
-    remote.withMinirig(address, "connect minirig") {
+    remote.withMinirig(address) {
     }
   }
 
   suspend fun disconnectMinirig(address: String) {
-    a2DPOps.withProxy("disconnect minirig") {
+    a2DPOps.withProxy {
       BluetoothA2dp::class.java.getDeclaredMethod(
         "disconnect",
         BluetoothDevice::class.java
