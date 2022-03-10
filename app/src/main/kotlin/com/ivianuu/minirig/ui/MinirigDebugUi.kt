@@ -97,59 +97,60 @@ data class MinirigDebugModel(
   appForegroundState: Flow<AppForegroundState>,
   key: MinirigDebugKey,
   remote: MinirigRemote,
-  SS: StateScope,
   L: Logger
-) = MinirigDebugModel(
-  output = appForegroundState
-    .transformLatest {
-      if (it == AppForegroundState.FOREGROUND) {
-        remote.withMinirig(key.address) {
-          par(
-            {
-              var lastRuntimeData1: String? = null
-              var lastRuntimeData2: String? = null
+): @Composable () -> MinirigDebugModel = {
+  MinirigDebugModel(
+    output = appForegroundState
+      .transformLatest {
+        if (it == AppForegroundState.FOREGROUND) {
+          remote.withMinirig(key.address) {
+            par(
+              {
+                var lastRuntimeData1: String? = null
+                var lastRuntimeData2: String? = null
 
-              suspend fun emitRuntimeDataIfPossible() {
-                if (lastRuntimeData1 != null && lastRuntimeData2 != null)
-                  emit(MinirigRuntimeData(lastRuntimeData1!!, lastRuntimeData2!!).toString())
-              }
+                suspend fun emitRuntimeDataIfPossible() {
+                  if (lastRuntimeData1 != null && lastRuntimeData2 != null)
+                    emit(MinirigRuntimeData(lastRuntimeData1!!, lastRuntimeData2!!).toString())
+                }
 
-              messages.collect { message ->
-                when {
-                  message.startsWith("o") -> {
-                    lastRuntimeData1 = message
-                    emitRuntimeDataIfPossible()
+                messages.collect { message ->
+                  when {
+                    message.startsWith("o") -> {
+                      lastRuntimeData1 = message
+                      emitRuntimeDataIfPossible()
+                    }
+                    message.startsWith("/") -> {
+                      lastRuntimeData2 = message
+                      emitRuntimeDataIfPossible()
+                    }
+                    message.startsWith("q") ->
+                      emit("eq: ${message.parseEq().toString().removeSurrounding("{", "}")}")
+                    message.startsWith("B") ->
+                      emit("B: ${message.removePrefix("B")}")
                   }
-                  message.startsWith("/") -> {
-                    lastRuntimeData2 = message
-                    emitRuntimeDataIfPossible()
-                  }
-                  message.startsWith("q") ->
-                    emit("eq: ${message.parseEq().toString().removeSurrounding("{", "}")}")
-                  message.startsWith("B") ->
-                    emit("B: ${message.removePrefix("B")}")
+                }
+              },
+              {
+                while (currentCoroutineContext().isActive) {
+                  send("o")
+                  send("/")
+                  send("q p 00 50")
+                  send("B")
+
+                  delay(5.seconds)
                 }
               }
-            },
-            {
-              while (currentCoroutineContext().isActive) {
-                send("o")
-                send("/")
-                send("q p 00 50")
-                send("B")
-
-                delay(5.seconds)
-              }
-            }
-          )
+            )
+          }
         }
       }
+      .scan("") { acc, next -> acc + "\n$next" }
+      .bind(""),
+    sendMessage = action { message ->
+      remote.withMinirig(key.address) {
+        send(message)
+      }
     }
-    .scan("") { acc, next -> acc + "\n$next" }
-    .bind(""),
-  sendMessage = action { message ->
-    remote.withMinirig(key.address) {
-      send(message)
-    }
-  }
-)
+  )
+}

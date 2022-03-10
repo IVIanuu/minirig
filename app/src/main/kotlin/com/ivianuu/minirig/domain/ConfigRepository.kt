@@ -4,7 +4,7 @@
 
 package com.ivianuu.minirig.domain
 
-import com.ivianuu.essentials.db.*
+import com.ivianuu.essentials.data.*
 import com.ivianuu.essentials.logging.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.coroutines.*
@@ -13,13 +13,14 @@ import kotlinx.coroutines.flow.*
 
 @Provide class ConfigRepository(
   private val context: IOContext,
-  private val db: Db,
+  private val configsStore: DataStore<List<MinirigConfig>>,
   private val L: Logger
 ) {
   val configs: Flow<List<MinirigConfig>>
-    get() = db.selectAll()
+    get() = configsStore.data
 
-  fun config(id: String): Flow<MinirigConfig?> = db.selectById<MinirigConfig>(id)
+  fun config(id: String): Flow<MinirigConfig?> = configsStore.data
+    .map { it.firstOrNull { it.id == id } }
     .map { config ->
       config ?: if (id.isMinirigAddress())
         MinirigConfig(id = id)
@@ -29,13 +30,13 @@ import kotlinx.coroutines.flow.*
     .distinctUntilChanged()
     .flowOn(context)
 
-  suspend fun updateConfig(config: MinirigConfig) = db.transaction {
+  suspend fun updateConfig(config: MinirigConfig) = configsStore.updateData {
     log { "update config $config" }
-    db.insert(config, InsertConflictStrategy.REPLACE)
+    filter { it.id != config.id } + config
   }
 
-  suspend fun deleteConfig(id: String) = db.transaction {
+  suspend fun deleteConfig(id: String) = configsStore.updateData {
     log { "delete config $id" }
-    db.deleteById<MinirigConfig>(id)
+    filter { it.id != id }
   }
 }

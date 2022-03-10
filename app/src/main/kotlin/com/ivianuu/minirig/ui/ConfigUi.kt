@@ -12,7 +12,6 @@ import androidx.compose.ui.unit.*
 import com.ivianuu.essentials.resource.*
 import com.ivianuu.essentials.state.*
 import com.ivianuu.essentials.ui.common.*
-import com.ivianuu.essentials.ui.dialog.*
 import com.ivianuu.essentials.ui.material.*
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.TopAppBar
@@ -47,7 +46,7 @@ data class ConfigKey(val id: String) : Key<Unit>
       }
 
       item {
-        FloatSliderListItem(
+        SliderListItem(
           value = model.band1,
           onValueChange = model.updateBand1,
           title = { Text("70Hz") },
@@ -57,7 +56,7 @@ data class ConfigKey(val id: String) : Key<Unit>
       }
 
       item {
-        FloatSliderListItem(
+        SliderListItem(
           value = model.band2,
           onValueChange = model.updateBand2,
           title = { Text("250Hz") },
@@ -67,7 +66,7 @@ data class ConfigKey(val id: String) : Key<Unit>
       }
 
       item {
-        FloatSliderListItem(
+        SliderListItem(
           value = model.band3,
           onValueChange = model.updateBand3,
           title = { Text("850Hz") },
@@ -77,7 +76,7 @@ data class ConfigKey(val id: String) : Key<Unit>
       }
 
       item {
-        FloatSliderListItem(
+        SliderListItem(
           value = model.band4,
           onValueChange = model.updateBand4,
           title = { Text("3KHz") },
@@ -87,7 +86,7 @@ data class ConfigKey(val id: String) : Key<Unit>
       }
 
       item {
-        FloatSliderListItem(
+        SliderListItem(
           value = model.band5,
           onValueChange = model.updateBand5,
           title = { Text("10.5KHz") },
@@ -101,7 +100,7 @@ data class ConfigKey(val id: String) : Key<Unit>
       }
 
       item {
-        FloatSliderListItem(
+        SliderListItem(
           value = model.bassBoost,
           onValueChange = model.updateBassBoost,
           title = { Text("Bass boost") },
@@ -119,7 +118,7 @@ data class ConfigKey(val id: String) : Key<Unit>
       }
 
       item {
-        FloatSliderListItem(
+        SliderListItem(
           value = model.gain,
           onValueChange = model.updateGain,
           title = { Text("Gain") },
@@ -129,7 +128,7 @@ data class ConfigKey(val id: String) : Key<Unit>
       }
 
       item {
-        FloatSliderListItem(
+        SliderListItem(
           value = model.auxGain,
           onValueChange = model.updateAuxGain,
           title = { Text("Aux gain") },
@@ -153,7 +152,7 @@ data class ConfigKey(val id: String) : Key<Unit>
         ) {
           Text("L")
 
-          FloatSliderListItem(
+          SliderListItem(
             modifier = Modifier.weight(1f),
             value = value,
             onValueChange = onValueChange,
@@ -215,11 +214,10 @@ data class ConfigModel(
   key: ConfigKey,
   configRepository: ConfigRepository,
   minirigRepository: MinirigRepository,
-  navigator: Navigator,
-  SS: StateScope
-): ConfigModel {
+  navigator: Navigator
+): @Composable () -> ConfigModel = {
   val config = configRepository.config(key.id).bindResource()
-  return ConfigModel(
+  ConfigModel(
     name = if (!key.id.isMinirigAddress()) key.id
     else minirigRepository.minirig(key.id)
       .map { it?.name ?: key.id }

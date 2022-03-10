@@ -5,6 +5,7 @@
 package com.ivianuu.minirig.domain
 
 import android.bluetooth.*
+import com.github.michaelbull.result.*
 import com.ivianuu.essentials.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
@@ -24,6 +25,7 @@ import kotlin.coroutines.*
   private val scope: NamedCoroutineScope<AppScope>
 ) {
   private val proxy = RefCountedResource<Unit, BluetoothA2dp>(
+    scope = scope,
     timeout = 2.seconds,
     create = {
       log { "acquire proxy" }
@@ -32,7 +34,7 @@ import kotlin.coroutines.*
           appContext,
           object : BluetoothProfile.ServiceListener {
             override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
-              catch { cont.resume(proxy.cast()) }
+              runCatching { cont.resume(proxy as BluetoothA2dp) }
             }
 
             override fun onServiceDisconnected(profile: Int) {
@@ -44,7 +46,7 @@ import kotlin.coroutines.*
     },
     release = { _, proxy ->
       log { "release proxy" }
-      catch {
+      runCatching {
         bluetoothManager.adapter.closeProfileProxy(BluetoothProfile.A2DP, proxy)
       }
     }

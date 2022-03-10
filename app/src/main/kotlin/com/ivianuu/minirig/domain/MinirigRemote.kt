@@ -30,6 +30,7 @@ import java.util.*
   private val L: Logger
 ) {
   private val sockets = RefCountedResource<String, MinirigSocket>(
+    scope = scope,
     timeout = 10.seconds,
     create = { address ->
       MinirigSocket(address)
@@ -52,8 +53,7 @@ import java.util.*
   private fun String.isConnected(): Boolean =
     bluetoothManager.adapter.getRemoteDevice(this)
       ?.let {
-        BluetoothDevice::class.java.getDeclaredMethod("isConnected").invoke(it)
-          .cast<Boolean>()
+        BluetoothDevice::class.java.getDeclaredMethod("isConnected").invoke(it) as Boolean
       } ?: false
 
   suspend fun <R> withMinirig(
@@ -115,7 +115,7 @@ class MinirigSocket(
     }
   }.shareIn(scope, SharingStarted.Eagerly)
 
-  suspend fun send(message: String) = catch {
+  suspend fun send(message: String) = runCatching {
     suspend fun sendImpl(message: String, attempt: Int) {
       try {
         // the minirig cannot keep with our speed to debounce each write
@@ -161,7 +161,7 @@ class MinirigSocket(
   }
 
   private fun closeCurrentSocketImpl(reason: Throwable?) {
-    catch {
+    runCatching {
       socket
         ?.also { log { "${device.debugName()} close current socket ${reason?.asLog()}" } }
         ?.close()
@@ -211,7 +211,7 @@ class MinirigSocket(
             block = { connectComplete.await() },
             onCancel = {
               log { "cancel connect ${device.debugName()}" }
-              catch { socket.close() }
+              runCatching { socket.close() }
             }
           )
         }

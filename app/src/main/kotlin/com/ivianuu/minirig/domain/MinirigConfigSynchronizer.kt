@@ -4,7 +4,6 @@
 
 package com.ivianuu.minirig.domain
 
-import com.ivianuu.essentials.*
 import com.ivianuu.essentials.app.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
@@ -36,7 +35,7 @@ import kotlinx.coroutines.flow.*
                   showToast("Could not apply config to ${minirig.debugName()}")
                 }
 
-                catch {
+                runCatching {
                   applyConfig(config!!)
                 }.onFailure {
                   log { "failed to apply config to ${minirig.debugName()} $attempt -> ${it.asLog()}" }

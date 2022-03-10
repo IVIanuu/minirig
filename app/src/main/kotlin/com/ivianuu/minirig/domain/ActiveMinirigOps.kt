@@ -5,13 +5,11 @@
 package com.ivianuu.minirig.domain
 
 import android.bluetooth.*
-import com.ivianuu.essentials.*
-import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
-import com.ivianuu.essentials.time.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
 import com.ivianuu.minirig.data.*
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
 @Provide class ActiveMinirigOps(
@@ -22,7 +20,12 @@ import kotlinx.coroutines.flow.*
 ) {
   val activeMinirig: Flow<String?>
     get() = merge(
-      timer(5.seconds),
+      flow<Unit> {
+        while (true) {
+          emit(Unit)
+          delay(5000)
+        }
+      },
       remote.bondedDeviceChanges()
     )
       .transformLatest {
@@ -30,7 +33,7 @@ import kotlinx.coroutines.flow.*
           emit(
             BluetoothA2dp::class.java.getDeclaredMethod("getActiveDevice")
               .invoke(this)
-              .safeAs<BluetoothDevice?>()
+              .let { it as? BluetoothDevice }
               ?.address
               ?.takeIf { it.isMinirigAddress() }
           )

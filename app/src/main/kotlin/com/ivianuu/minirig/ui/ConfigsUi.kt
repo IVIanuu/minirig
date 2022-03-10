@@ -9,10 +9,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
-import androidx.compose.ui.unit.*
+import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.resource.*
 import com.ivianuu.essentials.state.*
-import com.ivianuu.essentials.ui.dialog.*
 import com.ivianuu.essentials.ui.layout.*
 import com.ivianuu.essentials.ui.material.*
 import com.ivianuu.essentials.ui.material.Scaffold
@@ -79,8 +78,8 @@ data class ConfigsModel(
 @Provide fun configsModel(
   navigator: Navigator,
   repository: ConfigRepository,
-  S: NamedCoroutineScope<KeyUiScope>
-) = state {
+  scope: NamedCoroutineScope<KeyUiScope>
+) = scope.childCoroutineScope(AndroidUiDispatcher.Main).state {
   ConfigsModel(
     configs = repository.configs
       .map { configs ->

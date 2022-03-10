@@ -4,9 +4,6 @@
 
 package com.ivianuu.minirig.ui
 
-import android.bluetooth.*
-import android.media.*
-import android.media.session.*
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -18,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.unit.*
-import com.ivianuu.essentials.*
 import com.ivianuu.essentials.app.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
@@ -26,7 +22,6 @@ import com.ivianuu.essentials.resource.*
 import com.ivianuu.essentials.state.*
 import com.ivianuu.essentials.ui.animation.*
 import com.ivianuu.essentials.ui.backpress.*
-import com.ivianuu.essentials.ui.common.*
 import com.ivianuu.essentials.ui.layout.*
 import com.ivianuu.essentials.ui.material.*
 import com.ivianuu.essentials.ui.material.Scaffold
@@ -35,14 +30,11 @@ import com.ivianuu.essentials.ui.navigation.*
 import com.ivianuu.essentials.ui.popup.*
 import com.ivianuu.essentials.ui.resource.*
 import com.ivianuu.injekt.*
-import com.ivianuu.injekt.android.*
 import com.ivianuu.injekt.coroutines.*
 import com.ivianuu.minirig.R
 import com.ivianuu.minirig.data.*
 import com.ivianuu.minirig.domain.*
-import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import java.util.*
 
 fun interface MinirigsUi : @Composable () -> Unit
 
@@ -104,9 +96,6 @@ fun interface MinirigsUi : @Composable () -> Unit
                   PopupMenu.Item(onSelected = model.cancelLinkupForSelected) {
                     Text("Cancel linkup")
                   },
-                  PopupMenu.Item(onSelected = model.soundTestSelected) {
-                    Text("Sound test")
-                  },
                   PopupMenu.Item(onSelected = model.powerOffSelected) {
                     Text("Power off")
                   }
@@ -145,7 +134,9 @@ fun interface MinirigsUi : @Composable () -> Unit
   }
 }
 
-@Composable private fun Minirig(minirig: UiMinirig, model: MinirigsModel) {
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun Minirig(minirig: UiMinirig, model: MinirigsModel) {
   ListItem(
     modifier = Modifier
       .combinedClickable(
@@ -291,7 +282,6 @@ data class MinirigsModel(
   val enablePowerOut: (UiMinirig) -> Unit,
   val powerOff: (UiMinirig) -> Unit,
   val powerOffSelected: () -> Unit,
-  val soundTestSelected: () -> Unit,
   val debug: (UiMinirig) -> Unit,
   val rename: (UiMinirig) -> Unit,
   val clearPairedDevices: (UiMinirig) -> Unit,
@@ -310,10 +300,10 @@ data class MinirigsModel(
   minirigRepository: MinirigRepository,
   multiConfigEditUseCase: MultiConfigEditUseCase,
   navigator: Navigator,
+  scope: NamedCoroutineScope<KeyUiScope>,
   troubleshootingUseCases: TroubleshootingUseCases,
-  L: Logger,
-  S: NamedCoroutineScope<KeyUiScope>
-) = state {
+  L: Logger
+) = scope.childCoroutineScope(AndroidUiDispatcher.Main).state {
   suspend fun apply(
     addresses: Collection<String>,
     transform: MinirigConfig.(MinirigConfig) -> MinirigConfig
@@ -344,7 +334,7 @@ data class MinirigsModel(
       else combine(
         minirigRepository.minirigs,
         activeMinirigOps.activeMinirig.onStart { emit(null) }
-      )
+      ) { a, b -> a to b }
         .flatMapLatest { (minirigs, activeMinirig) ->
           if (minirigs.isEmpty()) flowOf(emptyList())
           else combine(
@@ -369,7 +359,7 @@ data class MinirigsModel(
     }
     .bindResource()
 
-  var selectedMinirigs by memo { stateVar(emptySet<String>()) }
+  var selectedMinirigs by remember { mutableStateOf(emptySet<String>()) }
 
   MinirigsModel(
     minirigs = minirigs,
@@ -429,7 +419,6 @@ data class MinirigsModel(
     powerOffSelected = action {
       selectedMinirigs.parForEach { troubleshootingUseCases.powerOff(it) }
     },
-    soundTestSelected = action { navigator.push(SoundTestKey(selectedMinirigs.toList())) },
     debug = action { minirig -> navigator.push(MinirigDebugKey(minirig.address)) },
     rename = action { minirig ->
       val newName = navigator.push(RenameMinirigKey()) ?: return@action

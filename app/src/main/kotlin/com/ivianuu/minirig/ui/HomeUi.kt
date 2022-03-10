@@ -9,6 +9,7 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.unit.*
+import com.ivianuu.essentials.permission.*
 import com.ivianuu.essentials.ui.animation.*
 import com.ivianuu.essentials.ui.insets.*
 import com.ivianuu.essentials.ui.navigation.*
@@ -16,16 +17,22 @@ import com.ivianuu.essentials.ui.systembars.*
 import com.ivianuu.essentials.ui.util.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.common.*
+import com.ivianuu.minirig.domain.*
 
 @Provide object HomeKey : RootKey
 
 @Provide fun homeUi(
   minirigsUi: MinirigsUi,
   configsUi: ConfigsUi,
+  permissionRequester: PermissionRequester,
   scope: Scope<KeyUiScope>
 ) = KeyUi<HomeKey> {
   val pages = (0..1).toList()
   var selectedPage by scope { mutableStateOf(pages.first()) }
+
+  LaunchedEffect(true) {
+    permissionRequester(listOf(typeKeyOf<MinirigBluetoothConnectPermission>()))
+  }
 
   Column(
     modifier = Modifier.fillMaxSize()

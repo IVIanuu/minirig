@@ -5,10 +5,11 @@
 package com.ivianuu.minirig.domain
 
 import android.bluetooth.*
+import com.github.michaelbull.result.*
 import com.ivianuu.essentials.*
-import com.ivianuu.essentials.cache.*
 import com.ivianuu.essentials.coroutines.*
 import com.ivianuu.essentials.logging.*
+import com.ivianuu.essentials.permission.*
 import com.ivianuu.essentials.time.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.android.*
@@ -17,25 +18,31 @@ import com.ivianuu.injekt.coroutines.*
 import com.ivianuu.minirig.data.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.*
 
 @Provide @Scoped<AppScope> class MinirigRepository(
   private val bluetoothManager: @SystemService BluetoothManager,
   private val context: IOContext,
   private val remote: MinirigRemote,
   private val L: Logger,
+  private val permissionState: Flow<PermissionState<MinirigBluetoothConnectPermission>>,
   private val scope: NamedCoroutineScope<AppScope>
 ) {
   val minirigs: Flow<List<Minirig>>
-    get() = remote.bondedDeviceChanges()
-      .onStart<Any> { emit(Unit) }
-      .map {
-        bluetoothManager.adapter?.bondedDevices
-          ?.filter { it.address.isMinirigAddress() }
-          ?.map { it.toMinirig() }
-          ?: emptyList()
+    get() = permissionState
+      .flatMapLatest {
+        if (!it) flowOf(emptyList())
+        else remote.bondedDeviceChanges()
+          .onStart<Any> { emit(Unit) }
+          .map {
+            bluetoothManager.adapter?.bondedDevices
+              ?.filter { it.address.isMinirigAddress() }
+              ?.map { it.toMinirig() }
+              ?: emptyList()
+          }
+          .distinctUntilChanged()
+          .flowOn(context)
       }
-      .distinctUntilChanged()
-      .flowOn(context)
 
   fun minirig(address: String): Flow<Minirig?> = remote.bondedDeviceChanges()
     .onStart<Any> { emit(Unit) }
@@ -46,7 +53,8 @@ import kotlinx.coroutines.flow.*
     }
     .flowOn(context)
 
-  private val states = Cache<String, Flow<MinirigState>>()
+  private val states = mutableMapOf<String, Flow<MinirigState>>()
+  private val statesLock = Mutex()
 
   private val stateChanges = EventFlow<String>()
 
@@ -56,23 +64,30 @@ import kotlinx.coroutines.flow.*
 
   fun minirigState(address: String): Flow<MinirigState> = flow {
     emitAll(
-      states.get(address) {
-        merge(
-          timer(5.seconds),
-          remote.bondedDeviceChanges(),
-          stateChanges.filter { it == address }
-        )
-          .mapLatest { readMinirigState(address) }
-          .distinctUntilChanged()
-          .flowOn(context)
-          .shareIn(scope, SharingStarted.WhileSubscribed(), 1)
-          .let { sharedFlow ->
-            sharedFlow
-              .onStart {
-                if (sharedFlow.replayCache.isEmpty())
-                  emit(MinirigState(false))
+      statesLock.withLock {
+        states.getOrPut(address) {
+          merge(
+            flow<Unit> {
+              while (true) {
+                emit(Unit)
+                delay(5.seconds)
               }
-          }
+            },
+            remote.bondedDeviceChanges(),
+            stateChanges.filter { it == address }
+          )
+            .mapLatest { readMinirigState(address) }
+            .distinctUntilChanged()
+            .flowOn(context)
+            .shareIn(scope, SharingStarted.WhileSubscribed(), 1)
+            .let { sharedFlow ->
+              sharedFlow
+                .onStart {
+                  if (sharedFlow.replayCache.isEmpty())
+                    emit(MinirigState(false))
+                }
+            }
+        }
       }
     )
   }
@@ -80,7 +95,7 @@ import kotlinx.coroutines.flow.*
   private suspend fun readMinirigState(address: String, @Inject L: Logger): MinirigState =
     remote.withMinirig(address) {
       // sending this message triggers the state output
-      catch { send("B") }
+      runCatching { send("B") }
 
       val batteryPercentage = withTimeoutOrNull(PingPongTimeout) {
         messages
@@ -95,7 +110,7 @@ import kotlinx.coroutines.flow.*
           .first()
       }
 
-      catch { send("x") }
+      runCatching { send("x") }
 
       var linkupState = LinkupState.NONE
       var powerState = PowerState.NORMAL
