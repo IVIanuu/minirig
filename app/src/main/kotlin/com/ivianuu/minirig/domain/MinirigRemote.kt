@@ -77,9 +77,9 @@ private val sendLimiter = RateLimiter(1, 100.milliseconds)
 class MinirigSocket(
   private val address: String,
   @Inject private val bluetoothManager: @SystemService BluetoothManager,
-  context: IOContext,
-  parentScope: NamedCoroutineScope<AppScope>,
-  private val L: Logger
+  @Inject context: IOContext,
+  @Inject parentScope: NamedCoroutineScope<AppScope>,
+  @Inject private val L: Logger
 ) {
   private val scope = parentScope.childCoroutineScope(context)
 

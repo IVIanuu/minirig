@@ -58,7 +58,7 @@ import kotlinx.coroutines.flow.*
 private suspend fun applyConfig(
   config: MinirigConfig,
   @Inject L: Logger,
-  remote: MinirigRemote
+  @Inject remote: MinirigRemote
 ) {
   remote.withMinirig(config.id) {
     log { "${device.debugName()} apply config $config" }
