@@ -303,7 +303,7 @@ data class MinirigsModel(
   scope: NamedCoroutineScope<KeyUiScope>,
   troubleshootingUseCases: TroubleshootingUseCases,
   L: Logger
-) = scope.childCoroutineScope(AndroidUiDispatcher.Main).state {
+) = scope.state {
   suspend fun apply(
     addresses: Collection<String>,
     transform: MinirigConfig.(MinirigConfig) -> MinirigConfig

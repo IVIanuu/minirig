@@ -8,7 +8,6 @@ import androidx.compose.ui.graphics.*
 import com.ivianuu.essentials.*
 import com.ivianuu.essentials.rubik.*
 import com.ivianuu.essentials.ui.*
-import com.ivianuu.essentials.ui.animation.transition.*
 import com.ivianuu.essentials.ui.material.*
 import com.ivianuu.injekt.*
 
@@ -34,7 +33,6 @@ object MinirigTheme {
       secondaryVariant = MinirigTheme.Secondary
     ),
     typography = EsTypography.editEach { copy(fontFamily = Rubik) },
-    transition = FadeUpwardsStackTransition(),
     content = content
   )
 }

@@ -98,7 +98,7 @@ data class MinirigDebugModel(
   key: MinirigDebugKey,
   remote: MinirigRemote,
   L: Logger
-): @Composable () -> MinirigDebugModel = {
+) = Model {
   MinirigDebugModel(
     output = appForegroundState
       .transformLatest {

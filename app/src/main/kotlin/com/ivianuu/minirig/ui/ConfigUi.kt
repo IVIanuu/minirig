@@ -215,7 +215,7 @@ data class ConfigModel(
   configRepository: ConfigRepository,
   minirigRepository: MinirigRepository,
   navigator: Navigator
-): @Composable () -> ConfigModel = {
+) = Model {
   val config = configRepository.config(key.id).bindResource()
   ConfigModel(
     name = if (!key.id.isMinirigAddress()) key.id
