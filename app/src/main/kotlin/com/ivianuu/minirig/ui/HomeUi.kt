@@ -18,6 +18,7 @@ import com.ivianuu.essentials.ui.util.*
 import com.ivianuu.injekt.*
 import com.ivianuu.injekt.common.*
 import com.ivianuu.minirig.domain.*
+import kotlinx.coroutines.*
 
 @Provide object HomeKey : RootKey
 
@@ -31,6 +32,8 @@ import com.ivianuu.minirig.domain.*
   var selectedPage by scope { mutableStateOf(pages.first()) }
 
   LaunchedEffect(true) {
+    // todo remove once essentials state is fixed
+    delay(1000)
     permissionRequester(listOf(typeKeyOf<MinirigBluetoothConnectPermission>()))
   }
 

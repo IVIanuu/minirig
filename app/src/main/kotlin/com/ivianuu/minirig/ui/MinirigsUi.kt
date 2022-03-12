@@ -36,7 +36,9 @@ import com.ivianuu.minirig.data.*
 import com.ivianuu.minirig.domain.*
 import kotlinx.coroutines.flow.*
 
-fun interface MinirigsUi : @Composable () -> Unit
+fun interface MinirigsUi {
+  @Composable operator fun invoke()
+}
 
 @Provide fun minirigsUi(models: StateFlow<MinirigsModel>) = MinirigsUi {
   val model by models.collectAsState()
