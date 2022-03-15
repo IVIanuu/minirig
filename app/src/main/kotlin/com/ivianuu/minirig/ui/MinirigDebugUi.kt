@@ -51,7 +51,7 @@ data class MinirigDebugKey(val address: String) : Key<Unit>
           modifier = Modifier.weight(1f),
           state = listState
         ) {
-          model.output.lines().forEach { line ->
+          output.lines().forEach { line ->
             item {
               Text(line)
             }
@@ -59,7 +59,7 @@ data class MinirigDebugKey(val address: String) : Key<Unit>
         }
       }
 
-      LaunchedEffect(model.output) {
+      LaunchedEffect(output) {
         if (isOnBottom)
           listState.scrollToItem(listState.layoutInfo.totalItemsCount)
       }
@@ -76,7 +76,7 @@ data class MinirigDebugKey(val address: String) : Key<Unit>
           Button(
             modifier = Modifier.padding(start = 8.dp),
             onClick = {
-              model.sendMessage(message)
+              sendMessage(message)
               message = ""
             }
           ) {

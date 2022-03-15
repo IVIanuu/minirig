@@ -5,7 +5,6 @@
 package com.ivianuu.minirig.domain
 
 import android.*
-import androidx.compose.runtime.*
 import com.ivianuu.essentials.permission.runtime.*
 import com.ivianuu.injekt.*
 
@@ -14,7 +13,4 @@ import com.ivianuu.injekt.*
     get() = Manifest.permission.BLUETOOTH_CONNECT
   override val title: String
     get() = "Bluetooth"
-
-  @Composable override fun Icon() {
-  }
 }

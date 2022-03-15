@@ -27,7 +27,7 @@ import kotlinx.coroutines.*
   configsUi: ConfigsUi,
   permissionRequester: PermissionRequester,
   scope: Scope<KeyUiScope>
-) = KeyUi<HomeKey> {
+) = SimpleKeyUi<HomeKey> {
   val pages = (0..1).toList()
   var selectedPage by scope { mutableStateOf(pages.first()) }
 

@@ -29,11 +29,11 @@ data class ConfigKey(val id: String) : Key<Unit>
   Scaffold(
     topBar = {
       TopAppBar(
-        title = { Text(model.name) },
+        title = { Text(name) },
         actions = {
           PopupMenuButton(
             items = listOf(
-              PopupMenu.Item(onSelected = model.saveAs) { Text("Save as") }
+              PopupMenu.Item(onSelected = saveAs) { Text("Save as") }
             )
           )
         }
@@ -47,8 +47,8 @@ data class ConfigKey(val id: String) : Key<Unit>
 
       item {
         SliderListItem(
-          value = model.band1,
-          onValueChange = model.updateBand1,
+          value = band1,
+          onValueChange = updateBand1,
           title = { Text("70Hz") },
           stepPolicy = incrementingStepPolicy(0.05f),
           valueText = { ScaledPercentageUnitText(it) }
@@ -57,8 +57,8 @@ data class ConfigKey(val id: String) : Key<Unit>
 
       item {
         SliderListItem(
-          value = model.band2,
-          onValueChange = model.updateBand2,
+          value = band2,
+          onValueChange = updateBand2,
           title = { Text("250Hz") },
           stepPolicy = incrementingStepPolicy(0.05f),
           valueText = { ScaledPercentageUnitText(it) }
@@ -67,8 +67,8 @@ data class ConfigKey(val id: String) : Key<Unit>
 
       item {
         SliderListItem(
-          value = model.band3,
-          onValueChange = model.updateBand3,
+          value = band3,
+          onValueChange = updateBand3,
           title = { Text("850Hz") },
           stepPolicy = incrementingStepPolicy(0.05f),
           valueText = { ScaledPercentageUnitText(it) }
@@ -77,8 +77,8 @@ data class ConfigKey(val id: String) : Key<Unit>
 
       item {
         SliderListItem(
-          value = model.band4,
-          onValueChange = model.updateBand4,
+          value = band4,
+          onValueChange = updateBand4,
           title = { Text("3KHz") },
           stepPolicy = incrementingStepPolicy(0.05f),
           valueText = { ScaledPercentageUnitText(it) }
@@ -87,8 +87,8 @@ data class ConfigKey(val id: String) : Key<Unit>
 
       item {
         SliderListItem(
-          value = model.band5,
-          onValueChange = model.updateBand5,
+          value = band5,
+          onValueChange = updateBand5,
           title = { Text("10.5KHz") },
           stepPolicy = incrementingStepPolicy(0.05f),
           valueText = { ScaledPercentageUnitText(it) }
@@ -101,8 +101,8 @@ data class ConfigKey(val id: String) : Key<Unit>
 
       item {
         SliderListItem(
-          value = model.bassBoost,
-          onValueChange = model.updateBassBoost,
+          value = bassBoost,
+          onValueChange = updateBassBoost,
           title = { Text("Bass boost") },
           stepPolicy = incrementingStepPolicy(0.1f),
           valueText = { ScaledPercentageUnitText(it) }
@@ -111,16 +111,16 @@ data class ConfigKey(val id: String) : Key<Unit>
 
       item {
         SwitchListItem(
-          value = model.loud,
-          onValueChange = model.updateLoud,
+          value = loud,
+          onValueChange = updateLoud,
           title = { Text("Loud") }
         )
       }
 
       item {
         SliderListItem(
-          value = model.gain,
-          onValueChange = model.updateGain,
+          value = gain,
+          onValueChange = updateGain,
           title = { Text("Gain") },
           stepPolicy = incrementingStepPolicy(0.05f),
           valueText = { ScaledPercentageUnitText(it) }
@@ -129,8 +129,8 @@ data class ConfigKey(val id: String) : Key<Unit>
 
       item {
         SliderListItem(
-          value = model.auxGain,
-          onValueChange = model.updateAuxGain,
+          value = auxGain,
+          onValueChange = updateAuxGain,
           title = { Text("Aux gain") },
           stepPolicy = incrementingStepPolicy(0.1f),
           valueText = { ScaledPercentageUnitText(it) }
@@ -166,16 +166,16 @@ data class ConfigKey(val id: String) : Key<Unit>
 
       item {
         ChannelListItem(
-          value = model.channel,
-          onValueChange = model.updateChannel,
+          value = channel,
+          onValueChange = updateChannel,
           title = "Channel",
         )
       }
 
       item {
         ChannelListItem(
-          value = model.auxChannel,
-          onValueChange = model.updateAuxChannel,
+          value = auxChannel,
+          onValueChange = updateAuxChannel,
           title = "Aux channel",
         )
       }
