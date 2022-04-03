@@ -4,18 +4,25 @@
 
 package com.ivianuu.minirig.domain
 
-import android.bluetooth.*
-import com.github.michaelbull.result.*
-import com.ivianuu.essentials.*
-import com.ivianuu.essentials.coroutines.*
-import com.ivianuu.essentials.logging.*
-import com.ivianuu.essentials.time.*
-import com.ivianuu.injekt.*
-import com.ivianuu.injekt.android.*
-import com.ivianuu.injekt.common.*
-import com.ivianuu.injekt.coroutines.*
-import kotlinx.coroutines.*
-import kotlin.coroutines.*
+import android.bluetooth.BluetoothA2dp
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
+import com.github.michaelbull.result.runCatching
+import com.ivianuu.essentials.AppContext
+import com.ivianuu.essentials.AppScope
+import com.ivianuu.essentials.coroutines.RefCountedResource
+import com.ivianuu.essentials.coroutines.withResource
+import com.ivianuu.essentials.logging.Logger
+import com.ivianuu.essentials.logging.log
+import com.ivianuu.essentials.time.seconds
+import com.ivianuu.injekt.Provide
+import com.ivianuu.injekt.android.SystemService
+import com.ivianuu.injekt.common.Scoped
+import com.ivianuu.injekt.coroutines.IOContext
+import com.ivianuu.injekt.coroutines.NamedCoroutineScope
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
 
 @Provide @Scoped<AppScope> class A2DPOps(
   private val bluetoothManager: @SystemService BluetoothManager,

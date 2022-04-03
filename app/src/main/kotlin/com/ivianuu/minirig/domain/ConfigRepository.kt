@@ -4,12 +4,17 @@
 
 package com.ivianuu.minirig.domain
 
-import com.ivianuu.essentials.data.*
-import com.ivianuu.essentials.logging.*
-import com.ivianuu.injekt.*
-import com.ivianuu.injekt.coroutines.*
-import com.ivianuu.minirig.data.*
-import kotlinx.coroutines.flow.*
+import com.ivianuu.essentials.data.DataStore
+import com.ivianuu.essentials.logging.Logger
+import com.ivianuu.essentials.logging.log
+import com.ivianuu.injekt.Provide
+import com.ivianuu.injekt.coroutines.IOContext
+import com.ivianuu.minirig.data.MinirigConfig
+import com.ivianuu.minirig.data.isMinirigAddress
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 
 @Provide class ConfigRepository(
   private val context: IOContext,

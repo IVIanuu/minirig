@@ -4,10 +4,12 @@
 
 package com.ivianuu.minirig.domain
 
-import android.bluetooth.*
-import com.ivianuu.essentials.logging.*
-import com.ivianuu.injekt.*
-import com.ivianuu.injekt.android.*
+import android.bluetooth.BluetoothA2dp
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import com.ivianuu.essentials.logging.Logger
+import com.ivianuu.injekt.Provide
+import com.ivianuu.injekt.android.SystemService
 
 @Provide class MinirigConnectionUseCases(
   private val a2DPOps: A2DPOps,

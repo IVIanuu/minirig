@@ -4,21 +4,45 @@
 
 package com.ivianuu.minirig.domain
 
-import android.bluetooth.*
-import com.github.michaelbull.result.*
-import com.ivianuu.essentials.*
-import com.ivianuu.essentials.coroutines.*
-import com.ivianuu.essentials.logging.*
-import com.ivianuu.essentials.permission.*
-import com.ivianuu.essentials.time.*
-import com.ivianuu.injekt.*
-import com.ivianuu.injekt.android.*
-import com.ivianuu.injekt.common.*
-import com.ivianuu.injekt.coroutines.*
-import com.ivianuu.minirig.data.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.sync.*
+import android.bluetooth.BluetoothManager
+import com.github.michaelbull.result.runCatching
+import com.ivianuu.essentials.AppScope
+import com.ivianuu.essentials.coroutines.EventFlow
+import com.ivianuu.essentials.logging.Logger
+import com.ivianuu.essentials.permission.PermissionState
+import com.ivianuu.essentials.time.seconds
+import com.ivianuu.injekt.Inject
+import com.ivianuu.injekt.Provide
+import com.ivianuu.injekt.android.SystemService
+import com.ivianuu.injekt.common.Scoped
+import com.ivianuu.injekt.coroutines.IOContext
+import com.ivianuu.injekt.coroutines.NamedCoroutineScope
+import com.ivianuu.minirig.data.LinkupState
+import com.ivianuu.minirig.data.Minirig
+import com.ivianuu.minirig.data.MinirigState
+import com.ivianuu.minirig.data.PowerState
+import com.ivianuu.minirig.data.isMinirigAddress
+import com.ivianuu.minirig.data.toMinirig
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 
 @Provide @Scoped<AppScope> class MinirigRepository(
   private val bluetoothManager: @SystemService BluetoothManager,

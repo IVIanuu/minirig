@@ -4,13 +4,19 @@
 
 package com.ivianuu.minirig.domain
 
-import android.bluetooth.*
-import com.ivianuu.essentials.logging.*
-import com.ivianuu.injekt.*
-import com.ivianuu.injekt.android.*
-import com.ivianuu.minirig.data.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import android.bluetooth.BluetoothA2dp
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import com.ivianuu.essentials.logging.Logger
+import com.ivianuu.injekt.Provide
+import com.ivianuu.injekt.android.SystemService
+import com.ivianuu.minirig.data.isMinirigAddress
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.transformLatest
 
 @Provide class ActiveMinirigOps(
   private val a2DPOps: A2DPOps,

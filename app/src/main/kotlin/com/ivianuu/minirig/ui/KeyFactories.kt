@@ -4,8 +4,10 @@
 
 package com.ivianuu.minirig.ui
 
-import com.ivianuu.essentials.ui.dialog.*
-import com.ivianuu.minirig.data.*
+import com.ivianuu.essentials.ui.dialog.ListKey
+import com.ivianuu.essentials.ui.dialog.TextInputKey
+import com.ivianuu.minirig.data.Minirig
+import com.ivianuu.minirig.data.MinirigConfig
 
 fun ConfigIdPickerKey() =
   TextInputKey(label = "Specify the name of your config..", predicate = { it.isNotEmpty() })

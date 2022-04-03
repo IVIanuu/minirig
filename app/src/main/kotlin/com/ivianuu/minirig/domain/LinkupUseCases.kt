@@ -4,11 +4,12 @@
 
 package com.ivianuu.minirig.domain
 
-import com.ivianuu.essentials.coroutines.*
-import com.ivianuu.essentials.logging.*
-import com.ivianuu.essentials.time.*
-import com.ivianuu.injekt.*
-import kotlinx.coroutines.*
+import com.ivianuu.essentials.coroutines.parForEach
+import com.ivianuu.essentials.logging.Logger
+import com.ivianuu.essentials.logging.log
+import com.ivianuu.essentials.time.seconds
+import com.ivianuu.injekt.Provide
+import kotlinx.coroutines.delay
 
 @Provide class LinkupUseCases(
   private val activeMinirigOps: ActiveMinirigOps,

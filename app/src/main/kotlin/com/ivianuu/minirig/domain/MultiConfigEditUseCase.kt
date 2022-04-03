@@ -4,14 +4,21 @@
 
 package com.ivianuu.minirig.domain
 
-import com.ivianuu.essentials.coroutines.*
-import com.ivianuu.essentials.time.*
-import com.ivianuu.essentials.ui.navigation.*
-import com.ivianuu.injekt.*
-import com.ivianuu.minirig.data.*
-import com.ivianuu.minirig.ui.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import com.ivianuu.essentials.coroutines.guarantee
+import com.ivianuu.essentials.coroutines.parForEach
+import com.ivianuu.essentials.coroutines.parMap
+import com.ivianuu.essentials.coroutines.race
+import com.ivianuu.essentials.time.milliseconds
+import com.ivianuu.essentials.ui.navigation.Navigator
+import com.ivianuu.essentials.ui.navigation.push
+import com.ivianuu.injekt.Provide
+import com.ivianuu.minirig.data.MinirigConfig
+import com.ivianuu.minirig.data.merge
+import com.ivianuu.minirig.ui.ConfigKey
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.mapNotNull
 
 fun interface MultiConfigEditUseCase : suspend (List<String>) -> Unit
 

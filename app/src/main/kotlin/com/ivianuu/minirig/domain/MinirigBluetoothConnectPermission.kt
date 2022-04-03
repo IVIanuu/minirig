@@ -4,9 +4,9 @@
 
 package com.ivianuu.minirig.domain
 
-import android.*
-import com.ivianuu.essentials.permission.runtime.*
-import com.ivianuu.injekt.*
+import android.Manifest
+import com.ivianuu.essentials.permission.runtime.RuntimePermission
+import com.ivianuu.injekt.Provide
 
 @Provide class MinirigBluetoothConnectPermission : RuntimePermission {
   override val permissionName: String

@@ -4,10 +4,10 @@
 
 package com.ivianuu.minirig.data
 
-import android.bluetooth.*
-import com.ivianuu.essentials.android.prefs.*
-import com.ivianuu.injekt.*
-import kotlinx.serialization.*
+import android.bluetooth.BluetoothDevice
+import com.ivianuu.essentials.android.prefs.DataStoreModule
+import com.ivianuu.injekt.Provide
+import kotlinx.serialization.Serializable
 
 data class Minirig(val address: String, val name: String)
 

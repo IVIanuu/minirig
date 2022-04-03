@@ -4,10 +4,11 @@
 
 package com.ivianuu.minirig.domain
 
-import android.bluetooth.*
-import com.ivianuu.injekt.*
-import com.ivianuu.injekt.android.*
-import kotlinx.coroutines.*
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import com.ivianuu.injekt.Provide
+import com.ivianuu.injekt.android.SystemService
+import kotlinx.coroutines.delay
 
 @Provide class TroubleshootingUseCases(
   private val bluetoothManager: @SystemService BluetoothManager,

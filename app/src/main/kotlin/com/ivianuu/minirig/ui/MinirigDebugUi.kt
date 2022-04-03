@@ -4,27 +4,45 @@
 
 package com.ivianuu.minirig.ui
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
-import androidx.compose.material.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.unit.*
-import com.ivianuu.essentials.app.*
-import com.ivianuu.essentials.coroutines.*
-import com.ivianuu.essentials.logging.*
-import com.ivianuu.essentials.state.*
-import com.ivianuu.essentials.time.*
-import com.ivianuu.essentials.ui.common.*
-import com.ivianuu.essentials.ui.insets.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.Button
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.ivianuu.essentials.app.AppForegroundState
+import com.ivianuu.essentials.coroutines.par
+import com.ivianuu.essentials.logging.Logger
+import com.ivianuu.essentials.state.action
+import com.ivianuu.essentials.state.bind
+import com.ivianuu.essentials.time.seconds
+import com.ivianuu.essentials.ui.common.VerticalList
+import com.ivianuu.essentials.ui.insets.ConsumeInsets
+import com.ivianuu.essentials.ui.insets.InsetsPadding
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.TopAppBar
-import com.ivianuu.essentials.ui.navigation.*
-import com.ivianuu.injekt.*
-import com.ivianuu.minirig.data.*
-import com.ivianuu.minirig.domain.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import com.ivianuu.essentials.ui.navigation.Key
+import com.ivianuu.essentials.ui.navigation.Model
+import com.ivianuu.essentials.ui.navigation.ModelKeyUi
+import com.ivianuu.injekt.Provide
+import com.ivianuu.minirig.data.MinirigRuntimeData
+import com.ivianuu.minirig.domain.MinirigRemote
+import com.ivianuu.minirig.domain.parseEq
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.isActive
 
 data class MinirigDebugKey(val address: String) : Key<Unit>
 

@@ -4,15 +4,24 @@
 
 package com.ivianuu.minirig.domain
 
-import com.ivianuu.essentials.app.*
-import com.ivianuu.essentials.coroutines.*
-import com.ivianuu.essentials.logging.*
-import com.ivianuu.essentials.util.*
-import com.ivianuu.injekt.*
-import com.ivianuu.injekt.coroutines.*
-import com.ivianuu.minirig.data.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import com.ivianuu.essentials.app.AppForegroundScope
+import com.ivianuu.essentials.app.ScopeWorker
+import com.ivianuu.essentials.coroutines.parForEach
+import com.ivianuu.essentials.logging.Logger
+import com.ivianuu.essentials.logging.asLog
+import com.ivianuu.essentials.logging.log
+import com.ivianuu.essentials.util.ToastContext
+import com.ivianuu.essentials.util.showToast
+import com.ivianuu.injekt.Inject
+import com.ivianuu.injekt.Provide
+import com.ivianuu.injekt.coroutines.IOContext
+import com.ivianuu.minirig.data.MinirigConfig
+import com.ivianuu.minirig.data.debugName
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 @Provide fun minirigConfigSynchronizer(
   context: IOContext,

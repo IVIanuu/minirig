@@ -4,25 +4,37 @@
 
 package com.ivianuu.minirig.ui
 
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import com.ivianuu.essentials.resource.*
-import com.ivianuu.essentials.state.*
-import com.ivianuu.essentials.ui.layout.*
-import com.ivianuu.essentials.ui.material.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.ExtendedFloatingActionButton
+import androidx.compose.material.FabPosition
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import com.ivianuu.essentials.resource.Resource
+import com.ivianuu.essentials.state.action
+import com.ivianuu.essentials.state.bindResource
+import com.ivianuu.essentials.state.state
+import com.ivianuu.essentials.ui.layout.center
+import com.ivianuu.essentials.ui.material.ListItem
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.TopAppBar
-import com.ivianuu.essentials.ui.navigation.*
-import com.ivianuu.essentials.ui.popup.*
-import com.ivianuu.essentials.ui.resource.*
-import com.ivianuu.injekt.*
-import com.ivianuu.injekt.coroutines.*
-import com.ivianuu.minirig.data.*
-import com.ivianuu.minirig.domain.*
-import kotlinx.coroutines.flow.*
+import com.ivianuu.essentials.ui.navigation.KeyUiScope
+import com.ivianuu.essentials.ui.navigation.Navigator
+import com.ivianuu.essentials.ui.navigation.push
+import com.ivianuu.essentials.ui.popup.PopupMenu
+import com.ivianuu.essentials.ui.popup.PopupMenuButton
+import com.ivianuu.essentials.ui.resource.ResourceVerticalListFor
+import com.ivianuu.injekt.Provide
+import com.ivianuu.injekt.coroutines.NamedCoroutineScope
+import com.ivianuu.minirig.data.MinirigConfig
+import com.ivianuu.minirig.data.isMinirigAddress
+import com.ivianuu.minirig.domain.ConfigRepository
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 
 fun interface ConfigsUi {
   @Composable operator fun invoke()

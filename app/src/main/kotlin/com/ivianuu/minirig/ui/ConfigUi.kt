@@ -4,24 +4,39 @@
 
 package com.ivianuu.minirig.ui
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.unit.*
-import com.ivianuu.essentials.resource.*
-import com.ivianuu.essentials.state.*
-import com.ivianuu.essentials.ui.common.*
-import com.ivianuu.essentials.ui.material.*
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.ivianuu.essentials.resource.get
+import com.ivianuu.essentials.resource.getOrNull
+import com.ivianuu.essentials.resource.map
+import com.ivianuu.essentials.state.action
+import com.ivianuu.essentials.state.bind
+import com.ivianuu.essentials.state.bindResource
+import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.material.Scaffold
+import com.ivianuu.essentials.ui.material.Subheader
 import com.ivianuu.essentials.ui.material.TopAppBar
-import com.ivianuu.essentials.ui.navigation.*
-import com.ivianuu.essentials.ui.popup.*
-import com.ivianuu.essentials.ui.prefs.*
-import com.ivianuu.injekt.*
-import com.ivianuu.minirig.data.*
-import com.ivianuu.minirig.domain.*
-import kotlinx.coroutines.flow.*
+import com.ivianuu.essentials.ui.material.incrementingStepPolicy
+import com.ivianuu.essentials.ui.navigation.Key
+import com.ivianuu.essentials.ui.navigation.Model
+import com.ivianuu.essentials.ui.navigation.ModelKeyUi
+import com.ivianuu.essentials.ui.navigation.Navigator
+import com.ivianuu.essentials.ui.navigation.push
+import com.ivianuu.essentials.ui.popup.PopupMenu
+import com.ivianuu.essentials.ui.popup.PopupMenuButton
+import com.ivianuu.essentials.ui.prefs.ScaledPercentageUnitText
+import com.ivianuu.essentials.ui.prefs.SliderListItem
+import com.ivianuu.essentials.ui.prefs.SwitchListItem
+import com.ivianuu.injekt.Provide
+import com.ivianuu.minirig.data.isMinirigAddress
+import com.ivianuu.minirig.domain.ConfigRepository
+import com.ivianuu.minirig.domain.MinirigRepository
+import kotlinx.coroutines.flow.map
 
 data class ConfigKey(val id: String) : Key<Unit>
 
