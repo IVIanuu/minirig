@@ -111,20 +111,49 @@ private suspend fun applyConfig(
       else (10 * config.auxGain).toInt()
     )
 
-    updateConfigIfNeeded(1, (config.band1 * 99).toInt())
-    updateConfigIfNeeded(2, (config.band2 * 99).toInt())
-    updateConfigIfNeeded(3, (config.band3 * 99).toInt())
-    updateConfigIfNeeded(4, (config.band4 * 99).toInt())
-    updateConfigIfNeeded(5, (config.band5 * 99).toInt())
+    updateConfigIfNeeded(
+      1,
+      (config.band1 * 100)
+        .toInt()
+        .coerceIn(1, 99)
+    )
+    updateConfigIfNeeded(
+      2,
+      (config.band2 * 100)
+        .toInt()
+        .coerceIn(1, 99)
+    )
+    updateConfigIfNeeded(
+      3,
+      (config.band3 * 100)
+        .toInt()
+        .coerceIn(1, 99)
+    )
+    updateConfigIfNeeded(
+      4,
+      (config.band4 * 100)
+        .toInt()
+        .coerceIn(1, 99)
+    )
+    updateConfigIfNeeded(
+      5,
+      (config.band5 * 100)
+        .toInt()
+        .coerceIn(1, 99)
+    )
 
     updateConfigIfNeeded(
       14,
-      ((1f - config.channel) * 99).toInt()
+      ((1f - config.channel) * 100)
+        .toInt()
+        .coerceIn(1, 99)
     )
 
     updateConfigIfNeeded(
       15,
-      ((1f - config.auxChannel) * 99).toInt()
+      ((1f - config.auxChannel) * 100)
+        .toInt()
+        .coerceIn(1, 99)
     )
 
     updateConfigIfNeeded(
