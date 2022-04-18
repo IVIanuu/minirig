@@ -7,9 +7,9 @@ package com.ivianuu.minirig.domain
 import android.bluetooth.BluetoothA2dp
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
-import com.github.michaelbull.result.runCatching
 import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
+import com.ivianuu.essentials.catch
 import com.ivianuu.essentials.coroutines.RefCountedResource
 import com.ivianuu.essentials.coroutines.withResource
 import com.ivianuu.essentials.logging.Logger
@@ -41,7 +41,7 @@ import kotlin.coroutines.resume
           appContext,
           object : BluetoothProfile.ServiceListener {
             override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
-              runCatching { cont.resume(proxy as BluetoothA2dp) }
+              catch { cont.resume(proxy as BluetoothA2dp) }
             }
 
             override fun onServiceDisconnected(profile: Int) {
@@ -53,7 +53,7 @@ import kotlin.coroutines.resume
     },
     release = { _, proxy ->
       log { "release proxy" }
-      runCatching {
+      catch {
         bluetoothManager.adapter.closeProfileProxy(BluetoothProfile.A2DP, proxy)
       }
     }

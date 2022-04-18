@@ -5,8 +5,8 @@
 package com.ivianuu.minirig.domain
 
 import android.bluetooth.BluetoothManager
-import com.github.michaelbull.result.runCatching
 import com.ivianuu.essentials.AppScope
+import com.ivianuu.essentials.catch
 import com.ivianuu.essentials.coroutines.EventFlow
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.permission.PermissionState
@@ -119,7 +119,7 @@ import kotlinx.coroutines.withTimeoutOrNull
   private suspend fun readMinirigState(address: String, @Inject L: Logger): MinirigState =
     remote.withMinirig(address) {
       // sending this message triggers the state output
-      runCatching { send("B") }
+      catch { send("B") }
 
       val batteryPercentage = withTimeoutOrNull(PingPongTimeout) {
         messages
@@ -134,7 +134,7 @@ import kotlinx.coroutines.withTimeoutOrNull
           .first()
       }
 
-      runCatching { send("x") }
+      catch { send("x") }
 
       var linkupState = LinkupState.NONE
       var powerState = PowerState.NORMAL

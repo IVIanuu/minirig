@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothSocket
 import com.ivianuu.essentials.AppScope
+import com.ivianuu.essentials.catch
 import com.ivianuu.essentials.coroutines.RateLimiter
 import com.ivianuu.essentials.coroutines.RefCountedResource
 import com.ivianuu.essentials.coroutines.childCoroutineScope
@@ -143,7 +144,7 @@ class MinirigSocket(
     }
   }.shareIn(scope, SharingStarted.Eagerly)
 
-  suspend fun send(message: String) = runCatching {
+  suspend fun send(message: String) = catch {
     suspend fun sendImpl(message: String, attempt: Int) {
       try {
         // the minirig cannot keep with our speed to debounce each write
@@ -189,7 +190,7 @@ class MinirigSocket(
   }
 
   private fun closeCurrentSocketImpl(reason: Throwable?) {
-    runCatching {
+    catch {
       socket
         ?.also { log { "${device.debugName()} close current socket ${reason?.asLog()}" } }
         ?.close()
@@ -239,7 +240,7 @@ class MinirigSocket(
             block = { connectComplete.await() },
             onCancel = {
               log { "cancel connect ${device.debugName()}" }
-              runCatching { socket.close() }
+              catch { socket.close() }
             }
           )
         }
