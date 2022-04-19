@@ -52,4 +52,8 @@ import kotlinx.coroutines.delay
 
     connectionUseCases.connectMinirig(address)
   }
+
+  suspend fun twsPair(address: String) = remote.withMinirig(address) {
+    send("P")
+  }
 }

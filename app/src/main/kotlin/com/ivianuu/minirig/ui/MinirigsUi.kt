@@ -262,6 +262,9 @@ private fun Minirig(minirig: UiMinirig, model: MinirigsModel) {
           PopupMenu.Item(onSelected = { model.cancelLinkup(minirig) }) {
             Text("Cancel linkup")
           },
+          PopupMenu.Item(onSelected = { model.twsPair(minirig) }) {
+            Text("TWS pair")
+          },
           PopupMenu.Item(onSelected = { model.enablePowerOut(minirig) }) {
             Text("Enable power out")
           },
@@ -320,6 +323,7 @@ data class MinirigsModel(
   val makeActive: (UiMinirig) -> Unit,
   val startLinkup: (UiMinirig) -> Unit,
   val startLinkupWithSelected: () -> Unit,
+  val twsPair: (UiMinirig) -> Unit,
   val joinLinkup: (UiMinirig) -> Unit,
   val joinLinkupSelected: () -> Unit,
   val cancelLinkup: (UiMinirig) -> Unit,
@@ -447,6 +451,7 @@ data class MinirigsModel(
       selectedMinirigs.parForEach { linkupUseCases.joinLinkup(it) }
     },
     cancelLinkup = action { minirig -> linkupUseCases.cancelLinkup(minirig.address) },
+    twsPair = action { minirig -> linkupUseCases.twsPair(minirig.address) },
     cancelLinkupForSelected = action {
       selectedMinirigs.parForEach { linkupUseCases.cancelLinkup(it) }
     },
