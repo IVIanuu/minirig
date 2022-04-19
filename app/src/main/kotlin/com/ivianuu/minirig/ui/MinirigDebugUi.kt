@@ -19,7 +19,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.github.michaelbull.result.onFailure
 import com.ivianuu.essentials.app.AppForegroundState
+import com.ivianuu.essentials.catch
 import com.ivianuu.essentials.coroutines.par
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.state.action
@@ -133,19 +135,23 @@ data class MinirigDebugModel(
                 }
 
                 messages.collect { message ->
-                  when {
-                    message.startsWith("o") -> {
-                      lastRuntimeData1 = message
-                      emitRuntimeDataIfPossible()
+                  catch {
+                    when {
+                      message.startsWith("o") -> {
+                        lastRuntimeData1 = message
+                        emitRuntimeDataIfPossible()
+                      }
+                      message.startsWith("/") -> {
+                        lastRuntimeData2 = message
+                        emitRuntimeDataIfPossible()
+                      }
+                      message.startsWith("q") ->
+                        emit("eq: ${message.parseEq().toString().removeSurrounding("{", "}")}")
+                      message.startsWith("B") ->
+                        emit("B: ${message.removePrefix("B")}")
                     }
-                    message.startsWith("/") -> {
-                      lastRuntimeData2 = message
-                      emitRuntimeDataIfPossible()
-                    }
-                    message.startsWith("q") ->
-                      emit("eq: ${message.parseEq().toString().removeSurrounding("{", "}")}")
-                    message.startsWith("B") ->
-                      emit("B: ${message.removePrefix("B")}")
+                  }.onFailure {
+                    emit("Couldn't parse message \"$message\$")
                   }
                 }
               },
