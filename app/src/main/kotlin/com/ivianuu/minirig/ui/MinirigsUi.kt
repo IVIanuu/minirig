@@ -277,9 +277,6 @@ private fun Minirig(minirig: UiMinirig, model: MinirigsModel) {
           PopupMenu.Item(onSelected = { model.rename(minirig) }) {
             Text("Rename")
           },
-          PopupMenu.Item(onSelected = { model.clearPairedDevices(minirig) }) {
-            Text("Clear paired devices")
-          },
           PopupMenu.Item(onSelected = { model.factoryReset(minirig) }) {
             Text("Factory reset")
           }
@@ -333,7 +330,6 @@ data class MinirigsModel(
   val powerOffSelected: () -> Unit,
   val debug: (UiMinirig) -> Unit,
   val rename: (UiMinirig) -> Unit,
-  val clearPairedDevices: (UiMinirig) -> Unit,
   val factoryReset: (UiMinirig) -> Unit
 ) {
   val isSelectionMode: Boolean
@@ -473,9 +469,6 @@ data class MinirigsModel(
     rename = action { minirig ->
       val newName = navigator.push(RenameMinirigKey()) ?: return@action
       troubleshootingUseCases.rename(minirig.address, newName)
-    },
-    clearPairedDevices = action { minirig ->
-      troubleshootingUseCases.clearPairedDevices(minirig.address)
     },
     factoryReset = action { minirig -> troubleshootingUseCases.factoryReset(minirig.address) }
   )

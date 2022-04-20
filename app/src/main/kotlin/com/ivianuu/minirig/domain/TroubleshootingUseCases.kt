@@ -35,10 +35,6 @@ import kotlinx.coroutines.delay
       .invoke(device, newName)
   }
 
-  suspend fun clearPairedDevices(address: String) = remote.withMinirig(address) {
-    send("N UNPAIRCLEAR_PAIRED")
-  }
-
   suspend fun factoryReset(address: String) = remote.withMinirig(address) {
     send("*")
   }
