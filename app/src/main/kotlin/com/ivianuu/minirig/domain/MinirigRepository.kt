@@ -17,10 +17,10 @@ import com.ivianuu.injekt.android.SystemService
 import com.ivianuu.injekt.common.Scoped
 import com.ivianuu.injekt.coroutines.IOContext
 import com.ivianuu.injekt.coroutines.NamedCoroutineScope
-import com.ivianuu.minirig.data.LinkupState
 import com.ivianuu.minirig.data.Minirig
 import com.ivianuu.minirig.data.MinirigState
 import com.ivianuu.minirig.data.PowerState
+import com.ivianuu.minirig.data.TwsState
 import com.ivianuu.minirig.data.isMinirigAddress
 import com.ivianuu.minirig.data.toMinirig
 import kotlinx.coroutines.delay
@@ -136,7 +136,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
       catch { send("x") }
 
-      var linkupState = LinkupState.NONE
+      var linkupState = TwsState.NONE
       var powerState = PowerState.NORMAL
 
       withTimeoutOrNull(PingPongTimeout) {
@@ -154,9 +154,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 
         if (status.length >= 36) {
           linkupState = when (status.substring(35, 36)) {
-            "1", "2", "3", "4" -> LinkupState.SLAVE
-            "5", "6", "7", "8" -> LinkupState.MASTER
-            else -> LinkupState.NONE
+            "1", "2", "3", "4" -> TwsState.SLAVE
+            "5", "6", "7", "8" -> TwsState.MASTER
+            else -> TwsState.NONE
           }
         }
       }
@@ -164,7 +164,7 @@ import kotlinx.coroutines.withTimeoutOrNull
       return@withMinirig MinirigState(
         isConnected = true,
         batteryPercentage = batteryPercentage,
-        linkupState = linkupState,
+        twsState = linkupState,
         powerState = powerState
       )
     } ?: MinirigState(isConnected = false)

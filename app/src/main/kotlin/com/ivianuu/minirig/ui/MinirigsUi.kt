@@ -40,19 +40,19 @@ import com.ivianuu.essentials.ui.resource.ResourceVerticalListFor
 import com.ivianuu.injekt.Provide
 import com.ivianuu.injekt.coroutines.NamedCoroutineScope
 import com.ivianuu.minirig.R
-import com.ivianuu.minirig.data.LinkupState
 import com.ivianuu.minirig.data.MinirigConfig
 import com.ivianuu.minirig.data.PowerState
+import com.ivianuu.minirig.data.TwsState
 import com.ivianuu.minirig.data.apply
 import com.ivianuu.minirig.data.applyEq
 import com.ivianuu.minirig.data.applyGain
 import com.ivianuu.minirig.data.isMinirigAddress
 import com.ivianuu.minirig.domain.ActiveMinirigOps
 import com.ivianuu.minirig.domain.ConfigRepository
-import com.ivianuu.minirig.domain.LinkupUseCases
 import com.ivianuu.minirig.domain.MinirigConnectionUseCases
 import com.ivianuu.minirig.domain.MinirigRepository
 import com.ivianuu.minirig.domain.TroubleshootingUseCases
+import com.ivianuu.minirig.domain.TwsUseCases
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -99,7 +99,7 @@ private fun Minirig(minirig: UiMinirig, model: MinirigsModel) {
         ).value,
         shape = CircleShape
       ) {
-        if (minirig.isActive || minirig.isLinkupSlave)
+        if (minirig.isActive || minirig.isTwsSlave)
           Icon(
             modifier = Modifier.center(),
             painterResId = if (minirig.isActive)
@@ -145,17 +145,11 @@ private fun Minirig(minirig: UiMinirig, model: MinirigsModel) {
           PopupMenu.Item(onSelected = { model.disconnect(minirig) }) {
             Text("Disconnect")
           },
-          PopupMenu.Item(onSelected = { model.startLinkup(minirig) }) {
-            Text("Start linkup")
-          },
-          PopupMenu.Item(onSelected = { model.joinLinkup(minirig) }) {
-            Text("Join linkup")
-          },
-          PopupMenu.Item(onSelected = { model.cancelLinkup(minirig) }) {
-            Text("Cancel linkup")
-          },
           PopupMenu.Item(onSelected = { model.twsPair(minirig) }) {
-            Text("TWS pair")
+            Text("Tws pair")
+          },
+          PopupMenu.Item(onSelected = { model.cancelTws(minirig) }) {
+            Text("Cancel tws")
           },
           PopupMenu.Item(onSelected = { model.enablePowerOut(minirig) }) {
             Text("Enable power out")
@@ -183,7 +177,7 @@ data class UiMinirig(
   val name: String,
   val isConnected: Boolean,
   val isActive: Boolean,
-  val isLinkupSlave: Boolean,
+  val isTwsSlave: Boolean,
   val batteryPercentage: Int?,
   val powerState: PowerState
 )
@@ -197,10 +191,8 @@ data class MinirigsModel(
   val connect: (UiMinirig) -> Unit,
   val disconnect: (UiMinirig) -> Unit,
   val makeActive: (UiMinirig) -> Unit,
-  val startLinkup: (UiMinirig) -> Unit,
   val twsPair: (UiMinirig) -> Unit,
-  val joinLinkup: (UiMinirig) -> Unit,
-  val cancelLinkup: (UiMinirig) -> Unit,
+  val cancelTws: (UiMinirig) -> Unit,
   val enablePowerOut: (UiMinirig) -> Unit,
   val powerOff: (UiMinirig) -> Unit,
   val debug: (UiMinirig) -> Unit,
@@ -213,7 +205,7 @@ data class MinirigsModel(
   appForegroundState: Flow<AppForegroundState>,
   configRepository: ConfigRepository,
   connectionUseCases: MinirigConnectionUseCases,
-  linkupUseCases: LinkupUseCases,
+  twsUseCases: TwsUseCases,
   minirigRepository: MinirigRepository,
   navigator: Navigator,
   scope: NamedCoroutineScope<KeyUiScope>,
@@ -260,7 +252,7 @@ data class MinirigsModel(
                       minirig.name,
                       it.isConnected,
                       minirig.address == activeMinirig,
-                      it.linkupState == LinkupState.SLAVE,
+                      it.twsState == TwsState.SLAVE,
                       (it.batteryPercentage?.let { it * 100 })?.toInt(),
                       it.powerState
                     )
@@ -280,10 +272,8 @@ data class MinirigsModel(
     connect = action { minirig -> connectionUseCases.connectMinirig(minirig.address) },
     disconnect = action { minirig -> connectionUseCases.disconnectMinirig(minirig.address) },
     makeActive = action { minirig -> activeMinirigOps.setActiveMinirig(minirig.address) },
-    startLinkup = action { minirig -> linkupUseCases.startLinkup(minirig.address) },
-    joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },
-    cancelLinkup = action { minirig -> linkupUseCases.cancelLinkup(minirig.address) },
-    twsPair = action { minirig -> linkupUseCases.twsPair(minirig.address) },
+    cancelTws = action { minirig -> twsUseCases.cancelTws(minirig.address) },
+    twsPair = action { minirig -> twsUseCases.twsPair(minirig.address) },
     enablePowerOut = action { minirig -> troubleshootingUseCases.enablePowerOut(minirig.address) },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
     debug = action { minirig -> navigator.push(MinirigDebugKey(minirig.address)) },
