@@ -49,7 +49,6 @@ import com.ivianuu.minirig.data.applyGain
 import com.ivianuu.minirig.data.isMinirigAddress
 import com.ivianuu.minirig.domain.ActiveMinirigOps
 import com.ivianuu.minirig.domain.ConfigRepository
-import com.ivianuu.minirig.domain.MinirigConnectionUseCases
 import com.ivianuu.minirig.domain.MinirigRepository
 import com.ivianuu.minirig.domain.TroubleshootingUseCases
 import com.ivianuu.minirig.domain.TwsUseCases
@@ -139,12 +138,6 @@ private fun Minirig(minirig: UiMinirig, model: MinirigsModel) {
           PopupMenu.Item(onSelected = { model.makeActive(minirig) }) {
             Text("Set active")
           },
-          PopupMenu.Item(onSelected = { model.connect(minirig) }) {
-            Text("Connect")
-          },
-          PopupMenu.Item(onSelected = { model.disconnect(minirig) }) {
-            Text("Disconnect")
-          },
           PopupMenu.Item(onSelected = { model.twsPair(minirig) }) {
             Text("Tws pair")
           },
@@ -185,8 +178,6 @@ data class MinirigsModel(
   val applyConfig: (UiMinirig) -> Unit,
   val applyEq: (UiMinirig) -> Unit,
   val applyGain: (UiMinirig) -> Unit,
-  val connect: (UiMinirig) -> Unit,
-  val disconnect: (UiMinirig) -> Unit,
   val makeActive: (UiMinirig) -> Unit,
   val twsPair: (UiMinirig) -> Unit,
   val cancelTws: (UiMinirig) -> Unit,
@@ -200,7 +191,6 @@ data class MinirigsModel(
   activeMinirigOps: ActiveMinirigOps,
   appForegroundState: Flow<AppForegroundState>,
   configRepository: ConfigRepository,
-  connectionUseCases: MinirigConnectionUseCases,
   twsUseCases: TwsUseCases,
   minirigRepository: MinirigRepository,
   navigator: Navigator,
@@ -265,8 +255,6 @@ data class MinirigsModel(
     applyConfig = action { minirig -> applyConfig(minirig.address) },
     applyEq = action { minirig -> applyEq(minirig.address) },
     applyGain = action { minirig -> applyGain(minirig.address) },
-    connect = action { minirig -> connectionUseCases.connectMinirig(minirig.address) },
-    disconnect = action { minirig -> connectionUseCases.disconnectMinirig(minirig.address) },
     makeActive = action { minirig -> activeMinirigOps.setActiveMinirig(minirig.address) },
     cancelTws = action { minirig -> twsUseCases.cancelTws(minirig.address) },
     twsPair = action { minirig -> twsUseCases.twsPair(minirig.address) },
