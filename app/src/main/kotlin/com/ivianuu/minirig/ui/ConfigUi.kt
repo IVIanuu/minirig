@@ -4,13 +4,7 @@
 
 package com.ivianuu.minirig.ui
 
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.ivianuu.essentials.resource.get
 import com.ivianuu.essentials.resource.getOrNull
 import com.ivianuu.essentials.resource.map
@@ -151,49 +145,6 @@ data class ConfigKey(val id: String) : Key<Unit>
           valueText = { ScaledPercentageUnitText(it) }
         )
       }
-
-      item {
-        Subheader { Text("Channel") }
-      }
-
-      @Composable fun ChannelListItem(
-        value: Float,
-        onValueChange: (Float) -> Unit,
-        title: String
-      ) {
-        Row(
-          modifier = Modifier.padding(horizontal = 16.dp),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          Text("L")
-
-          SliderListItem(
-            modifier = Modifier.weight(1f),
-            value = value,
-            onValueChange = onValueChange,
-            title = { Text(title) },
-            stepPolicy = incrementingStepPolicy(0.5f)
-          )
-
-          Text("R")
-        }
-      }
-
-      item {
-        ChannelListItem(
-          value = channel,
-          onValueChange = updateChannel,
-          title = "Channel",
-        )
-      }
-
-      item {
-        ChannelListItem(
-          value = auxChannel,
-          onValueChange = updateAuxChannel,
-          title = "Aux channel",
-        )
-      }
     }
   }
 }
@@ -218,10 +169,6 @@ data class ConfigModel(
   val updateGain: (Float) -> Unit,
   val auxGain: Float,
   val updateAuxGain: (Float) -> Unit,
-  val channel: Float,
-  val updateChannel: (Float) -> Unit,
-  val auxChannel: Float,
-  val updateAuxChannel: (Float) -> Unit,
   val saveAs: () -> Unit
 )
 
@@ -272,14 +219,6 @@ data class ConfigModel(
     auxGain = config.map { it?.auxGain }.getOrNull() ?: 0f,
     updateAuxGain = action { value ->
       configRepository.updateConfig(config.get()?.copy(auxGain = value) ?: return@action)
-    },
-    channel = config.map { it?.channel }.getOrNull() ?: 0f,
-    updateChannel = action { value ->
-      configRepository.updateConfig(config.get()?.copy(channel = value) ?: return@action)
-    },
-    auxChannel = config.map { it?.auxChannel }.getOrNull() ?: 0f,
-    updateAuxChannel = action { value ->
-      configRepository.updateConfig(config.get()?.copy(auxChannel = value) ?: return@action)
     },
     saveAs = action {
       val id = navigator.push(ConfigIdPickerKey()) ?: return@action

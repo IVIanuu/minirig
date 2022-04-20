@@ -143,20 +143,6 @@ private suspend fun applyConfig(
     )
 
     updateConfigIfNeeded(
-      14,
-      ((1f - config.channel) * 100)
-        .toInt()
-        .coerceIn(1, 99)
-    )
-
-    updateConfigIfNeeded(
-      15,
-      ((1f - config.auxChannel) * 100)
-        .toInt()
-        .coerceIn(1, 99)
-    )
-
-    updateConfigIfNeeded(
       7,
       // everything above 7 sounds not healthy
       (7 * config.bassBoost).toInt()

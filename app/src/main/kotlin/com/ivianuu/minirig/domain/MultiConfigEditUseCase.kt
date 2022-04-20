@@ -70,10 +70,6 @@ fun interface MultiConfigEditUseCase : suspend (List<String>) -> Unit
                 add { copy(gain = currentConfig.gain) }
               if (currentConfig.auxGain != latestConfig.auxGain)
                 add { copy(auxGain = currentConfig.auxGain) }
-              if (currentConfig.channel != latestConfig.channel)
-                add { copy(channel = currentConfig.channel) }
-              if (currentConfig.auxChannel != latestConfig.auxChannel)
-                add { copy(auxChannel = currentConfig.auxChannel) }
             }).also { latestConfig = currentConfig }
           }
           .collect { reducers ->

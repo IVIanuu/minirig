@@ -29,9 +29,7 @@ fun Minirig.debugName() = "[$name ~ $address]"
   val bassBoost: Float = 0.8f,
   val loud: Boolean = false,
   val gain: Float = 0.4f,
-  val auxGain: Float = 0.3f,
-  val channel: Float = 0.5f,
-  val auxChannel: Float = 0.5f
+  val auxGain: Float = 1f
 ) {
   companion object {
     @Provide val dataStoreModule = DataStoreModule<List<MinirigConfig>>("configs") {
@@ -47,9 +45,7 @@ fun MinirigConfig.applyEq(other: MinirigConfig) = other.copy(
   bassBoost = bassBoost,
   loud = loud,
   gain = gain,
-  auxGain = auxGain,
-  channel = channel,
-  auxChannel = auxChannel
+  auxGain = auxGain
 )
 
 fun MinirigConfig.applyGain(other: MinirigConfig) = other.copy(
@@ -58,22 +54,7 @@ fun MinirigConfig.applyGain(other: MinirigConfig) = other.copy(
   band2 = band2,
   band3 = band3,
   band4 = band4,
-  band5 = band5,
-  channel = channel,
-  auxChannel = auxChannel
-)
-
-fun MinirigConfig.applyChannel(other: MinirigConfig) = other.copy(
-  id = id,
-  band1 = band1,
-  band2 = band2,
-  band3 = band3,
-  band4 = band4,
-  band5 = band5,
-  bassBoost = bassBoost,
-  loud = loud,
-  gain = gain,
-  auxGain = auxGain,
+  band5 = band5
 )
 
 fun List<MinirigConfig>.merge(id: String) = MinirigConfig(
@@ -86,9 +67,7 @@ fun List<MinirigConfig>.merge(id: String) = MinirigConfig(
   bassBoost = map { it.bassBoost }.average().toFloat(),
   loud = all { it.loud },
   gain = map { it.gain }.average().toFloat(),
-  auxGain = map { it.auxGain }.average().toFloat(),
-  channel = map { it.channel }.average().toFloat(),
-  auxChannel = map { it.auxChannel }.average().toFloat()
+  auxGain = map { it.auxGain }.average().toFloat()
 )
 
 data class MinirigState(
