@@ -11,9 +11,6 @@ import com.ivianuu.minirig.data.MinirigConfig
 fun ConfigIdPickerKey() =
   TextInputKey(label = "Specify the name of your config..", predicate = { it.isNotEmpty() })
 
-fun RenameMinirigKey() =
-  TextInputKey(label = "Specify the new name for the minirig..", predicate = { it.isNotEmpty() })
-
 fun ConfigPickerKey(configs: List<MinirigConfig>) = ListKey(
   items = configs
     .sortedBy { it.id }

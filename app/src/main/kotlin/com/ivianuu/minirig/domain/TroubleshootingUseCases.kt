@@ -4,14 +4,10 @@
 
 package com.ivianuu.minirig.domain
 
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothManager
 import com.ivianuu.injekt.Provide
-import com.ivianuu.injekt.android.SystemService
 import kotlinx.coroutines.delay
 
 @Provide class TroubleshootingUseCases(
-  private val bluetoothManager: @SystemService BluetoothManager,
   private val remote: MinirigRemote,
   private val repository: MinirigRepository
 ) {
@@ -23,16 +19,6 @@ import kotlinx.coroutines.delay
 
   suspend fun powerOff(address: String) = remote.withMinirig(address) {
     send("O")
-  }
-
-  suspend fun rename(address: String, newName: String) = remote.withMinirig(address) {
-    send("N SET NAME=$newName")
-    send("N SET NAME_SHORT=${newName.take(7)}")
-    send("N WRITEN WRITE")
-    send("O")
-    val device = bluetoothManager.adapter.getRemoteDevice(address)
-    BluetoothDevice::class.java.getDeclaredMethod("setAlias", String::class.java)
-      .invoke(device, newName)
   }
 
   suspend fun factoryReset(address: String) = remote.withMinirig(address) {

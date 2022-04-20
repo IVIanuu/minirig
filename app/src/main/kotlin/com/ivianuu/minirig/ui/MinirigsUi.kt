@@ -160,9 +160,6 @@ private fun Minirig(minirig: UiMinirig, model: MinirigsModel) {
           PopupMenu.Item(onSelected = { model.debug(minirig) }) {
             Text("Debug")
           },
-          PopupMenu.Item(onSelected = { model.rename(minirig) }) {
-            Text("Rename")
-          },
           PopupMenu.Item(onSelected = { model.factoryReset(minirig) }) {
             Text("Factory reset")
           }
@@ -196,7 +193,6 @@ data class MinirigsModel(
   val enablePowerOut: (UiMinirig) -> Unit,
   val powerOff: (UiMinirig) -> Unit,
   val debug: (UiMinirig) -> Unit,
-  val rename: (UiMinirig) -> Unit,
   val factoryReset: (UiMinirig) -> Unit
 )
 
@@ -277,10 +273,6 @@ data class MinirigsModel(
     enablePowerOut = action { minirig -> troubleshootingUseCases.enablePowerOut(minirig.address) },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
     debug = action { minirig -> navigator.push(MinirigDebugKey(minirig.address)) },
-    rename = action { minirig ->
-      val newName = navigator.push(RenameMinirigKey()) ?: return@action
-      troubleshootingUseCases.rename(minirig.address, newName)
-    },
     factoryReset = action { minirig -> troubleshootingUseCases.factoryReset(minirig.address) }
   )
 }
