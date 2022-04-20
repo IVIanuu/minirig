@@ -9,6 +9,7 @@ import com.ivianuu.essentials.app.AppForegroundScope
 import com.ivianuu.essentials.app.ScopeWorker
 import com.ivianuu.essentials.catch
 import com.ivianuu.essentials.coroutines.parForEach
+import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.asLog
 import com.ivianuu.essentials.logging.log
@@ -17,29 +18,30 @@ import com.ivianuu.essentials.util.showToast
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
 import com.ivianuu.injekt.coroutines.IOContext
-import com.ivianuu.minirig.data.MinirigConfig
+import com.ivianuu.minirig.data.MinirigPrefs
 import com.ivianuu.minirig.data.debugName
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 @Provide fun minirigConfigSynchronizer(
   context: IOContext,
-  configRepository: ConfigRepository,
   minirigRepository: MinirigRepository,
+  pref: DataStore<MinirigPrefs>,
   remote: MinirigRemote,
   L: Logger,
   T: ToastContext
 ) = ScopeWorker<AppForegroundScope> {
   withContext(context) {
-    minirigRepository.minirigs.collectLatest { minirigs ->
-      minirigs.parForEach { minirig ->
-        remote.isConnected(minirig.address).collectLatest { isConnected ->
-          if (isConnected) {
-            log { "observe config changes ${minirig.debugName()}" }
-            configRepository.config(minirig.address).collectLatest { config ->
+    combine(minirigRepository.minirigs, pref.data) { a, b -> a to b }
+      .collectLatest { (minirigs, prefs) ->
+        minirigs.parForEach { minirig ->
+          remote.isConnected(minirig.address).collectLatest { isConnected ->
+            if (isConnected) {
+              log { "observe config changes ${minirig.debugName()}" }
               suspend fun applyConfig(attempt: Int) {
                 log { "apply config ${minirig.debugName()} attempt $attempt" }
                 if (attempt == 5) {
@@ -47,7 +49,7 @@ import kotlinx.coroutines.withTimeoutOrNull
                 }
 
                 catch {
-                  applyConfig(config!!)
+                  applyConfig(minirig.address, prefs)
                 }.onFailure {
                   log { "failed to apply config to ${minirig.debugName()} $attempt -> ${it.asLog()}" }
                   delay(RetryDelay)
@@ -56,23 +58,23 @@ import kotlinx.coroutines.withTimeoutOrNull
               }
 
               applyConfig(0)
+            } else {
+              log { "ignore config changes ${minirig.debugName()}" }
             }
-          } else {
-            log { "ignore config changes ${minirig.debugName()}" }
           }
         }
       }
-    }
   }
 }
 
 private suspend fun applyConfig(
-  config: MinirigConfig,
+  address: String,
+  prefs: MinirigPrefs,
   @Inject L: Logger,
   @Inject remote: MinirigRemote
 ) {
-  remote.withMinirig(config.id) {
-    log { "${device.debugName()} apply config $config" }
+  remote.withMinirig(address) {
+    log { "${device.debugName()} apply config $prefs" }
 
     val currentConfig = readMinirigConfig()
 
@@ -98,46 +100,46 @@ private suspend fun applyConfig(
     updateConfigIfNeeded(
       8,
       // > 30 means mutes the minirig
-      if (config.gain == 0f) 31
+      if (prefs.gain == 0f) 31
       // minirig value range is 0..30 and 30 means lowest gain
-      else (30 * (1f - config.gain)).toInt()
+      else (30 * (1f - prefs.gain)).toInt()
     )
 
     updateConfigIfNeeded(
       9,
       // > 10 means mutes the aux device
-      if (config.auxGain == 0f) 11
+      if (prefs.auxGain == 0f) 11
       // minirig value range is 0..10 and 10 means highest gain
-      else (10 * config.auxGain).toInt()
+      else (10 * prefs.auxGain).toInt()
     )
 
     updateConfigIfNeeded(
       1,
-      (config.band1 * 100)
+      (prefs.band1 * 100)
         .toInt()
         .coerceIn(1, 99)
     )
     updateConfigIfNeeded(
       2,
-      (config.band2 * 100)
+      (prefs.band2 * 100)
         .toInt()
         .coerceIn(1, 99)
     )
     updateConfigIfNeeded(
       3,
-      (config.band3 * 100)
+      (prefs.band3 * 100)
         .toInt()
         .coerceIn(1, 99)
     )
     updateConfigIfNeeded(
       4,
-      (config.band4 * 100)
+      (prefs.band4 * 100)
         .toInt()
         .coerceIn(1, 99)
     )
     updateConfigIfNeeded(
       5,
-      (config.band5 * 100)
+      (prefs.band5 * 100)
         .toInt()
         .coerceIn(1, 99)
     )
@@ -145,12 +147,12 @@ private suspend fun applyConfig(
     updateConfigIfNeeded(
       7,
       // everything above 7 sounds not healthy
-      (7 * config.bassBoost).toInt()
+      (7 * prefs.bassBoost).toInt()
     )
 
     updateConfigIfNeeded(
       12,
-      if (config.loud) 1 else 0
+      if (prefs.loud) 1 else 0
     )
   }
 }

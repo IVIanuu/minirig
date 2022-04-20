@@ -5,7 +5,7 @@
 package com.ivianuu.minirig.data
 
 import android.bluetooth.BluetoothDevice
-import com.ivianuu.essentials.android.prefs.DataStoreModule
+import com.ivianuu.essentials.android.prefs.PrefModule
 import com.ivianuu.injekt.Provide
 import kotlinx.serialization.Serializable
 
@@ -19,8 +19,7 @@ fun BluetoothDevice.debugName() = "[${alias ?: name} ~ $address]"
 
 fun Minirig.debugName() = "[$name ~ $address]"
 
-@Serializable data class MinirigConfig(
-  val id: String,
+@Serializable data class MinirigPrefs(
   val band1: Float = 0.5f,
   val band2: Float = 0.5f,
   val band3: Float = 0.5f,
@@ -32,30 +31,9 @@ fun Minirig.debugName() = "[$name ~ $address]"
   val auxGain: Float = 1f
 ) {
   companion object {
-    @Provide val dataStoreModule = DataStoreModule<List<MinirigConfig>>("configs") {
-      emptyList()
-    }
+    @Provide val prefModule = PrefModule { MinirigPrefs() }
   }
 }
-
-fun MinirigConfig.apply(other: MinirigConfig) = other.copy(id = id)
-
-fun MinirigConfig.applyEq(other: MinirigConfig) = other.copy(
-  id = id,
-  bassBoost = bassBoost,
-  loud = loud,
-  gain = gain,
-  auxGain = auxGain
-)
-
-fun MinirigConfig.applyGain(other: MinirigConfig) = other.copy(
-  id = id,
-  band1 = band1,
-  band2 = band2,
-  band3 = band3,
-  band4 = band4,
-  band5 = band5
-)
 
 data class MinirigState(
   val isConnected: Boolean = false,
