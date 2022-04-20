@@ -47,7 +47,7 @@ import com.ivianuu.minirig.data.apply
 import com.ivianuu.minirig.data.applyEq
 import com.ivianuu.minirig.data.applyGain
 import com.ivianuu.minirig.data.isMinirigAddress
-import com.ivianuu.minirig.domain.ActiveMinirigOps
+import com.ivianuu.minirig.domain.ActiveMinirigUseCases
 import com.ivianuu.minirig.domain.ConfigRepository
 import com.ivianuu.minirig.domain.MinirigConnectionUseCases
 import com.ivianuu.minirig.domain.MinirigRepository
@@ -197,7 +197,7 @@ data class MinirigsModel(
 )
 
 @Provide fun minirigsModel(
-  activeMinirigOps: ActiveMinirigOps,
+  activeMinirigUseCases: ActiveMinirigUseCases,
   appForegroundState: Flow<AppForegroundState>,
   configRepository: ConfigRepository,
   connectionUseCases: MinirigConnectionUseCases,
@@ -233,7 +233,7 @@ data class MinirigsModel(
       if (foregroundState == AppForegroundState.BACKGROUND) infiniteEmptyFlow()
       else combine(
         minirigRepository.minirigs,
-        activeMinirigOps.activeMinirig.onStart { emit(null) }
+        activeMinirigUseCases.activeMinirig.onStart { emit(null) }
       ) { a, b -> a to b }
         .flatMapLatest { (minirigs, activeMinirig) ->
           if (minirigs.isEmpty()) flowOf(emptyList())
@@ -267,7 +267,7 @@ data class MinirigsModel(
     applyGain = action { minirig -> applyGain(minirig.address) },
     connect = action { minirig -> connectionUseCases.connectMinirig(minirig.address) },
     disconnect = action { minirig -> connectionUseCases.disconnectMinirig(minirig.address) },
-    makeActive = action { minirig -> activeMinirigOps.setActiveMinirig(minirig.address) },
+    makeActive = action { minirig -> activeMinirigUseCases.setActiveMinirig(minirig.address) },
     cancelTws = action { minirig -> twsUseCases.cancelTws(minirig.address) },
     twsPair = action { minirig -> twsUseCases.twsPair(minirig.address) },
     enablePowerOut = action { minirig -> troubleshootingUseCases.enablePowerOut(minirig.address) },

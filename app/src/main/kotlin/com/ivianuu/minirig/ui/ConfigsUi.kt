@@ -49,6 +49,7 @@ fun interface ConfigsUi {
       ExtendedFloatingActionButton(
         onClick = model.createConfig,
         text = { Text("CREATE CONFIG") }
+
       )
     },
     floatingActionButtonPosition = FabPosition.Center

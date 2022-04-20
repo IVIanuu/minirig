@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.transformLatest
 
-@Provide class ActiveMinirigOps(
+@Provide class ActiveMinirigUseCases(
   private val a2DPOps: A2DPOps,
   private val bluetoothManager: @SystemService BluetoothManager,
   private val remote: MinirigRemote,

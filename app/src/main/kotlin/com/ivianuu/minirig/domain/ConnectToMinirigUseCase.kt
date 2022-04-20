@@ -14,11 +14,14 @@ import com.ivianuu.injekt.android.SystemService
 @Provide class MinirigConnectionUseCases(
   private val a2DPOps: A2DPOps,
   private val bluetoothManager: @SystemService BluetoothManager,
-  private val remote: MinirigRemote,
   private val L: Logger
 ) {
   suspend fun connectMinirig(address: String) {
-    remote.withMinirig(address) {
+    a2DPOps.withProxy {
+      BluetoothA2dp::class.java.getDeclaredMethod(
+        "connect",
+        BluetoothDevice::class.java
+      ).invoke(this, bluetoothManager.adapter.getRemoteDevice(address)!!)
     }
   }
 
