@@ -6,42 +6,27 @@ package com.ivianuu.minirig.ui
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ivianuu.essentials.app.AppForegroundState
 import com.ivianuu.essentials.coroutines.infiniteEmptyFlow
-import com.ivianuu.essentials.coroutines.parForEach
-import com.ivianuu.essentials.coroutines.parMap
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.resource.Resource
-import com.ivianuu.essentials.resource.getOrNull
 import com.ivianuu.essentials.state.action
 import com.ivianuu.essentials.state.bindResource
 import com.ivianuu.essentials.state.state
-import com.ivianuu.essentials.ui.animation.AnimatedBox
-import com.ivianuu.essentials.ui.backpress.BackHandler
 import com.ivianuu.essentials.ui.layout.center
 import com.ivianuu.essentials.ui.material.ListItem
 import com.ivianuu.essentials.ui.material.Scaffold
@@ -67,7 +52,6 @@ import com.ivianuu.minirig.domain.ConfigRepository
 import com.ivianuu.minirig.domain.LinkupUseCases
 import com.ivianuu.minirig.domain.MinirigConnectionUseCases
 import com.ivianuu.minirig.domain.MinirigRepository
-import com.ivianuu.minirig.domain.MultiConfigEditUseCase
 import com.ivianuu.minirig.domain.TroubleshootingUseCases
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -85,82 +69,7 @@ fun interface MinirigsUi {
 @Provide fun minirigsUi(models: StateFlow<MinirigsModel>) = MinirigsUi {
   val model by models.collectAsState()
 
-  if (model.isSelectionMode)
-    BackHandler(model.deselectAll)
-
-  Scaffold(
-    topBar = {
-      AnimatedBox(model.isSelectionMode) { currentSelectionMode ->
-        if (currentSelectionMode) {
-          TopAppBar(
-            leading = {
-              IconButton(onClick = model.deselectAll) {
-                Icon(Icons.Default.Clear)
-              }
-            },
-            title = { Spacer(Modifier.fillMaxWidth()) },
-            actions = {
-              IconButton(onClick = model.editConfigOfSelected) {
-                Icon(R.drawable.ic_edit)
-              }
-
-              IconButton(onClick = model.selectAll) {
-                Icon(R.drawable.ic_select_all)
-              }
-
-              PopupMenuButton(
-                items = listOf(
-                  PopupMenu.Item(onSelected = model.editConfigOfSelected) {
-                    Text("Edit config")
-                  },
-                  PopupMenu.Item(onSelected = model.applyConfigToSelected) {
-                    Text("Apply config")
-                  },
-                  PopupMenu.Item(onSelected = model.applyEqToSelected) {
-                    Text("Apply equalizer")
-                  },
-                  PopupMenu.Item(onSelected = model.applyGainToSelected) {
-                    Text("Apply gain")
-                  },
-                  PopupMenu.Item(onSelected = model.connectSelected) {
-                    Text("Connect")
-                  },
-                  PopupMenu.Item(onSelected = model.disconnectSelected) {
-                    Text("Disconnect")
-                  },
-                  PopupMenu.Item(onSelected = model.startLinkupWithSelected) {
-                    Text("Start linkup")
-                  },
-                  PopupMenu.Item(onSelected = model.joinLinkupSelected) {
-                    Text("Join linkup")
-                  },
-                  PopupMenu.Item(onSelected = model.cancelLinkupForSelected) {
-                    Text("Cancel linkup")
-                  },
-                  PopupMenu.Item(onSelected = model.powerOffSelected) {
-                    Text("Power off")
-                  }
-                )
-              )
-            }
-          )
-        } else {
-          TopAppBar(
-            title = { Text("Minirig") },
-            actions = {
-              IconButton(onClick = model.editAll) {
-                Icon(R.drawable.ic_app_registration)
-              }
-
-              IconButton(onClick = model.selectAll) {
-                Icon(R.drawable.ic_select_all)
-              }
-            }
-          )
-        }
-      }
-    }
-  ) {
+  Scaffold(topBar = { TopAppBar(title = { Text("Minirig") }) }) {
     ResourceVerticalListFor(
       modifier = Modifier.fillMaxSize(),
       resource = model.minirigs,
@@ -180,17 +89,7 @@ fun interface MinirigsUi {
 private fun Minirig(minirig: UiMinirig, model: MinirigsModel) {
   ListItem(
     modifier = Modifier
-      .combinedClickable(
-        onClick = {
-          if (model.isSelectionMode) model.toggleSelectMinirig(minirig)
-          else model.openMinirig(minirig)
-        },
-        onLongClick = { model.toggleSelectMinirig(minirig) }
-      )
-      .background(
-        if (minirig.address in model.selectedMinirigs) LocalContentColor.current.copy(alpha = 0.12f)
-        else Color.Transparent
-      ),
+      .clickable { model.openMinirig(minirig) },
     leading = {
       Surface(
         modifier = Modifier.size(36.dp),
@@ -291,41 +190,23 @@ data class UiMinirig(
 
 data class MinirigsModel(
   val minirigs: Resource<List<UiMinirig>>,
-  val selectedMinirigs: Set<String>,
-  val selectAll: () -> Unit,
-  val deselectAll: () -> Unit,
   val openMinirig: (UiMinirig) -> Unit,
-  val toggleSelectMinirig: (UiMinirig) -> Unit,
   val applyConfig: (UiMinirig) -> Unit,
   val applyEq: (UiMinirig) -> Unit,
   val applyGain: (UiMinirig) -> Unit,
-  val applyConfigToSelected: () -> Unit,
-  val applyEqToSelected: () -> Unit,
-  val applyGainToSelected: () -> Unit,
-  val editConfigOfSelected: () -> Unit,
-  val editAll: () -> Unit,
   val connect: (UiMinirig) -> Unit,
-  val connectSelected: () -> Unit,
   val disconnect: (UiMinirig) -> Unit,
-  val disconnectSelected: () -> Unit,
   val makeActive: (UiMinirig) -> Unit,
   val startLinkup: (UiMinirig) -> Unit,
-  val startLinkupWithSelected: () -> Unit,
   val twsPair: (UiMinirig) -> Unit,
   val joinLinkup: (UiMinirig) -> Unit,
-  val joinLinkupSelected: () -> Unit,
   val cancelLinkup: (UiMinirig) -> Unit,
-  val cancelLinkupForSelected: () -> Unit,
   val enablePowerOut: (UiMinirig) -> Unit,
   val powerOff: (UiMinirig) -> Unit,
-  val powerOffSelected: () -> Unit,
   val debug: (UiMinirig) -> Unit,
   val rename: (UiMinirig) -> Unit,
   val factoryReset: (UiMinirig) -> Unit
-) {
-  val isSelectionMode: Boolean
-    get() = selectedMinirigs.isNotEmpty()
-}
+)
 
 @Provide fun minirigsModel(
   activeMinirigOps: ActiveMinirigOps,
@@ -334,14 +215,13 @@ data class MinirigsModel(
   connectionUseCases: MinirigConnectionUseCases,
   linkupUseCases: LinkupUseCases,
   minirigRepository: MinirigRepository,
-  multiConfigEditUseCase: MultiConfigEditUseCase,
   navigator: Navigator,
   scope: NamedCoroutineScope<KeyUiScope>,
   troubleshootingUseCases: TroubleshootingUseCases,
   L: Logger
 ) = scope.state {
   suspend fun apply(
-    addresses: Collection<String>,
+    address: String,
     transform: MinirigConfig.(MinirigConfig) -> MinirigConfig
   ) {
     val configs = configRepository.configs
@@ -350,17 +230,15 @@ data class MinirigsModel(
 
     val pickedConfig = navigator.push(ConfigPickerKey(configs)) ?: return
 
-    addresses.parForEach { address ->
-      val minirigConfig = configRepository.config(address).first()!!
-      configRepository.updateConfig(minirigConfig.transform(pickedConfig))
-    }
+    val minirigConfig = configRepository.config(address).first()!!
+    configRepository.updateConfig(minirigConfig.transform(pickedConfig))
   }
 
-  suspend fun applyConfig(addresses: Collection<String>) = apply(addresses) { apply(it) }
+  suspend fun applyConfig(address: String) = apply(address) { apply(it) }
 
-  suspend fun applyEq(addresses: Collection<String>) = apply(addresses) { applyEq(it) }
+  suspend fun applyEq(address: String) = apply(address) { applyEq(it) }
 
-  suspend fun applyGain(addresses: Collection<String>) = apply(addresses) { applyGain(it) }
+  suspend fun applyGain(address: String) = apply(address) { applyGain(it) }
 
   val minirigs = appForegroundState
     .flatMapLatest { foregroundState ->
@@ -393,65 +271,21 @@ data class MinirigsModel(
     }
     .bindResource()
 
-  var selectedMinirigs by remember { mutableStateOf(emptySet<String>()) }
-
   MinirigsModel(
     minirigs = minirigs,
-    selectedMinirigs = selectedMinirigs,
-    selectAll = {
-      selectedMinirigs = minirigs.getOrNull()?.mapTo(mutableSetOf()) { it.address } ?: emptySet()
-    },
-    deselectAll = { selectedMinirigs = emptySet() },
-    toggleSelectMinirig = {
-      selectedMinirigs = if (it.address !in selectedMinirigs) selectedMinirigs + it.address
-      else selectedMinirigs - it.address
-    },
     openMinirig = action { minirig -> navigator.push(ConfigKey(minirig.address)) },
-    applyConfig = action { minirig -> applyConfig(listOf(minirig.address)) },
-    applyConfigToSelected = action { applyConfig(selectedMinirigs) },
-    applyEq = action { minirig -> applyEq(listOf(minirig.address)) },
-    applyEqToSelected = action { applyEq(selectedMinirigs) },
-    applyGain = action { minirig -> applyGain(listOf(minirig.address)) },
-    applyGainToSelected = action { applyGain(selectedMinirigs) },
-    editConfigOfSelected = action { multiConfigEditUseCase(selectedMinirigs.toList()) },
-    editAll = action {
-      multiConfigEditUseCase(minirigs.getOrNull()?.map { it.address } ?: return@action)
-    },
+    applyConfig = action { minirig -> applyConfig(minirig.address) },
+    applyEq = action { minirig -> applyEq(minirig.address) },
+    applyGain = action { minirig -> applyGain(minirig.address) },
     connect = action { minirig -> connectionUseCases.connectMinirig(minirig.address) },
-    connectSelected = action { selectedMinirigs.parForEach { connectionUseCases.connectMinirig(it) } },
     disconnect = action { minirig -> connectionUseCases.disconnectMinirig(minirig.address) },
-    disconnectSelected = action {
-      selectedMinirigs.parForEach {
-        connectionUseCases.disconnectMinirig(
-          it
-        )
-      }
-    },
     makeActive = action { minirig -> activeMinirigOps.setActiveMinirig(minirig.address) },
     startLinkup = action { minirig -> linkupUseCases.startLinkup(minirig.address) },
     joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },
-    joinLinkupSelected = action {
-      selectedMinirigs.parForEach { linkupUseCases.joinLinkup(it) }
-    },
     cancelLinkup = action { minirig -> linkupUseCases.cancelLinkup(minirig.address) },
     twsPair = action { minirig -> linkupUseCases.twsPair(minirig.address) },
-    cancelLinkupForSelected = action {
-      selectedMinirigs.parForEach { linkupUseCases.cancelLinkup(it) }
-    },
-    startLinkupWithSelected = action {
-      val pickerMinirigs = selectedMinirigs
-        .parMap { minirigRepository.minirig(it).first()!! }
-
-      val host = navigator.push(MinirigPickerKey(pickerMinirigs))
-        ?: return@action
-
-      linkupUseCases.startLinkup(host.address, selectedMinirigs.filterNot { it == host.address })
-    },
     enablePowerOut = action { minirig -> troubleshootingUseCases.enablePowerOut(minirig.address) },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
-    powerOffSelected = action {
-      selectedMinirigs.parForEach { troubleshootingUseCases.powerOff(it) }
-    },
     debug = action { minirig -> navigator.push(MinirigDebugKey(minirig.address)) },
     rename = action { minirig ->
       val newName = navigator.push(RenameMinirigKey()) ?: return@action

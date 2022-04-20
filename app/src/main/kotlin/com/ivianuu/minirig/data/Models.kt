@@ -57,19 +57,6 @@ fun MinirigConfig.applyGain(other: MinirigConfig) = other.copy(
   band5 = band5
 )
 
-fun List<MinirigConfig>.merge(id: String) = MinirigConfig(
-  id = id,
-  band1 = map { it.band1 }.average().toFloat(),
-  band2 = map { it.band2 }.average().toFloat(),
-  band3 = map { it.band3 }.average().toFloat(),
-  band4 = map { it.band4 }.average().toFloat(),
-  band5 = map { it.band5 }.average().toFloat(),
-  bassBoost = map { it.bassBoost }.average().toFloat(),
-  loud = all { it.loud },
-  gain = map { it.gain }.average().toFloat(),
-  auxGain = map { it.auxGain }.average().toFloat()
-)
-
 data class MinirigState(
   val isConnected: Boolean = false,
   val batteryPercentage: Float? = null,

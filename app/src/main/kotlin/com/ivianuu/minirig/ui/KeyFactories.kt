@@ -6,7 +6,6 @@ package com.ivianuu.minirig.ui
 
 import com.ivianuu.essentials.ui.dialog.ListKey
 import com.ivianuu.essentials.ui.dialog.TextInputKey
-import com.ivianuu.minirig.data.Minirig
 import com.ivianuu.minirig.data.MinirigConfig
 
 fun ConfigIdPickerKey() =
@@ -19,10 +18,4 @@ fun ConfigPickerKey(configs: List<MinirigConfig>) = ListKey(
   items = configs
     .sortedBy { it.id }
     .map { ListKey.Item(it, it.id) }
-)
-
-fun MinirigPickerKey(minirigs: List<Minirig>) = ListKey(
-  items = minirigs
-    .sortedBy { it.name }
-    .map { ListKey.Item(it, it.name) }
 )
