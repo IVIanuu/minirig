@@ -92,7 +92,7 @@ private suspend fun applyConfig(
 
       // only write if the value has changed
       if (currentConfig[key] != value) {
-        log { "${device.debugName()} update $finalKey -> $finalValue" }
+        log { "${device.debugName()} update $finalKey -> $finalValue current was ${currentConfig[key]}" }
         send("q p $finalKey $finalValue")
       }
     }
