@@ -146,8 +146,12 @@ private suspend fun applyConfig(
 
     updateConfigIfNeeded(
       7,
+      if (prefs.loud)
+      // do boost bass in loud mode
+        0
+      else
       // everything above 7 sounds not healthy
-      (7 * prefs.bassBoost).toInt()
+        (7 * prefs.bassBoost).toInt()
     )
 
     updateConfigIfNeeded(

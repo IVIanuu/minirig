@@ -25,4 +25,3 @@ import com.ivianuu.injekt.Provide
     }
   }
 }
-<
