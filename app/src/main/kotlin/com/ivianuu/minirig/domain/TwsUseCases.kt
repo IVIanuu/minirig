@@ -8,12 +8,10 @@ import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.injekt.Provide
 
 @Provide class TwsUseCases(
-  private val activeMinirigUseCases: ActiveMinirigUseCases,
   private val remote: MinirigRemote,
   private val L: Logger
 ) {
   suspend fun twsPair(address: String) {
-    activeMinirigUseCases.setActiveMinirig(address)
     remote.withMinirig(address) {
       send("P")
     }

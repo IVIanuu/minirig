@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Icon
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
@@ -29,7 +28,6 @@ import com.ivianuu.essentials.state.bind
 import com.ivianuu.essentials.state.bindResource
 import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.common.interactive
-import com.ivianuu.essentials.ui.layout.center
 import com.ivianuu.essentials.ui.material.ListItem
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Subheader
@@ -46,12 +44,8 @@ import com.ivianuu.essentials.ui.prefs.ScaledPercentageUnitText
 import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.injekt.Provide
-import com.ivianuu.minirig.R
 import com.ivianuu.minirig.data.MinirigPrefs
 import com.ivianuu.minirig.data.PowerState
-import com.ivianuu.minirig.data.TwsState
-import com.ivianuu.minirig.domain.ActiveMinirigUseCases
-import com.ivianuu.minirig.domain.MinirigConnectionUseCases
 import com.ivianuu.minirig.domain.MinirigRepository
 import com.ivianuu.minirig.domain.TroubleshootingUseCases
 import com.ivianuu.minirig.domain.TwsUseCases
@@ -60,7 +54,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 
 @Provide object HomeKey : RootKey
 
@@ -197,13 +190,6 @@ private fun Minirig(minirig: UiMinirig, model: HomeModel) {
         ).value,
         shape = CircleShape
       ) {
-        if (minirig.isActive || minirig.isTwsSlave)
-          Icon(
-            modifier = Modifier.center(),
-            painterResId = if (minirig.isActive)
-              R.drawable.ic_volume_up
-            else R.drawable.es_ic_done
-          )
       }
     },
     title = { Text(minirig.name) },
@@ -225,15 +211,6 @@ private fun Minirig(minirig: UiMinirig, model: HomeModel) {
     trailing = {
       PopupMenuButton(
         items = listOf(
-          PopupMenu.Item(onSelected = { model.makeActive(minirig) }) {
-            Text("Set active")
-          },
-          PopupMenu.Item(onSelected = { model.connect(minirig) }) {
-            Text("Connect")
-          },
-          PopupMenu.Item(onSelected = { model.disconnect(minirig) }) {
-            Text("Disconnect")
-          },
           PopupMenu.Item(onSelected = { model.twsPair(minirig) }) {
             Text("Tws pair")
           },
@@ -262,17 +239,12 @@ data class UiMinirig(
   val address: String,
   val name: String,
   val isConnected: Boolean,
-  val isActive: Boolean,
-  val isTwsSlave: Boolean,
   val batteryPercentage: Int?,
   val powerState: PowerState
 )
 
 data class HomeModel(
   val minirigs: Resource<List<UiMinirig>>,
-  val connect: (UiMinirig) -> Unit,
-  val disconnect: (UiMinirig) -> Unit,
-  val makeActive: (UiMinirig) -> Unit,
   val twsPair: (UiMinirig) -> Unit,
   val cancelTws: (UiMinirig) -> Unit,
   val enablePowerOut: (UiMinirig) -> Unit,
@@ -303,9 +275,7 @@ data class HomeModel(
 }
 
 @Provide fun homeModel(
-  activeMinirigUseCases: ActiveMinirigUseCases,
   appForegroundState: Flow<AppForegroundState>,
-  connectionUseCases: MinirigConnectionUseCases,
   twsUseCases: TwsUseCases,
   minirigRepository: MinirigRepository,
   navigator: Navigator,
@@ -316,11 +286,8 @@ data class HomeModel(
   val minirigs = appForegroundState
     .flatMapLatest { foregroundState ->
       if (foregroundState == AppForegroundState.BACKGROUND) infiniteEmptyFlow()
-      else combine(
-        minirigRepository.minirigs,
-        activeMinirigUseCases.activeMinirig.onStart { emit(null) }
-      ) { a, b -> a to b }
-        .flatMapLatest { (minirigs, activeMinirig) ->
+      else minirigRepository.minirigs
+        .flatMapLatest { minirigs ->
           if (minirigs.isEmpty()) flowOf(emptyList())
           else combine(
             minirigs
@@ -332,8 +299,6 @@ data class HomeModel(
                       minirig.address,
                       minirig.name,
                       it.isConnected,
-                      minirig.address == activeMinirig,
-                      it.twsState == TwsState.SLAVE,
                       (it.batteryPercentage?.let { it * 100 })?.toInt(),
                       it.powerState
                     )
@@ -348,9 +313,6 @@ data class HomeModel(
 
   HomeModel(
     minirigs = minirigs,
-    connect = action { minirig -> connectionUseCases.connectMinirig(minirig.address) },
-    disconnect = action { minirig -> connectionUseCases.disconnectMinirig(minirig.address) },
-    makeActive = action { minirig -> activeMinirigUseCases.setActiveMinirig(minirig.address) },
     cancelTws = action { minirig -> twsUseCases.cancelTws(minirig.address) },
     twsPair = action { minirig -> twsUseCases.twsPair(minirig.address) },
     enablePowerOut = action { minirig -> troubleshootingUseCases.enablePowerOut(minirig.address) },
