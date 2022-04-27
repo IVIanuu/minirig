@@ -21,7 +21,7 @@ import com.ivianuu.minirig.data.Minirig
 import com.ivianuu.minirig.data.MinirigState
 import com.ivianuu.minirig.data.PowerState
 import com.ivianuu.minirig.data.TwsState
-import com.ivianuu.minirig.data.isMinirigAddress
+import com.ivianuu.minirig.data.isMinirig
 import com.ivianuu.minirig.data.toMinirig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -60,7 +60,7 @@ import kotlinx.coroutines.withTimeoutOrNull
           .onStart<Any> { emit(Unit) }
           .map {
             bluetoothManager.adapter?.bondedDevices
-              ?.filter { it.address.isMinirigAddress() }
+              ?.filter { it.isMinirig() }
               ?.map { it.toMinirig() }
               ?: emptyList()
           }
