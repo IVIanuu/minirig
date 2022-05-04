@@ -143,17 +143,6 @@ private suspend fun applyConfig(
         .toInt()
         .coerceIn(1, 99)
     )
-
-    updateConfigIfNeeded(
-      7,
-      // only do bass boost if loud is disabled
-      if (prefs.bassBoost && !prefs.loud) 4 else 0
-    )
-
-    updateConfigIfNeeded(
-      12,
-      if (prefs.loud) 1 else 0
-    )
   }
 }
 
