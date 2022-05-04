@@ -36,7 +36,6 @@ import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.ModelKeyUi
 import com.ivianuu.essentials.ui.navigation.Navigator
 import com.ivianuu.essentials.ui.navigation.RootKey
-import com.ivianuu.essentials.ui.navigation.push
 import com.ivianuu.essentials.ui.popup.PopupMenu
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.prefs.ScaledPercentageUnitText
@@ -183,7 +182,6 @@ private fun Minirig(minirig: UiMinirig, model: HomeModel) {
                 when (powerState) {
                   PowerState.NORMAL -> throw AssertionError()
                   PowerState.CHARGING -> "Charging"
-                  PowerState.POWER_OUT -> "Power out"
                 }
               }"
             }.orEmpty()
@@ -198,14 +196,8 @@ private fun Minirig(minirig: UiMinirig, model: HomeModel) {
           PopupMenu.Item(onSelected = { model.cancelTws(minirig) }) {
             Text("Cancel tws")
           },
-          PopupMenu.Item(onSelected = { model.enablePowerOut(minirig) }) {
-            Text("Enable power out")
-          },
           PopupMenu.Item(onSelected = { model.powerOff(minirig) }) {
             Text("Power off")
-          },
-          PopupMenu.Item(onSelected = { model.debug(minirig) }) {
-            Text("Debug")
           },
           PopupMenu.Item(onSelected = { model.factoryReset(minirig) }) {
             Text("Factory reset")
@@ -228,9 +220,7 @@ data class HomeModel(
   val minirigs: Resource<List<UiMinirig>>,
   val twsPair: (UiMinirig) -> Unit,
   val cancelTws: (UiMinirig) -> Unit,
-  val enablePowerOut: (UiMinirig) -> Unit,
   val powerOff: (UiMinirig) -> Unit,
-  val debug: (UiMinirig) -> Unit,
   val factoryReset: (UiMinirig) -> Unit,
   val band1: Float,
   val updateBand1: (Float) -> Unit,
@@ -289,9 +279,7 @@ data class HomeModel(
     minirigs = minirigs,
     cancelTws = action { minirig -> twsUseCases.cancelTws(minirig.address) },
     twsPair = action { minirig -> twsUseCases.twsPair(minirig.address) },
-    enablePowerOut = action { minirig -> troubleshootingUseCases.enablePowerOut(minirig.address) },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
-    debug = action { minirig -> navigator.push(MinirigDebugKey(minirig.address)) },
     factoryReset = action { minirig -> troubleshootingUseCases.factoryReset(minirig.address) },
     band1 = prefs.band1,
     updateBand1 = action { value -> pref.updateData { copy(band1 = value) } },

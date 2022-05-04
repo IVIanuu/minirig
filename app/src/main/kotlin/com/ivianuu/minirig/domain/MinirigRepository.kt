@@ -20,7 +20,6 @@ import com.ivianuu.injekt.coroutines.NamedCoroutineScope
 import com.ivianuu.minirig.data.Minirig
 import com.ivianuu.minirig.data.MinirigState
 import com.ivianuu.minirig.data.PowerState
-import com.ivianuu.minirig.data.TwsState
 import com.ivianuu.minirig.data.isMinirig
 import com.ivianuu.minirig.data.toMinirig
 import kotlinx.coroutines.delay
@@ -136,7 +135,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 
       catch { send("x") }
 
-      var linkupState = TwsState.NONE
       var powerState = PowerState.NORMAL
 
       withTimeoutOrNull(PingPongTimeout) {
@@ -147,16 +145,7 @@ import kotlinx.coroutines.withTimeoutOrNull
           powerState = when (status.substring(8, 9)) {
             "1" -> PowerState.NORMAL
             "2" -> PowerState.CHARGING
-            "3", "4" -> PowerState.POWER_OUT
             else -> PowerState.NORMAL
-          }
-        }
-
-        if (status.length >= 36) {
-          linkupState = when (status.substring(35, 36)) {
-            "1", "2", "3", "4" -> TwsState.SLAVE
-            "5", "6", "7", "8" -> TwsState.MASTER
-            else -> TwsState.NONE
           }
         }
       }
@@ -164,7 +153,6 @@ import kotlinx.coroutines.withTimeoutOrNull
       return@withMinirig MinirigState(
         isConnected = true,
         batteryPercentage = batteryPercentage,
-        twsState = linkupState,
         powerState = powerState
       )
     } ?: MinirigState(isConnected = false)
