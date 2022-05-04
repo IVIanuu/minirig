@@ -10,6 +10,7 @@ import com.ivianuu.essentials.app.ScopeWorker
 import com.ivianuu.essentials.catch
 import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
+import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.asLog
 import com.ivianuu.essentials.logging.log
@@ -113,36 +114,15 @@ private suspend fun applyConfig(
       else (10 * prefs.auxGain).toInt()
     )
 
-    updateConfigIfNeeded(
-      1,
-      (prefs.band1 * 100)
-        .toInt()
-        .coerceIn(1, 99)
-    )
-    updateConfigIfNeeded(
-      2,
-      (prefs.band2 * 100)
-        .toInt()
-        .coerceIn(1, 99)
-    )
-    updateConfigIfNeeded(
-      3,
-      (prefs.band3 * 100)
-        .toInt()
-        .coerceIn(1, 99)
-    )
-    updateConfigIfNeeded(
-      4,
-      (prefs.band4 * 100)
-        .toInt()
-        .coerceIn(1, 99)
-    )
-    updateConfigIfNeeded(
-      5,
-      (prefs.band5 * 100)
-        .toInt()
-        .coerceIn(1, 99)
-    )
+    suspend fun updateEqIfNeeded(key: Int, value: Float) {
+      updateConfigIfNeeded(key, lerp(30f, 70f, value).toInt())
+    }
+
+    updateEqIfNeeded(1, prefs.band1)
+    updateEqIfNeeded(2, prefs.band2)
+    updateEqIfNeeded(3, prefs.band3)
+    updateEqIfNeeded(4, prefs.band4)
+    updateEqIfNeeded(5, prefs.band5)
   }
 }
 
@@ -160,4 +140,4 @@ fun String.parseEq(): Map<Int, Int> = removePrefix("q ")
   .split(" ")
   .withIndex()
   .associateBy { it.index + 1 }
-  .mapValues { it.value.value.toInt() }
+  .mapValues { it.value.value.toIntOrNull() ?: 0 }

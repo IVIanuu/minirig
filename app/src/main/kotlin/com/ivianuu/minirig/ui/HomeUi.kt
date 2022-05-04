@@ -71,7 +71,8 @@ import kotlinx.coroutines.flow.map
           )
         }
       } else {
-        items(minirigs) {
+        // todo remove address in a future compose version
+        items(minirigs, key = { it.address }) {
           Minirig(it, this@ModelKeyUi)
         }
       }
