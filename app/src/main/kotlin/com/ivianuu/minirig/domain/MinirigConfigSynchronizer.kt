@@ -115,7 +115,7 @@ private suspend fun applyConfig(
     )
 
     suspend fun updateEqIfNeeded(key: Int, value: Float) {
-      updateConfigIfNeeded(key, lerp(30f, 70f, value).toInt())
+      updateConfigIfNeeded(key, lerp(0f, 99f, value).toInt())
     }
 
     updateEqIfNeeded(1, prefs.band1)

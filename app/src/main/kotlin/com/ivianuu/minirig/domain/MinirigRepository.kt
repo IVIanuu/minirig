@@ -7,7 +7,6 @@ package com.ivianuu.minirig.domain
 import android.bluetooth.BluetoothManager
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.catch
-import com.ivianuu.essentials.coroutines.EventFlow
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.permission.PermissionState
 import com.ivianuu.essentials.time.seconds
@@ -27,7 +26,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -79,12 +77,6 @@ import kotlinx.coroutines.withTimeoutOrNull
   private val states = mutableMapOf<String, Flow<MinirigState>>()
   private val statesLock = Mutex()
 
-  private val stateChanges = EventFlow<String>()
-
-  suspend fun stateChanged(address: String) {
-    stateChanges.emit(address)
-  }
-
   fun minirigState(address: String): Flow<MinirigState> = flow {
     emitAll(
       statesLock.withLock {
@@ -96,8 +88,7 @@ import kotlinx.coroutines.withTimeoutOrNull
                 delay(5.seconds)
               }
             },
-            remote.bondedDeviceChanges(),
-            stateChanges.filter { it == address }
+            remote.bondedDeviceChanges()
           )
             .mapLatest { readMinirigState(address) }
             .distinctUntilChanged()

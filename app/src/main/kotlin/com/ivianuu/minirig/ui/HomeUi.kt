@@ -34,7 +34,6 @@ import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.material.incrementingStepPolicy
 import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.ModelKeyUi
-import com.ivianuu.essentials.ui.navigation.Navigator
 import com.ivianuu.essentials.ui.navigation.RootKey
 import com.ivianuu.essentials.ui.popup.PopupMenu
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
@@ -243,7 +242,6 @@ data class HomeModel(
   appForegroundState: Flow<AppForegroundState>,
   twsUseCases: TwsUseCases,
   minirigRepository: MinirigRepository,
-  navigator: Navigator,
   pref: DataStore<MinirigPrefs>,
   troubleshootingUseCases: TroubleshootingUseCases,
   L: Logger
