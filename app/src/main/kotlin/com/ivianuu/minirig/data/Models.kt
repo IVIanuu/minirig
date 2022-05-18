@@ -5,7 +5,7 @@
 package com.ivianuu.minirig.data
 
 import android.bluetooth.BluetoothDevice
-import com.ivianuu.essentials.android.prefs.PrefModule
+import com.ivianuu.essentials.android.prefs.DataStoreModule
 import com.ivianuu.injekt.Provide
 import kotlinx.serialization.Serializable
 
@@ -29,7 +29,7 @@ fun Minirig.debugName() = "[$name ~ $address]"
   val auxGain: Float = 1f
 ) {
   companion object {
-    @Provide val prefModule = PrefModule { MinirigPrefs() }
+    @Provide val prefModule = DataStoreModule("minirig_prefs") { MinirigPrefs() }
   }
 }
 
