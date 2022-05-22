@@ -39,6 +39,7 @@ import com.ivianuu.essentials.ui.popup.PopupMenu
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.prefs.ScaledPercentageUnitText
 import com.ivianuu.essentials.ui.prefs.SliderListItem
+import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.injekt.Provide
 import com.ivianuu.minirig.data.MinirigPrefs
 import com.ivianuu.minirig.data.PowerState
@@ -153,6 +154,14 @@ import kotlinx.coroutines.flow.map
           valueText = { ScaledPercentageUnitText(it) }
         )
       }
+
+      item {
+        SwitchListItem(
+          value = mono,
+          onValueChange = updateMono,
+          title = { Text("Mono") }
+        )
+      }
     }
   }
 }
@@ -235,7 +244,9 @@ data class HomeModel(
   val gain: Float,
   val updateGain: (Float) -> Unit,
   val auxGain: Float,
-  val updateAuxGain: (Float) -> Unit
+  val updateAuxGain: (Float) -> Unit,
+  val mono: Boolean,
+  val updateMono: (Boolean) -> Unit
 )
 
 @Provide fun homeModel(
@@ -294,5 +305,7 @@ data class HomeModel(
     updateGain = action { value -> pref.updateData { copy(gain = value) } },
     auxGain = prefs.auxGain,
     updateAuxGain = action { value -> pref.updateData { copy(auxGain = value) } },
+    mono = prefs.mono,
+    updateMono = action { value -> pref.updateData { copy(mono = value) } }
   )
 }

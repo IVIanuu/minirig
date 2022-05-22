@@ -123,6 +123,12 @@ private suspend fun applyConfig(
     updateEqIfNeeded(3, prefs.band3)
     updateEqIfNeeded(4, prefs.band4)
     updateEqIfNeeded(5, prefs.band5)
+
+    if (prefs.mono) {
+      send("M")
+    } else {
+      send("R")
+    }
   }
 }
 
