@@ -124,11 +124,16 @@ private suspend fun applyConfig(
     updateEqIfNeeded(4, prefs.band4)
     updateEqIfNeeded(5, prefs.band5)
 
-    if (prefs.mono) {
-      send("M")
-    } else {
-      send("R")
-    }
+    updateConfigIfNeeded(
+      7,
+      // only do bass boost if loud is disabled
+      if (prefs.bassBoost && !prefs.loud) 4 else 0
+    )
+
+    updateConfigIfNeeded(
+      12,
+      if (prefs.loud) 1 else 0
+    )
   }
 }
 

@@ -27,6 +27,7 @@ import com.ivianuu.essentials.state.action
 import com.ivianuu.essentials.state.bind
 import com.ivianuu.essentials.state.bindResource
 import com.ivianuu.essentials.ui.common.VerticalList
+import com.ivianuu.essentials.ui.common.interactive
 import com.ivianuu.essentials.ui.material.ListItem
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Subheader
@@ -136,6 +137,31 @@ import kotlinx.coroutines.flow.map
       }
 
       item {
+        SwitchListItem(
+          modifier = Modifier.interactive(bassBoostEnabled),
+          value = bassBoost,
+          onValueChange = updateBassBoost,
+          title = { Text("Bass boost") }
+        )
+      }
+
+      item {
+        SwitchListItem(
+          value = loud,
+          onValueChange = updateLoud,
+          title = { Text("Loud") }
+        )
+      }
+
+      item {
+        SwitchListItem(
+          value = mono,
+          onValueChange = updateMono,
+          title = { Text("Mono") }
+        )
+      }
+
+      item {
         SliderListItem(
           value = gain,
           onValueChange = updateGain,
@@ -152,14 +178,6 @@ import kotlinx.coroutines.flow.map
           title = { Text("Aux gain") },
           stepPolicy = incrementingStepPolicy(0.1f),
           valueText = { ScaledPercentageUnitText(it) }
-        )
-      }
-
-      item {
-        SwitchListItem(
-          value = mono,
-          onValueChange = updateMono,
-          title = { Text("Mono") }
         )
       }
     }
@@ -241,13 +259,20 @@ data class HomeModel(
   val updateBand4: (Float) -> Unit,
   val band5: Float,
   val updateBand5: (Float) -> Unit,
+  val bassBoost: Boolean,
+  val updateBassBoost: (Boolean) -> Unit,
+  val loud: Boolean,
+  val updateLoud: (Boolean) -> Unit,
+  val mono: Boolean,
+  val updateMono: (Boolean) -> Unit,
   val gain: Float,
   val updateGain: (Float) -> Unit,
   val auxGain: Float,
-  val updateAuxGain: (Float) -> Unit,
-  val mono: Boolean,
-  val updateMono: (Boolean) -> Unit
-)
+  val updateAuxGain: (Float) -> Unit
+) {
+  val bassBoostEnabled: Boolean
+    get() = !loud
+}
 
 @Provide fun homeModel(
   appForegroundState: Flow<AppForegroundState>,
@@ -301,11 +326,15 @@ data class HomeModel(
     updateBand4 = action { value -> pref.updateData { copy(band4 = value) } },
     band5 = prefs.band5,
     updateBand5 = action { value -> pref.updateData { copy(band5 = value) } },
+    bassBoost = prefs.bassBoost,
+    updateBassBoost = action { value -> pref.updateData { copy(bassBoost = value) } },
+    loud = prefs.loud,
+    updateLoud = action { value -> pref.updateData { copy(loud = value) } },
+    mono = prefs.mono,
+    updateMono = action { value -> pref.updateData { copy(mono = value) } },
     gain = prefs.gain,
     updateGain = action { value -> pref.updateData { copy(gain = value) } },
     auxGain = prefs.auxGain,
-    updateAuxGain = action { value -> pref.updateData { copy(auxGain = value) } },
-    mono = prefs.mono,
-    updateMono = action { value -> pref.updateData { copy(mono = value) } }
+    updateAuxGain = action { value -> pref.updateData { copy(auxGain = value) } }
   )
 }
