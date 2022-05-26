@@ -10,7 +10,6 @@ import com.ivianuu.essentials.app.ScopeWorker
 import com.ivianuu.essentials.catch
 import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
-import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.asLog
 import com.ivianuu.essentials.logging.log
@@ -25,6 +24,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -68,6 +69,9 @@ import kotlinx.coroutines.withTimeoutOrNull
   }
 }
 
+private val lastMonoByDevice = mutableMapOf<String, Boolean>()
+private val lastMonoLock = Mutex()
+
 private suspend fun applyConfig(
   address: String,
   prefs: MinirigPrefs,
@@ -81,6 +85,21 @@ private suspend fun applyConfig(
 
     log { "${device.debugName()} current config $currentConfig" }
 
+    val monoChanged = lastMonoLock.withLock {
+      if (prefs.mono && lastMonoByDevice[address] != true) {
+        lastMonoByDevice[address] = true
+        send("M")
+        true
+      } else if (lastMonoByDevice[address] != false) {
+        lastMonoByDevice[address] = false
+        send("R")
+        true
+      } else false
+    }
+
+    if (monoChanged)
+      delay(500)
+
     suspend fun updateConfigIfNeeded(key: Int, value: Int) {
       // format key and value to match the minirig format
       var finalKey = key.toString()
@@ -92,7 +111,7 @@ private suspend fun applyConfig(
         finalValue = "0$finalValue"
 
       // only write if the value has changed
-      if (currentConfig[key] != value) {
+      if (monoChanged || currentConfig[key] != value) {
         log { "${device.debugName()} update $finalKey -> $finalValue current was ${currentConfig[key]}" }
         send("q p $finalKey $finalValue")
       }
@@ -114,15 +133,36 @@ private suspend fun applyConfig(
       else (10 * prefs.auxGain).toInt()
     )
 
-    suspend fun updateEqIfNeeded(key: Int, value: Float) {
-      updateConfigIfNeeded(key, lerp(0f, 99f, value).toInt())
-    }
-
-    updateEqIfNeeded(1, prefs.band1)
-    updateEqIfNeeded(2, prefs.band2)
-    updateEqIfNeeded(3, prefs.band3)
-    updateEqIfNeeded(4, prefs.band4)
-    updateEqIfNeeded(5, prefs.band5)
+    updateConfigIfNeeded(
+      1,
+      (prefs.band1 * 100)
+        .toInt()
+        .coerceIn(1, 99)
+    )
+    updateConfigIfNeeded(
+      2,
+      (prefs.band2 * 100)
+        .toInt()
+        .coerceIn(1, 99)
+    )
+    updateConfigIfNeeded(
+      3,
+      (prefs.band3 * 100)
+        .toInt()
+        .coerceIn(1, 99)
+    )
+    updateConfigIfNeeded(
+      4,
+      (prefs.band4 * 100)
+        .toInt()
+        .coerceIn(1, 99)
+    )
+    updateConfigIfNeeded(
+      5,
+      (prefs.band5 * 100)
+        .toInt()
+        .coerceIn(1, 99)
+    )
 
     updateConfigIfNeeded(
       7,
