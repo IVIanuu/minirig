@@ -25,9 +25,11 @@ fun Minirig.debugName() = "[$name ~ $address]"
   val band3: Float = 0.5f,
   val band4: Float = 0.5f,
   val band5: Float = 0.5f,
-  val gain: Float = 0.4f,
-  val auxGain: Float = 1f,
-  val mono: Boolean = false
+  val bassBoost: Boolean = true,
+  val loud: Boolean = false,
+  val mono: Boolean = false,
+  val gain: Float = 1f,
+  val auxGain: Float = 1f
 ) {
   companion object {
     @Provide val prefModule = DataStoreModule("minirig_prefs") { MinirigPrefs() }
