@@ -42,7 +42,7 @@ import kotlinx.coroutines.flow.onStart
 
           val gain = volume / maxVolume
 
-          log { "current volume $volume max volume is $maxVolume gain = $gain" }
+          log { "volume changed: current volume $volume max volume is $maxVolume gain = $gain" }
 
           pref.updateData { copy(gain = gain, auxGain = gain) }
         }
