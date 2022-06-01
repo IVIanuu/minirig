@@ -138,26 +138,6 @@ import kotlinx.coroutines.flow.map
           title = { Text("Mono") }
         )
       }
-
-      item {
-        SliderListItem(
-          value = gain,
-          onValueChange = updateGain,
-          title = { Text("Gain") },
-          stepPolicy = incrementingStepPolicy(0.05f),
-          valueText = { ScaledPercentageUnitText(it) }
-        )
-      }
-
-      item {
-        SliderListItem(
-          value = auxGain,
-          onValueChange = updateAuxGain,
-          title = { Text("Aux gain") },
-          stepPolicy = incrementingStepPolicy(0.1f),
-          valueText = { ScaledPercentageUnitText(it) }
-        )
-      }
     }
   }
 }
@@ -238,11 +218,7 @@ data class HomeModel(
   val band5: Float,
   val updateBand5: (Float) -> Unit,
   val mono: Boolean,
-  val updateMono: (Boolean) -> Unit,
-  val gain: Float,
-  val updateGain: (Float) -> Unit,
-  val auxGain: Float,
-  val updateAuxGain: (Float) -> Unit
+  val updateMono: (Boolean) -> Unit
 )
 
 @Provide fun homeModel(
@@ -298,10 +274,6 @@ data class HomeModel(
     band5 = prefs.band5,
     updateBand5 = action { value -> pref.updateData { copy(band5 = value) } },
     mono = prefs.mono,
-    updateMono = action { value -> pref.updateData { copy(mono = value) } },
-    gain = prefs.gain,
-    updateGain = action { value -> pref.updateData { copy(gain = value) } },
-    auxGain = prefs.auxGain,
-    updateAuxGain = action { value -> pref.updateData { copy(auxGain = value) } }
+    updateMono = action { value -> pref.updateData { copy(mono = value) } }
   )
 }

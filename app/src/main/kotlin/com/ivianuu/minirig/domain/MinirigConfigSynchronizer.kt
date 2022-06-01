@@ -5,7 +5,7 @@
 package com.ivianuu.minirig.domain
 
 import com.github.michaelbull.result.onFailure
-import com.ivianuu.essentials.app.AppForegroundScope
+import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.app.ScopeWorker
 import com.ivianuu.essentials.catch
 import com.ivianuu.essentials.coroutines.parForEach
@@ -36,7 +36,7 @@ import kotlinx.coroutines.withTimeoutOrNull
   remote: MinirigRemote,
   L: Logger,
   T: ToastContext
-) = ScopeWorker<AppForegroundScope> {
+) = ScopeWorker<AppScope> {
   withContext(context) {
     combine(minirigRepository.minirigs, pref.data) { a, b -> a to b }
       .collectLatest { (minirigs, prefs) ->

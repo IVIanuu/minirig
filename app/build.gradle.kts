@@ -2,7 +2,7 @@
  * Copyright 2022 Manuel Wrage. Use of this source code is governed by the Apache 2.0 license.
  */
 
-import com.ivianuu.essentials.gradle.*
+import com.ivianuu.essentials.gradle.withLicenses
 
 /*
  * Copyright 2021 Manuel Wrage
@@ -49,6 +49,8 @@ android {
 
 dependencies {
   implementation(Deps.Essentials.android)
+  implementation(Deps.Essentials.boot)
+  implementation(Deps.Essentials.foreground)
   implementation(Deps.Essentials.permission)
   implementation(Deps.Essentials.rubik)
 }

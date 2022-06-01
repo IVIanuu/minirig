@@ -19,3 +19,4 @@ class App : EsApp() {
       "com.ivianuu.essentials.logging.AndroidLogger"
     ) inject()
 }
+
