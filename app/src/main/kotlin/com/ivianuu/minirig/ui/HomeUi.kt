@@ -152,6 +152,24 @@ import kotlinx.coroutines.flow.map
       }
 
       item {
+        SliderListItem(
+          value = bassBoost,
+          onValueChange = updateBassBoost,
+          title = { Text("Bass boost") },
+          valueText = { Text(it.toString()) },
+          valueRange = 0..14
+        )
+      }
+
+      item {
+        SwitchListItem(
+          value = loud,
+          onValueChange = updateLoud,
+          title = { Text("Loud") }
+        )
+      }
+
+      item {
         SwitchListItem(
           value = mono,
           onValueChange = updateMono,
@@ -237,12 +255,16 @@ data class HomeModel(
   val updateBand4: (Float) -> Unit,
   val band5: Float,
   val updateBand5: (Float) -> Unit,
-  val mono: Boolean,
-  val updateMono: (Boolean) -> Unit,
   val minirigGain: Float,
   val updateMinirigGain: (Float) -> Unit,
   val auxGain: Float,
-  val updateAuxGain: (Float) -> Unit
+  val updateAuxGain: (Float) -> Unit,
+  val bassBoost: Int,
+  val updateBassBoost: (Int) -> Unit,
+  val loud: Boolean,
+  val updateLoud: (Boolean) -> Unit,
+  val mono: Boolean,
+  val updateMono: (Boolean) -> Unit,
 )
 
 @Provide fun homeModel(
@@ -297,11 +319,15 @@ data class HomeModel(
     updateBand4 = action { value -> pref.updateData { copy(band4 = value) } },
     band5 = prefs.band5,
     updateBand5 = action { value -> pref.updateData { copy(band5 = value) } },
-    mono = prefs.mono,
-    updateMono = action { value -> pref.updateData { copy(mono = value) } },
     minirigGain = prefs.minirigGain,
     updateMinirigGain = action { value -> pref.updateData { copy(minirigGain = value) } },
     auxGain = prefs.auxGain,
-    updateAuxGain = action { value -> pref.updateData { copy(auxGain = value) } }
+    updateAuxGain = action { value -> pref.updateData { copy(auxGain = value) } },
+    bassBoost = prefs.bassBoost,
+    updateBassBoost = action { value -> pref.updateData { copy(bassBoost = value) } },
+    loud = prefs.loud,
+    updateLoud = action { value -> pref.updateData { copy(loud = value) } },
+    mono = prefs.mono,
+    updateMono = action { value -> pref.updateData { copy(mono = value) } }
   )
 }

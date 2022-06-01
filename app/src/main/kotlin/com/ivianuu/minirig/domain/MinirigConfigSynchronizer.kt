@@ -21,7 +21,6 @@ import com.ivianuu.injekt.coroutines.IOContext
 import com.ivianuu.minirig.data.MinirigPrefs
 import com.ivianuu.minirig.data.debugName
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -32,7 +31,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 @Provide fun minirigConfigSynchronizer(
   context: IOContext,
-  maximumVolume: Flow<MaximumVolume>,
   minirigRepository: MinirigRepository,
   pref: DataStore<MinirigPrefs>,
   remote: MinirigRemote,
@@ -40,8 +38,8 @@ import kotlinx.coroutines.withTimeoutOrNull
   T: ToastContext
 ) = ScopeWorker<AppScope> {
   withContext(context) {
-    combine(minirigRepository.minirigs, pref.data, maximumVolume) { a, b, c -> Triple(a, b, c) }
-      .collectLatest { (minirigs, prefs, maximumVolume) ->
+    combine(minirigRepository.minirigs, pref.data) { a, b -> a to b }
+      .collectLatest { (minirigs, prefs) ->
         minirigs.parForEach { minirig ->
           remote.isConnected(minirig.address).collectLatest { isConnected ->
             if (isConnected) {
@@ -53,7 +51,7 @@ import kotlinx.coroutines.withTimeoutOrNull
                 }
 
                 catch {
-                  applyConfig(minirig.address, prefs, maximumVolume.value)
+                  applyConfig(minirig.address, prefs)
                 }.onFailure {
                   log { "failed to apply config to ${minirig.debugName()} $attempt -> ${it.asLog()}" }
                   delay(RetryDelay)
@@ -77,7 +75,6 @@ private val lastMonoLock = Mutex()
 private suspend fun applyConfig(
   address: String,
   prefs: MinirigPrefs,
-  maximumVolume: Boolean,
   @Inject L: Logger,
   @Inject remote: MinirigRemote
 ) {
@@ -136,13 +133,8 @@ private suspend fun applyConfig(
       else (10 * prefs.auxGain).toInt()
     )
 
-    // enable loud mode if android device is on maximum volume
-    // and the minirig gain is 100%
-    val loud = prefs.minirigGain == 1f && maximumVolume
-    updateConfigIfNeeded(12, if (loud) 1 else 0)
-
-    // enabled bass boost if loud mode is disabled
-    updateConfigIfNeeded(7, if (!loud) 5 else 0)
+    updateConfigIfNeeded(12, if (prefs.loud) 1 else 0)
+    updateConfigIfNeeded(7, prefs.bassBoost)
 
     suspend fun updateEqBandIfNeeded(key: Int, value: Float) {
       updateConfigIfNeeded(
