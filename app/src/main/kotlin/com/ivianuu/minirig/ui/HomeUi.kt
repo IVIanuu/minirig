@@ -78,7 +78,7 @@ import kotlinx.coroutines.flow.map
       }
 
       item {
-        Subheader { Text("Equalizer") }
+        Subheader { Text("Settings") }
       }
 
       item {
@@ -129,10 +129,6 @@ import kotlinx.coroutines.flow.map
           stepPolicy = incrementingStepPolicy(0.05f),
           valueText = { ScaledPercentageUnitText(it) }
         )
-      }
-
-      item {
-        Subheader { Text("Gain") }
       }
 
       item {
