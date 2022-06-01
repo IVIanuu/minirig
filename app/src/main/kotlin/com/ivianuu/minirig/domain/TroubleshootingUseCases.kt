@@ -6,10 +6,7 @@ package com.ivianuu.minirig.domain
 
 import com.ivianuu.injekt.Provide
 
-@Provide class TroubleshootingUseCases(
-  private val remote: MinirigRemote,
-  private val repository: MinirigRepository
-) {
+@Provide class TroubleshootingUseCases(private val remote: MinirigRemote) {
   suspend fun powerOff(address: String) = remote.withMinirig(address) {
     send("O")
   }
