@@ -126,6 +126,9 @@ private suspend fun applyConfig(
     updateConfigIfNeeded(8, if (prefs.transmitter) 31 else 0)
     updateConfigIfNeeded(9, 10)
 
+    // disable bass boost
+    updateConfigIfNeeded(7, 0)
+
     suspend fun updateEqBandIfNeeded(key: Int, value: Float) {
       updateConfigIfNeeded(
         key,
@@ -140,9 +143,6 @@ private suspend fun applyConfig(
     updateEqBandIfNeeded(3, prefs.band3)
     updateEqBandIfNeeded(4, prefs.band4)
     updateEqBandIfNeeded(5, prefs.band5)
-
-    // disable bass boost
-    updateConfigIfNeeded(7, 0)
   }
 }
 
