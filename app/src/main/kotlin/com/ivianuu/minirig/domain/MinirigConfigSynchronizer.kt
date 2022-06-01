@@ -123,8 +123,7 @@ private suspend fun applyConfig(
     // enable loud mode if android device is on maximum volume
     updateConfigIfNeeded(12, if (maximumVolume) 1 else 0)
 
-    // max gain on both the minirig and aux
-    updateConfigIfNeeded(8, 0)
+    updateConfigIfNeeded(8, if (prefs.transmitter) 31 else 0)
     updateConfigIfNeeded(9, 10)
 
     suspend fun updateEqBandIfNeeded(key: Int, value: Float) {

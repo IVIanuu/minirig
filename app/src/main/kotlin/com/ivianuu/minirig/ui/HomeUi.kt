@@ -138,6 +138,14 @@ import kotlinx.coroutines.flow.map
           title = { Text("Mono") }
         )
       }
+
+      item {
+        SwitchListItem(
+          value = transmitter,
+          onValueChange = updateTransmitter,
+          title = { Text("Transmitter") }
+        )
+      }
     }
   }
 }
@@ -218,7 +226,9 @@ data class HomeModel(
   val band5: Float,
   val updateBand5: (Float) -> Unit,
   val mono: Boolean,
-  val updateMono: (Boolean) -> Unit
+  val updateMono: (Boolean) -> Unit,
+  val transmitter: Boolean,
+  val updateTransmitter: (Boolean) -> Unit
 )
 
 @Provide fun homeModel(
@@ -274,6 +284,8 @@ data class HomeModel(
     band5 = prefs.band5,
     updateBand5 = action { value -> pref.updateData { copy(band5 = value) } },
     mono = prefs.mono,
-    updateMono = action { value -> pref.updateData { copy(mono = value) } }
+    updateMono = action { value -> pref.updateData { copy(mono = value) } },
+    transmitter = prefs.transmitter,
+    updateTransmitter = action { value -> pref.updateData { copy(transmitter = value) } }
   )
 }
