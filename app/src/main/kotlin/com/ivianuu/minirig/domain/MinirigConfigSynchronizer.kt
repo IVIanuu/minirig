@@ -120,11 +120,25 @@ private suspend fun applyConfig(
       }
     }
 
-    // enable loud mode if android device is on maximum volume
-    updateConfigIfNeeded(12, if (maximumVolume) 1 else 0)
+    updateConfigIfNeeded(
+      8,
+      // > 30 means mutes the minirig
+      if (prefs.minirigGain == 0f) 31
+      // minirig value range is 0..30 and 30 means lowest gain
+      else (30 * (1f - prefs.minirigGain)).toInt()
+    )
 
-    updateConfigIfNeeded(8, if (prefs.transmitter) 31 else 0)
-    updateConfigIfNeeded(9, 10)
+    updateConfigIfNeeded(
+      9,
+      // > 10 means mutes the aux device
+      if (prefs.auxGain == 0f) 11
+      // minirig value range is 0..10 and 10 means highest gain
+      else (10 * prefs.auxGain).toInt()
+    )
+
+    // enable loud mode if android device is on maximum volume
+    // and the minirig gain is 100%
+    updateConfigIfNeeded(12, if (prefs.minirigGain == 1f && maximumVolume) 1 else 0)
 
     // disable bass boost
     updateConfigIfNeeded(7, 0)

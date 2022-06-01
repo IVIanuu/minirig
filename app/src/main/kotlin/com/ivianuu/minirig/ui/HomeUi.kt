@@ -132,18 +132,30 @@ import kotlinx.coroutines.flow.map
       }
 
       item {
-        SwitchListItem(
-          value = mono,
-          onValueChange = updateMono,
-          title = { Text("Mono") }
+        SliderListItem(
+          value = minirigGain,
+          onValueChange = updateMinirigGain,
+          title = { Text("Minirig gain") },
+          stepPolicy = incrementingStepPolicy(0.1f),
+          valueText = { ScaledPercentageUnitText(it) }
+        )
+      }
+
+      item {
+        SliderListItem(
+          value = auxGain,
+          onValueChange = updateAuxGain,
+          title = { Text("Aux gain") },
+          stepPolicy = incrementingStepPolicy(0.1f),
+          valueText = { ScaledPercentageUnitText(it) }
         )
       }
 
       item {
         SwitchListItem(
-          value = transmitter,
-          onValueChange = updateTransmitter,
-          title = { Text("Transmitter") }
+          value = mono,
+          onValueChange = updateMono,
+          title = { Text("Mono") }
         )
       }
     }
@@ -227,8 +239,10 @@ data class HomeModel(
   val updateBand5: (Float) -> Unit,
   val mono: Boolean,
   val updateMono: (Boolean) -> Unit,
-  val transmitter: Boolean,
-  val updateTransmitter: (Boolean) -> Unit
+  val minirigGain: Float,
+  val updateMinirigGain: (Float) -> Unit,
+  val auxGain: Float,
+  val updateAuxGain: (Float) -> Unit
 )
 
 @Provide fun homeModel(
@@ -285,7 +299,9 @@ data class HomeModel(
     updateBand5 = action { value -> pref.updateData { copy(band5 = value) } },
     mono = prefs.mono,
     updateMono = action { value -> pref.updateData { copy(mono = value) } },
-    transmitter = prefs.transmitter,
-    updateTransmitter = action { value -> pref.updateData { copy(transmitter = value) } }
+    minirigGain = prefs.minirigGain,
+    updateMinirigGain = action { value -> pref.updateData { copy(minirigGain = value) } },
+    auxGain = prefs.auxGain,
+    updateAuxGain = action { value -> pref.updateData { copy(auxGain = value) } }
   )
 }
