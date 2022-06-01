@@ -32,7 +32,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 @Provide fun minirigConfigSynchronizer(
   context: IOContext,
-  gain: Flow<MinirigGain>,
+  maximumVolume: Flow<MaximumVolume>,
   minirigRepository: MinirigRepository,
   pref: DataStore<MinirigPrefs>,
   remote: MinirigRemote,
@@ -40,8 +40,8 @@ import kotlinx.coroutines.withTimeoutOrNull
   T: ToastContext
 ) = ScopeWorker<AppScope> {
   withContext(context) {
-    combine(minirigRepository.minirigs, pref.data, gain) { a, b, c -> Triple(a, b, c) }
-      .collectLatest { (minirigs, prefs, gain) ->
+    combine(minirigRepository.minirigs, pref.data, maximumVolume) { a, b, c -> Triple(a, b, c) }
+      .collectLatest { (minirigs, prefs, maximumVolume) ->
         minirigs.parForEach { minirig ->
           remote.isConnected(minirig.address).collectLatest { isConnected ->
             if (isConnected) {
@@ -53,7 +53,7 @@ import kotlinx.coroutines.withTimeoutOrNull
                 }
 
                 catch {
-                  applyConfig(minirig.address, prefs, gain.value)
+                  applyConfig(minirig.address, prefs, maximumVolume.value)
                 }.onFailure {
                   log { "failed to apply config to ${minirig.debugName()} $attempt -> ${it.asLog()}" }
                   delay(RetryDelay)
@@ -77,7 +77,7 @@ private val lastMonoLock = Mutex()
 private suspend fun applyConfig(
   address: String,
   prefs: MinirigPrefs,
-  gain: Float,
+  maximumVolume: Boolean,
   @Inject L: Logger,
   @Inject remote: MinirigRemote
 ) {
@@ -120,21 +120,12 @@ private suspend fun applyConfig(
       }
     }
 
-    updateConfigIfNeeded(
-      8,
-      // > 30 means mutes the minirig
-      if (gain == 0f) 31
-      // minirig value range is 0..30 and 30 means lowest gain
-      else (30 * (1f - gain)).toInt()
-    )
+    // enable loud mode if android device is on maximum volume
+    updateConfigIfNeeded(12, if (maximumVolume) 1 else 0)
 
-    updateConfigIfNeeded(
-      9,
-      // > 10 means mutes the aux device
-      if (gain == 0f) 11
-      // minirig value range is 0..10 and 10 means highest gain
-      else (10 * gain).toInt()
-    )
+    // max gain on both the minirig and aux
+    updateConfigIfNeeded(8, 0)
+    updateConfigIfNeeded(9, 10)
 
     suspend fun updateEqBandIfNeeded(key: Int, value: Float) {
       updateConfigIfNeeded(
