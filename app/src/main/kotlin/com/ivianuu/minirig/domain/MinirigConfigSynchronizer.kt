@@ -133,8 +133,8 @@ private suspend fun applyConfig(
       else (10 * prefs.auxGain).toInt()
     )
 
+    updateConfigIfNeeded(7, if (!prefs.loud && prefs.bassBoost) 5 else 0)
     updateConfigIfNeeded(12, if (prefs.loud) 1 else 0)
-    updateConfigIfNeeded(7, prefs.bassBoost)
 
     suspend fun updateEqBandIfNeeded(key: Int, value: Float) {
       updateConfigIfNeeded(

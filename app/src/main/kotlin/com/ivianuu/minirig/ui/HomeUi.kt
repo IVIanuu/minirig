@@ -27,6 +27,7 @@ import com.ivianuu.essentials.state.action
 import com.ivianuu.essentials.state.bind
 import com.ivianuu.essentials.state.bindResource
 import com.ivianuu.essentials.ui.common.VerticalList
+import com.ivianuu.essentials.ui.common.interactive
 import com.ivianuu.essentials.ui.material.ListItem
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Subheader
@@ -152,12 +153,12 @@ import kotlinx.coroutines.flow.map
       }
 
       item {
-        SliderListItem(
+        SwitchListItem(
+          modifier = Modifier
+            .interactive(bassBoostEnabled),
           value = bassBoost,
           onValueChange = updateBassBoost,
-          title = { Text("Bass boost") },
-          valueText = { Text(it.toString()) },
-          valueRange = 0..5
+          title = { Text("Bass boost") }
         )
       }
 
@@ -259,13 +260,16 @@ data class HomeModel(
   val updateMinirigGain: (Float) -> Unit,
   val auxGain: Float,
   val updateAuxGain: (Float) -> Unit,
-  val bassBoost: Int,
-  val updateBassBoost: (Int) -> Unit,
+  val bassBoost: Boolean,
+  val updateBassBoost: (Boolean) -> Unit,
   val loud: Boolean,
   val updateLoud: (Boolean) -> Unit,
   val mono: Boolean,
   val updateMono: (Boolean) -> Unit,
-)
+) {
+  val bassBoostEnabled: Boolean
+    get() = !loud
+}
 
 @Provide fun homeModel(
   appForegroundState: Flow<AppForegroundState>,

@@ -30,7 +30,7 @@ fun Minirig.debugName() = "[$name ~ $address]"
   val band5: Float = 0.5f,
   val minirigGain: Float = 1f,
   val auxGain: Float = 1f,
-  val bassBoost: Int = 7,
+  val bassBoost: Boolean = true,
   val loud: Boolean = false,
   val mono: Boolean = false
 ) {
