@@ -142,7 +142,7 @@ private suspend fun applyConfig(
     updateConfigIfNeeded(12, if (loud) 1 else 0)
 
     // enabled bass boost if loud mode is disabled
-    updateConfigIfNeeded(7, if (!loud) 4 else 0)
+    updateConfigIfNeeded(7, if (!loud) 5 else 0)
 
     suspend fun updateEqBandIfNeeded(key: Int, value: Float) {
       updateConfigIfNeeded(
