@@ -157,7 +157,7 @@ import kotlinx.coroutines.flow.map
           onValueChange = updateBassBoost,
           title = { Text("Bass boost") },
           valueText = { Text(it.toString()) },
-          valueRange = 0..14
+          valueRange = 0..7
         )
       }
 
