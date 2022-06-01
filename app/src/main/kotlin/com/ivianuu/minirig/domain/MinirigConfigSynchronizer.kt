@@ -138,10 +138,11 @@ private suspend fun applyConfig(
 
     // enable loud mode if android device is on maximum volume
     // and the minirig gain is 100%
-    updateConfigIfNeeded(12, if (prefs.minirigGain == 1f && maximumVolume) 1 else 0)
+    val loud = prefs.minirigGain == 1f && maximumVolume
+    updateConfigIfNeeded(12, if (loud) 1 else 0)
 
-    // disable bass boost
-    updateConfigIfNeeded(7, 0)
+    // enabled bass boost if loud mode is disabled
+    updateConfigIfNeeded(7, if (!loud) 4 else 0)
 
     suspend fun updateEqBandIfNeeded(key: Int, value: Float) {
       updateConfigIfNeeded(
