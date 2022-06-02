@@ -4,13 +4,9 @@
 
 package com.ivianuu.minirig.domain
 
-import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.injekt.Provide
 
-@Provide class TwsUseCases(
-  private val remote: MinirigRemote,
-  private val L: Logger
-) {
+@Provide class TwsUseCases(private val remote: MinirigRemote) {
   suspend fun twsPair(address: String) {
     remote.withMinirig(address) {
       send("P")
