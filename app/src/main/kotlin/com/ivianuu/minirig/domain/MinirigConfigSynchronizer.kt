@@ -101,14 +101,15 @@ private suspend fun applyConfig(
       delay(500)
 
     suspend fun updateConfigIfNeeded(key: Int, value: Int) {
-      // format key and value to match the minirig format
-      var finalKey = key.toString()
-      if (finalKey.length == 1)
-        finalKey = "0$finalKey"
+      fun Int.toMinirigFormat(): String {
+        var tmp = toString()
+        if (tmp.length == 1)
+          tmp = "0$tmp"
+        return tmp
+      }
 
-      var finalValue = value.toString()
-      if (finalValue.length == 1)
-        finalValue = "0$finalValue"
+      val finalKey = key.toMinirigFormat()
+      val finalValue = value.toMinirigFormat()
 
       // only write if the value has changed
       if (monoChanged || currentConfig[key] != value) {
