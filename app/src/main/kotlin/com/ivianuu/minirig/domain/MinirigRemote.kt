@@ -126,7 +126,7 @@ class MinirigSocket(
       }
 
       try {
-        withSocket("message receiver ${device.debugName()} ${this@MinirigSocket}") {
+        withSocket {
           while (currentCoroutineContext().isActive) {
             if (inputStream.available() > 0) {
               val arr = ByteArray(inputStream.available())
@@ -155,7 +155,7 @@ class MinirigSocket(
             log { "send ${device.debugName()} -> $message attempt $attempt" }
 
             try {
-              withSocket("send message ${device.debugName()}") {
+              withSocket {
                 outputStream.write(message.toByteArray())
               }
             } catch (e: IOException) {
@@ -198,10 +198,7 @@ class MinirigSocket(
     socket = null
   }
 
-  private suspend fun withSocket(
-    jobName: String,
-    block: suspend BluetoothSocket.() -> Unit
-  ) {
+  private suspend fun withSocket(block: suspend BluetoothSocket.() -> Unit) {
     val socket = socketLock.withLock {
       var socket = socket
       if (socket != null && socket.isConnected)
