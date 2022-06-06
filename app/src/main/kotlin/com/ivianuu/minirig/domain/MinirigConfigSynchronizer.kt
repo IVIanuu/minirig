@@ -164,7 +164,7 @@ private suspend fun MinirigSocket.readMinirigConfig(@Inject L: Logger): Map<Int,
   } ?: error("could not get minirig config from ${device.debugName()}")
 }
 
-fun String.parseEq(): Map<Int, Int> = removePrefix("q ")
+private fun String.parseEq(): Map<Int, Int> = removePrefix("q ")
   .split(" ")
   .withIndex()
   .associateBy { it.index + 1 }

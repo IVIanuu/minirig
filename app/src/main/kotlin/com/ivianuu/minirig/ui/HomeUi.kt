@@ -273,10 +273,10 @@ data class HomeModel(
 
 @Provide fun homeModel(
   appForegroundState: Flow<AppForegroundState>,
-  twsUseCases: TwsUseCases,
   minirigRepository: MinirigRepository,
   pref: DataStore<MinirigPrefs>,
   troubleshootingUseCases: TroubleshootingUseCases,
+  twsUseCases: TwsUseCases,
   L: Logger
 ) = Model {
   val minirigs = appForegroundState
