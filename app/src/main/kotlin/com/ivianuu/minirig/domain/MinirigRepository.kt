@@ -45,7 +45,7 @@ import kotlinx.coroutines.withTimeoutOrNull
   private val bluetoothManager: @SystemService BluetoothManager,
   private val context: IOContext,
   private val remote: MinirigRemote,
-  private val L: Logger,
+  private val logger: Logger,
   private val permissionState: Flow<PermissionState<MinirigBluetoothConnectPermission>>,
   private val scope: NamedCoroutineScope<AppScope>
 ) {
@@ -106,7 +106,7 @@ import kotlinx.coroutines.withTimeoutOrNull
     )
   }
 
-  private suspend fun readMinirigState(address: String, @Inject L: Logger): MinirigState =
+  private suspend fun readMinirigState(address: String, @Inject logger: Logger): MinirigState =
     remote.withMinirig(address) {
       // sending this message triggers the state output
       catch { send("B") }

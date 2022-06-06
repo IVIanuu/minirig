@@ -56,7 +56,7 @@ import java.util.*
   private val broadcastsFactory: BroadcastsFactory,
   private val context: IOContext,
   private val scope: NamedCoroutineScope<AppScope>,
-  private val L: Logger
+  private val logger: Logger
 ) {
   private val sockets = RefCountedResource<String, MinirigSocket>(
     scope = scope,
@@ -108,7 +108,7 @@ class MinirigSocket(
   @Inject private val bluetoothManager: @SystemService BluetoothManager,
   @Inject context: IOContext,
   @Inject parentScope: NamedCoroutineScope<AppScope>,
-  @Inject private val L: Logger
+  @Inject private val logger: Logger
 ) {
   private val scope = parentScope.childCoroutineScope(context)
 

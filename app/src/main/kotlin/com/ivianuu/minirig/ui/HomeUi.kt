@@ -277,7 +277,7 @@ data class HomeModel(
   pref: DataStore<MinirigPrefs>,
   troubleshootingUseCases: TroubleshootingUseCases,
   twsUseCases: TwsUseCases,
-  L: Logger
+  logger: Logger
 ) = Model {
   val minirigs = appForegroundState
     .flatMapLatest { foregroundState ->

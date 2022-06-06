@@ -34,7 +34,7 @@ import kotlinx.coroutines.withTimeoutOrNull
   minirigRepository: MinirigRepository,
   pref: DataStore<MinirigPrefs>,
   remote: MinirigRemote,
-  L: Logger,
+  logger: Logger,
   T: ToastContext
 ) = ScopeWorker<AppForegroundScope> {
   withContext(context) {
@@ -75,7 +75,7 @@ private val lastMonoLock = Mutex()
 private suspend fun applyConfig(
   address: String,
   prefs: MinirigPrefs,
-  @Inject L: Logger,
+  @Inject logger: Logger,
   @Inject remote: MinirigRemote
 ) {
   remote.withMinirig(address) {
@@ -154,7 +154,7 @@ private suspend fun applyConfig(
   }
 }
 
-private suspend fun MinirigSocket.readMinirigConfig(@Inject L: Logger): Map<Int, Int> {
+private suspend fun MinirigSocket.readMinirigConfig(@Inject logger: Logger): Map<Int, Int> {
   // sending this message triggers the state output
   send("q p 00 50")
   return withTimeoutOrNull(PingPongTimeout) {

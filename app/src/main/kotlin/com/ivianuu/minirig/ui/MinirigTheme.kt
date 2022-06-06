@@ -19,7 +19,7 @@ object MinirigTheme {
   val Secondary = Color(0xFFFF9F43)
 }
 
-@Provide fun minirigTheme(RP: ResourceProvider) = AppTheme { content ->
+@Provide fun minirigTheme(resourceProvider: ResourceProvider) = AppTheme { content ->
   EsTheme(
     lightColors = colors(
       isLight = true,
