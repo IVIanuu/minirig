@@ -24,8 +24,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -69,9 +67,6 @@ import kotlinx.coroutines.withTimeoutOrNull
   }
 }
 
-private val lastMonoByDevice = mutableMapOf<String, Boolean>()
-private val lastMonoLock = Mutex()
-
 private suspend fun applyConfig(
   address: String,
   prefs: MinirigPrefs,
@@ -85,21 +80,6 @@ private suspend fun applyConfig(
 
     log { "${device.debugName()} current config $currentConfig" }
 
-    val monoChanged = lastMonoLock.withLock {
-      if (prefs.mono && lastMonoByDevice[address] != true) {
-        lastMonoByDevice[address] = true
-        send("M")
-        true
-      } else if (lastMonoByDevice[address] != false) {
-        lastMonoByDevice[address] = false
-        send("R")
-        true
-      } else false
-    }
-
-    if (monoChanged)
-      delay(500)
-
     suspend fun updateConfigIfNeeded(key: Int, value: Int) {
       fun Int.toMinirigFormat(): String {
         var tmp = toString()
@@ -112,7 +92,7 @@ private suspend fun applyConfig(
       val finalValue = value.toMinirigFormat()
 
       // only write if the value has changed
-      if (monoChanged || currentConfig[key] != value) {
+      if (currentConfig[key] != value) {
         log { "${device.debugName()} update $finalKey -> $finalValue current was ${currentConfig[key]}" }
         send("q p $finalKey $finalValue")
       }
