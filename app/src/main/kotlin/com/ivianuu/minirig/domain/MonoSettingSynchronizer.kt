@@ -10,12 +10,17 @@ import com.ivianuu.essentials.shell.Shell
 import com.ivianuu.essentials.ui.UiScope
 import com.ivianuu.injekt.Provide
 import com.ivianuu.minirig.data.MinirigPrefs
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 @Provide fun monoSettingSynchronizer(
   pref: DataStore<MinirigPrefs>,
   shell: Shell
 ) = ScopeWorker<UiScope> {
-  pref.data.collect { prefs ->
-    shell.run("settings put system master_mono ${if (prefs.mono) 1 else 0}")
-  }
+  pref.data
+    .map { it.mono }
+    .distinctUntilChanged()
+    .collect { mono ->
+      shell.run("settings put system master_mono ${if (mono) 1 else 0}")
+    }
 }
