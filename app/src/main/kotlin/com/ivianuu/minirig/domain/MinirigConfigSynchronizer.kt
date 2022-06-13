@@ -19,11 +19,16 @@ import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
 import com.ivianuu.injekt.coroutines.IOContext
 import com.ivianuu.minirig.data.MinirigPrefs
+import com.ivianuu.minirig.data.TwsState
 import com.ivianuu.minirig.data.debugName
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -36,28 +41,37 @@ import kotlinx.coroutines.withTimeoutOrNull
   T: ToastContext
 ) = ScopeWorker<AppForegroundScope> {
   withContext(context) {
-    combine(minirigRepository.minirigs, pref.data) { a, b -> a to b }
+    combine(
+      minirigRepository.minirigs,
+      pref.data
+    ) { minirigs, prefs -> minirigs to prefs }
       .collectLatest { (minirigs, prefs) ->
         minirigs.parForEach { minirig ->
           remote.isConnected(minirig.address).collectLatest { isConnected ->
             if (isConnected) {
-              log { "observe config changes ${minirig.debugName()}" }
-              suspend fun applyConfig(attempt: Int) {
-                log { "apply config ${minirig.debugName()} attempt $attempt" }
-                if (attempt == 5) {
-                  showToast("Could not apply config to ${minirig.debugName()}")
-                }
+              minirigRepository.minirigState(minirig.address)
+                .filter { it.twsState == TwsState.MASTER }
+                .debounce(10000)
+                .map { true }
+                .onStart { emit(false) }
+                .collectLatest { forceUpdate ->
+                  suspend fun applyConfig(attempt: Int) {
+                    log { "apply config ${minirig.debugName()} attempt $attempt force $forceUpdate" }
+                    if (attempt == 5) {
+                      showToast("Could not apply config to ${minirig.debugName()}")
+                    }
 
-                catch {
-                  applyConfig(minirig.address, prefs)
-                }.onFailure {
-                  log { "failed to apply config to ${minirig.debugName()} $attempt -> ${it.asLog()}" }
-                  delay(RetryDelay)
-                  applyConfig(attempt + 1)
-                }
-              }
+                    catch {
+                      applyConfig(minirig.address, prefs, forceUpdate)
+                    }.onFailure {
+                      log { "failed to apply config to ${minirig.debugName()} $attempt -> ${it.asLog()}" }
+                      delay(RetryDelay)
+                      applyConfig(attempt + 1)
+                    }
+                  }
 
-              applyConfig(0)
+                  applyConfig(0)
+                }
             } else {
               log { "ignore config changes ${minirig.debugName()}" }
             }
@@ -70,11 +84,12 @@ import kotlinx.coroutines.withTimeoutOrNull
 private suspend fun applyConfig(
   address: String,
   prefs: MinirigPrefs,
+  forceUpdate: Boolean,
   @Inject logger: Logger,
   @Inject remote: MinirigRemote
 ) {
   remote.withMinirig(address) {
-    log { "${device.debugName()} apply config $prefs" }
+    log { "${device.debugName()} apply config $prefs force $forceUpdate" }
 
     val currentConfig = readMinirigConfig()
 
@@ -92,7 +107,7 @@ private suspend fun applyConfig(
       val finalValue = value.toMinirigFormat()
 
       // only write if the value has changed
-      if (currentConfig[key] != value) {
+      if (forceUpdate || currentConfig[key] != value) {
         log { "${device.debugName()} update $finalKey -> $finalValue current was ${currentConfig[key]}" }
         send("q p $finalKey $finalValue")
       }

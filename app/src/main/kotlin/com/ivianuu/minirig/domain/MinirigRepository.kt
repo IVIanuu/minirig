@@ -10,7 +10,6 @@ import com.ivianuu.essentials.catch
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.permission.PermissionState
 import com.ivianuu.essentials.time.seconds
-import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
 import com.ivianuu.injekt.android.SystemService
 import com.ivianuu.injekt.common.Scoped
@@ -19,6 +18,7 @@ import com.ivianuu.injekt.coroutines.NamedCoroutineScope
 import com.ivianuu.minirig.data.Minirig
 import com.ivianuu.minirig.data.MinirigState
 import com.ivianuu.minirig.data.PowerState
+import com.ivianuu.minirig.data.TwsState
 import com.ivianuu.minirig.data.isMinirig
 import com.ivianuu.minirig.data.toMinirig
 import kotlinx.coroutines.delay
@@ -106,7 +106,7 @@ import kotlinx.coroutines.withTimeoutOrNull
     )
   }
 
-  private suspend fun readMinirigState(address: String, @Inject logger: Logger): MinirigState =
+  private suspend fun readMinirigState(address: String): MinirigState =
     remote.withMinirig(address) {
       // sending this message triggers the state output
       catch { send("B") }
@@ -127,6 +127,7 @@ import kotlinx.coroutines.withTimeoutOrNull
       catch { send("x") }
 
       var powerState = PowerState.NORMAL
+      var twsState = TwsState.NONE
 
       withTimeoutOrNull(PingPongTimeout) {
         val status = messages
@@ -139,12 +140,21 @@ import kotlinx.coroutines.withTimeoutOrNull
             else -> PowerState.NORMAL
           }
         }
+
+        if (status.length >= 7) {
+          twsState = when (status.substring(5, 7)) {
+            "30" -> TwsState.SLAVE
+            "31" -> TwsState.MASTER
+            else -> TwsState.NONE
+          }
+        }
       }
 
       return@withMinirig MinirigState(
         isConnected = true,
         batteryPercentage = batteryPercentage,
-        powerState = powerState
+        powerState = powerState,
+        twsState = twsState
       )
     } ?: MinirigState(isConnected = false)
 }

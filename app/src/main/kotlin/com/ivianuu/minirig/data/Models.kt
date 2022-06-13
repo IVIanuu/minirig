@@ -41,9 +41,16 @@ fun Minirig.debugName() = "[$name ~ $address]"
 data class MinirigState(
   val isConnected: Boolean = false,
   val batteryPercentage: Float? = null,
-  val powerState: PowerState = PowerState.NORMAL
+  val powerState: PowerState = PowerState.NORMAL,
+  val twsState: TwsState = TwsState.NONE
 )
 
 enum class PowerState {
   NORMAL, CHARGING
+}
+
+enum class TwsState {
+  NONE,
+  MASTER,
+  SLAVE
 }
