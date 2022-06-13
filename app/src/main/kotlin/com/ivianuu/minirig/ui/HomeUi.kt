@@ -158,7 +158,7 @@ import kotlinx.coroutines.flow.map
             .interactive(bassBoostEnabled),
           value = bassBoost,
           onValueChange = updateBassBoost,
-          valueRange = 0..10,
+          valueRange = 0..7,
           title = { Text("Bass boost") },
           valueText = { Text(it.toString()) }
         )
