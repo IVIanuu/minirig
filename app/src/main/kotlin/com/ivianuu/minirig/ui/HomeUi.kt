@@ -153,12 +153,14 @@ import kotlinx.coroutines.flow.map
       }
 
       item {
-        SwitchListItem(
+        SliderListItem(
           modifier = Modifier
             .interactive(bassBoostEnabled),
           value = bassBoost,
           onValueChange = updateBassBoost,
-          title = { Text("Bass boost") }
+          title = { Text("Bass boost") },
+          stepPolicy = incrementingStepPolicy(0.1f),
+          valueText = { ScaledPercentageUnitText(it) }
         )
       }
 
@@ -260,8 +262,8 @@ data class HomeModel(
   val updateMinirigGain: (Float) -> Unit,
   val auxGain: Float,
   val updateAuxGain: (Float) -> Unit,
-  val bassBoost: Boolean,
-  val updateBassBoost: (Boolean) -> Unit,
+  val bassBoost: Float,
+  val updateBassBoost: (Float) -> Unit,
   val loud: Boolean,
   val updateLoud: (Boolean) -> Unit,
   val mono: Boolean,
