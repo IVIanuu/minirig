@@ -149,6 +149,16 @@ private suspend fun applyConfig(
     updateEqBandIfNeeded(3, prefs.band3)
     updateEqBandIfNeeded(4, prefs.band4)
     updateEqBandIfNeeded(5, prefs.band5)
+
+    updateConfigIfNeeded(
+      14,
+      ((1f - prefs.channel.getOrElse(address) { 0.5f }) * 99).toInt()
+    )
+
+    updateConfigIfNeeded(
+      15,
+      ((1f - prefs.auxChannel.getOrElse(address) { 0.5f }) * 99).toInt()
+    )
   }
 }
 

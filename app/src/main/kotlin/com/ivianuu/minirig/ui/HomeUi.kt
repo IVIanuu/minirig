@@ -35,7 +35,9 @@ import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.material.incrementingStepPolicy
 import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.ModelKeyUi
+import com.ivianuu.essentials.ui.navigation.Navigator
 import com.ivianuu.essentials.ui.navigation.RootKey
+import com.ivianuu.essentials.ui.navigation.push
 import com.ivianuu.essentials.ui.popup.PopupMenu
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.prefs.ScaledPercentageUnitText
@@ -216,6 +218,9 @@ private fun Minirig(minirig: UiMinirig, model: HomeModel) {
     trailing = {
       PopupMenuButton(
         items = listOf(
+          PopupMenu.Item(onSelected = { model.channelSettings(minirig) }) {
+            Text("Channel settings")
+          },
           PopupMenu.Item(onSelected = { model.twsPair(minirig) }) {
             Text("Tws pair")
           },
@@ -248,6 +253,7 @@ data class HomeModel(
   val cancelTws: (UiMinirig) -> Unit,
   val powerOff: (UiMinirig) -> Unit,
   val factoryReset: (UiMinirig) -> Unit,
+  val channelSettings: (UiMinirig) -> Unit,
   val band1: Float,
   val updateBand1: (Float) -> Unit,
   val band2: Float,
@@ -276,6 +282,7 @@ data class HomeModel(
 @Provide fun homeModel(
   appForegroundState: Flow<AppForegroundState>,
   minirigRepository: MinirigRepository,
+  navigator: Navigator,
   pref: DataStore<MinirigPrefs>,
   troubleshootingUseCases: TroubleshootingUseCases,
   twsUseCases: TwsUseCases,
@@ -294,11 +301,11 @@ data class HomeModel(
                 minirigRepository.minirigState(minirig.address)
                   .map {
                     UiMinirig(
-                      minirig.address,
-                      minirig.name,
-                      it.isConnected,
-                      (it.batteryPercentage?.let { it * 100 })?.toInt(),
-                      it.powerState
+                      address = minirig.address,
+                      name = minirig.name,
+                      isConnected = it.isConnected,
+                      batteryPercentage = (it.batteryPercentage?.let { it * 100 })?.toInt(),
+                      powerState = it.powerState
                     )
                   }
               }
@@ -315,6 +322,7 @@ data class HomeModel(
     twsPair = action { minirig -> twsUseCases.twsPair(minirig.address) },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
     factoryReset = action { minirig -> troubleshootingUseCases.factoryReset(minirig.address) },
+    channelSettings = action { minirig -> navigator.push(ChannelKey(minirig.address)) },
     band1 = prefs.band1,
     updateBand1 = action { value -> pref.updateData { copy(band1 = value) } },
     band2 = prefs.band2,
