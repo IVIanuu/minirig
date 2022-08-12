@@ -28,6 +28,7 @@ import com.ivianuu.essentials.state.bind
 import com.ivianuu.essentials.state.bindResource
 import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.common.interactive
+import com.ivianuu.essentials.ui.dialog.TextInputKey
 import com.ivianuu.essentials.ui.material.ListItem
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Subheader
@@ -35,16 +36,21 @@ import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.material.incrementingStepPolicy
 import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.ModelKeyUi
+import com.ivianuu.essentials.ui.navigation.Navigator
 import com.ivianuu.essentials.ui.navigation.RootKey
+import com.ivianuu.essentials.ui.navigation.push
 import com.ivianuu.essentials.ui.popup.PopupMenu
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.prefs.ScaledPercentageUnitText
 import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
+import com.ivianuu.essentials.util.Toaster
+import com.ivianuu.essentials.util.showToast
 import com.ivianuu.injekt.Provide
 import com.ivianuu.minirig.data.MinirigPrefs
 import com.ivianuu.minirig.data.PowerState
 import com.ivianuu.minirig.domain.LinkupUseCases
+import com.ivianuu.minirig.domain.MinirigRemote
 import com.ivianuu.minirig.domain.MinirigRepository
 import com.ivianuu.minirig.domain.TroubleshootingUseCases
 import kotlinx.coroutines.flow.Flow
@@ -228,6 +234,9 @@ private fun Minirig(minirig: UiMinirig, model: HomeModel) {
           PopupMenu.Item(onSelected = { model.cancelLinkup(minirig) }) {
             Text("Cancel linkup")
           },
+          PopupMenu.Item(onSelected = { model.sendCommand(minirig) }) {
+            Text("Send command")
+          },
           PopupMenu.Item(onSelected = { model.powerOff(minirig) }) {
             Text("Power off")
           },
@@ -254,6 +263,7 @@ data class HomeModel(
   val startLinkup: (UiMinirig) -> Unit,
   val joinLinkup: (UiMinirig) -> Unit,
   val cancelLinkup: (UiMinirig) -> Unit,
+  val sendCommand: (UiMinirig) -> Unit,
   val powerOff: (UiMinirig) -> Unit,
   val factoryReset: (UiMinirig) -> Unit,
   val band1: Float,
@@ -284,10 +294,13 @@ data class HomeModel(
 @Provide fun homeModel(
   appForegroundState: Flow<AppForegroundState>,
   minirigRepository: MinirigRepository,
+  navigator: Navigator,
   pref: DataStore<MinirigPrefs>,
+  remote: MinirigRemote,
   troubleshootingUseCases: TroubleshootingUseCases,
   linkupUseCases: LinkupUseCases,
-  logger: Logger
+  logger: Logger,
+  toaster: Toaster
 ) = Model {
   val minirigs = appForegroundState
     .flatMapLatest { foregroundState ->
@@ -320,6 +333,15 @@ data class HomeModel(
   HomeModel(
     minirigs = minirigs,
     twsPair = action { minirig -> linkupUseCases.twsPair(minirig.address) },
+    sendCommand = action { minirig ->
+      val command = navigator.push(
+        TextInputKey(label = "Command..")
+      ) ?: return@action
+      remote.withMinirig(minirig.address) {
+        send(command)
+        showToast("Sent \"$command\"")
+      }
+    },
     startLinkup = action { minirig -> linkupUseCases.startLinkup(minirig.address) },
     joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },
     cancelLinkup = action { minirig -> linkupUseCases.cancelLinkup(minirig.address) },
