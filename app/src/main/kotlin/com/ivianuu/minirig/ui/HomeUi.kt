@@ -44,9 +44,9 @@ import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.injekt.Provide
 import com.ivianuu.minirig.data.MinirigPrefs
 import com.ivianuu.minirig.data.PowerState
+import com.ivianuu.minirig.domain.LinkupUseCases
 import com.ivianuu.minirig.domain.MinirigRepository
 import com.ivianuu.minirig.domain.TroubleshootingUseCases
-import com.ivianuu.minirig.domain.TwsUseCases
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -219,8 +219,14 @@ private fun Minirig(minirig: UiMinirig, model: HomeModel) {
           PopupMenu.Item(onSelected = { model.twsPair(minirig) }) {
             Text("Tws pair")
           },
-          PopupMenu.Item(onSelected = { model.cancelTws(minirig) }) {
-            Text("Cancel tws")
+          PopupMenu.Item(onSelected = { model.startLinkup(minirig) }) {
+            Text("Start linkup")
+          },
+          PopupMenu.Item(onSelected = { model.joinLinkup(minirig) }) {
+            Text("Join linkup")
+          },
+          PopupMenu.Item(onSelected = { model.cancelLinkup(minirig) }) {
+            Text("Cancel linkup")
           },
           PopupMenu.Item(onSelected = { model.powerOff(minirig) }) {
             Text("Power off")
@@ -245,7 +251,9 @@ data class UiMinirig(
 data class HomeModel(
   val minirigs: Resource<List<UiMinirig>>,
   val twsPair: (UiMinirig) -> Unit,
-  val cancelTws: (UiMinirig) -> Unit,
+  val startLinkup: (UiMinirig) -> Unit,
+  val joinLinkup: (UiMinirig) -> Unit,
+  val cancelLinkup: (UiMinirig) -> Unit,
   val powerOff: (UiMinirig) -> Unit,
   val factoryReset: (UiMinirig) -> Unit,
   val band1: Float,
@@ -278,7 +286,7 @@ data class HomeModel(
   minirigRepository: MinirigRepository,
   pref: DataStore<MinirigPrefs>,
   troubleshootingUseCases: TroubleshootingUseCases,
-  twsUseCases: TwsUseCases,
+  linkupUseCases: LinkupUseCases,
   logger: Logger
 ) = Model {
   val minirigs = appForegroundState
@@ -311,8 +319,10 @@ data class HomeModel(
 
   HomeModel(
     minirigs = minirigs,
-    cancelTws = action { minirig -> twsUseCases.cancelTws(minirig.address) },
-    twsPair = action { minirig -> twsUseCases.twsPair(minirig.address) },
+    twsPair = action { minirig -> linkupUseCases.twsPair(minirig.address) },
+    startLinkup = action { minirig -> linkupUseCases.startLinkup(minirig.address) },
+    joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },
+    cancelLinkup = action { minirig -> linkupUseCases.cancelLinkup(minirig.address) },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
     factoryReset = action { minirig -> troubleshootingUseCases.factoryReset(minirig.address) },
     band1 = prefs.band1,
