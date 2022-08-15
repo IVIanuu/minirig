@@ -44,6 +44,7 @@ import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.prefs.ScaledPercentageUnitText
 import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
+import com.ivianuu.essentials.util.Toaster
 import com.ivianuu.essentials.util.showToast
 import com.ivianuu.injekt.Provide
 import com.ivianuu.minirig.data.MinirigPrefs
@@ -284,13 +285,14 @@ data class HomeModel(
 
 @Provide fun homeModel(
   appForegroundState: Flow<AppForegroundState>,
+  logger: Logger,
   minirigRepository: MinirigRepository,
   navigator: Navigator,
   pref: DataStore<MinirigPrefs>,
   remote: MinirigRemote,
+  toaster: Toaster,
   troubleshootingUseCases: TroubleshootingUseCases,
-  twsUseCases: TwsUseCases,
-  logger: Logger
+  twsUseCases: TwsUseCases
 ) = Model {
   val minirigs = appForegroundState
     .flatMapLatest { foregroundState ->
