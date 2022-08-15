@@ -44,15 +44,14 @@ import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.prefs.ScaledPercentageUnitText
 import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
-import com.ivianuu.essentials.util.Toaster
 import com.ivianuu.essentials.util.showToast
 import com.ivianuu.injekt.Provide
 import com.ivianuu.minirig.data.MinirigPrefs
 import com.ivianuu.minirig.data.PowerState
-import com.ivianuu.minirig.domain.LinkupUseCases
 import com.ivianuu.minirig.domain.MinirigRemote
 import com.ivianuu.minirig.domain.MinirigRepository
 import com.ivianuu.minirig.domain.TroubleshootingUseCases
+import com.ivianuu.minirig.domain.TwsUseCases
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -225,14 +224,8 @@ private fun Minirig(minirig: UiMinirig, model: HomeModel) {
           PopupMenu.Item(onSelected = { model.twsPair(minirig) }) {
             Text("Tws pair")
           },
-          PopupMenu.Item(onSelected = { model.startLinkup(minirig) }) {
-            Text("Start linkup")
-          },
-          PopupMenu.Item(onSelected = { model.joinLinkup(minirig) }) {
-            Text("Join linkup")
-          },
-          PopupMenu.Item(onSelected = { model.cancelLinkup(minirig) }) {
-            Text("Cancel linkup")
+          PopupMenu.Item(onSelected = { model.cancelTws(minirig) }) {
+            Text("Cancel tws")
           },
           PopupMenu.Item(onSelected = { model.sendCommand(minirig) }) {
             Text("Send command")
@@ -260,9 +253,7 @@ data class UiMinirig(
 data class HomeModel(
   val minirigs: Resource<List<UiMinirig>>,
   val twsPair: (UiMinirig) -> Unit,
-  val startLinkup: (UiMinirig) -> Unit,
-  val joinLinkup: (UiMinirig) -> Unit,
-  val cancelLinkup: (UiMinirig) -> Unit,
+  val cancelTws: (UiMinirig) -> Unit,
   val sendCommand: (UiMinirig) -> Unit,
   val powerOff: (UiMinirig) -> Unit,
   val factoryReset: (UiMinirig) -> Unit,
@@ -298,9 +289,8 @@ data class HomeModel(
   pref: DataStore<MinirigPrefs>,
   remote: MinirigRemote,
   troubleshootingUseCases: TroubleshootingUseCases,
-  linkupUseCases: LinkupUseCases,
-  logger: Logger,
-  toaster: Toaster
+  twsUseCases: TwsUseCases,
+  logger: Logger
 ) = Model {
   val minirigs = appForegroundState
     .flatMapLatest { foregroundState ->
@@ -315,11 +305,11 @@ data class HomeModel(
                 minirigRepository.minirigState(minirig.address)
                   .map {
                     UiMinirig(
-                      minirig.address,
-                      minirig.name,
-                      it.isConnected,
-                      (it.batteryPercentage?.let { it * 100 })?.toInt(),
-                      it.powerState
+                      address = minirig.address,
+                      name = minirig.name,
+                      isConnected = it.isConnected,
+                      batteryPercentage = (it.batteryPercentage?.let { it * 100 })?.toInt(),
+                      powerState = it.powerState
                     )
                   }
               }
@@ -332,7 +322,8 @@ data class HomeModel(
 
   HomeModel(
     minirigs = minirigs,
-    twsPair = action { minirig -> linkupUseCases.twsPair(minirig.address) },
+    twsPair = action { minirig -> twsUseCases.twsPair(minirig.address) },
+    cancelTws = action { minirig -> twsUseCases.cancelTws(minirig.address) },
     sendCommand = action { minirig ->
       val command = navigator.push(
         TextInputKey(label = "Command..")
@@ -342,9 +333,6 @@ data class HomeModel(
         showToast("Sent \"$command\"")
       }
     },
-    startLinkup = action { minirig -> linkupUseCases.startLinkup(minirig.address) },
-    joinLinkup = action { minirig -> linkupUseCases.joinLinkup(minirig.address) },
-    cancelLinkup = action { minirig -> linkupUseCases.cancelLinkup(minirig.address) },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
     factoryReset = action { minirig -> troubleshootingUseCases.factoryReset(minirig.address) },
     band1 = prefs.band1,
