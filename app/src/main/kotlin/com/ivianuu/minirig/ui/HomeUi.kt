@@ -26,13 +26,11 @@ import com.ivianuu.essentials.resource.getOrNull
 import com.ivianuu.essentials.state.action
 import com.ivianuu.essentials.state.bind
 import com.ivianuu.essentials.state.bindResource
-import com.ivianuu.essentials.ui.common.VerticalList
+import com.ivianuu.essentials.ui.common.SimpleListScreen
 import com.ivianuu.essentials.ui.common.interactive
 import com.ivianuu.essentials.ui.dialog.TextInputKey
 import com.ivianuu.essentials.ui.material.ListItem
-import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Subheader
-import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.material.incrementingStepPolicy
 import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.ModelKeyUi
@@ -62,129 +60,127 @@ import kotlinx.coroutines.flow.map
 @Provide object HomeKey : RootKey
 
 @Provide val homeUi = ModelKeyUi<HomeKey, HomeModel> {
-  Scaffold(topBar = { TopAppBar(title = { Text("Minirig") }) }) {
-    val minirigs = minirigs.getOrNull() ?: emptyList()
+  val minirigs = minirigs.getOrNull() ?: emptyList()
 
-    VerticalList {
+  SimpleListScreen("Minirig") {
+    item {
+      Subheader { Text("Minirigs") }
+    }
+
+    if (minirigs.isEmpty()) {
       item {
-        Subheader { Text("Minirigs") }
-      }
-
-      if (minirigs.isEmpty()) {
-        item {
-          Text(
-            modifier = Modifier.padding(16.dp),
-            text = "No minirigs found"
-          )
-        }
-      } else {
-        // todo remove address in a future compose version
-        items(minirigs, key = { it.address }) {
-          Minirig(it, this@ModelKeyUi)
-        }
-      }
-
-      item {
-        Subheader { Text("Settings") }
-      }
-
-      item {
-        SliderListItem(
-          value = band1,
-          onValueChange = updateBand1,
-          title = { Text("70Hz") },
-          stepPolicy = incrementingStepPolicy(0.05f),
-          valueText = { ScaledPercentageUnitText(it) }
+        Text(
+          modifier = Modifier.padding(16.dp),
+          text = "No minirigs found"
         )
       }
-
-      item {
-        SliderListItem(
-          value = band2,
-          onValueChange = updateBand2,
-          title = { Text("250Hz") },
-          stepPolicy = incrementingStepPolicy(0.05f),
-          valueText = { ScaledPercentageUnitText(it) }
-        )
+    } else {
+      // todo remove address in a future compose version
+      items(minirigs, key = { it.address }) {
+        Minirig(it, this@ModelKeyUi)
       }
+    }
 
-      item {
-        SliderListItem(
-          value = band3,
-          onValueChange = updateBand3,
-          title = { Text("850Hz") },
-          stepPolicy = incrementingStepPolicy(0.05f),
-          valueText = { ScaledPercentageUnitText(it) }
-        )
-      }
+    item {
+      Subheader { Text("Settings") }
+    }
 
-      item {
-        SliderListItem(
-          value = band4,
-          onValueChange = updateBand4,
-          title = { Text("3KHz") },
-          stepPolicy = incrementingStepPolicy(0.05f),
-          valueText = { ScaledPercentageUnitText(it) }
-        )
-      }
+    item {
+      SliderListItem(
+        value = band1,
+        onValueChange = updateBand1,
+        title = { Text("70Hz") },
+        stepPolicy = incrementingStepPolicy(0.05f),
+        valueText = { ScaledPercentageUnitText(it) }
+      )
+    }
 
-      item {
-        SliderListItem(
-          value = band5,
-          onValueChange = updateBand5,
-          title = { Text("10.5KHz") },
-          stepPolicy = incrementingStepPolicy(0.05f),
-          valueText = { ScaledPercentageUnitText(it) }
-        )
-      }
+    item {
+      SliderListItem(
+        value = band2,
+        onValueChange = updateBand2,
+        title = { Text("250Hz") },
+        stepPolicy = incrementingStepPolicy(0.05f),
+        valueText = { ScaledPercentageUnitText(it) }
+      )
+    }
 
-      item {
-        SliderListItem(
-          value = minirigGain,
-          onValueChange = updateMinirigGain,
-          title = { Text("Minirig gain") },
-          stepPolicy = incrementingStepPolicy(0.1f),
-          valueText = { ScaledPercentageUnitText(it) }
-        )
-      }
+    item {
+      SliderListItem(
+        value = band3,
+        onValueChange = updateBand3,
+        title = { Text("850Hz") },
+        stepPolicy = incrementingStepPolicy(0.05f),
+        valueText = { ScaledPercentageUnitText(it) }
+      )
+    }
 
-      item {
-        SliderListItem(
-          value = auxGain,
-          onValueChange = updateAuxGain,
-          title = { Text("Aux gain") },
-          stepPolicy = incrementingStepPolicy(0.1f),
-          valueText = { ScaledPercentageUnitText(it) }
-        )
-      }
+    item {
+      SliderListItem(
+        value = band4,
+        onValueChange = updateBand4,
+        title = { Text("3KHz") },
+        stepPolicy = incrementingStepPolicy(0.05f),
+        valueText = { ScaledPercentageUnitText(it) }
+      )
+    }
 
-      item {
-        SliderListItem(
-          modifier = Modifier
-            .interactive(bassBoostEnabled),
-          value = bassBoost,
-          onValueChange = updateBassBoost,
-          valueRange = 0..7,
-          title = { Text("Bass boost") },
-          valueText = { Text(it.toString()) }
-        )
-      }
+    item {
+      SliderListItem(
+        value = band5,
+        onValueChange = updateBand5,
+        title = { Text("10.5KHz") },
+        stepPolicy = incrementingStepPolicy(0.05f),
+        valueText = { ScaledPercentageUnitText(it) }
+      )
+    }
 
-      item {
-        SwitchListItem(
-          value = loud,
-          onValueChange = updateLoud,
-          title = { Text("Loud") }
-        )
-      }
+    item {
+      SliderListItem(
+        value = minirigGain,
+        onValueChange = updateMinirigGain,
+        title = { Text("Minirig gain") },
+        stepPolicy = incrementingStepPolicy(0.1f),
+        valueText = { ScaledPercentageUnitText(it) }
+      )
+    }
 
-      item {
-        SwitchListItem(
-          value = mono,
-          onValueChange = updateMono,
-          title = { Text("Mono") }
-        )
-      }
+    item {
+      SliderListItem(
+        value = auxGain,
+        onValueChange = updateAuxGain,
+        title = { Text("Aux gain") },
+        stepPolicy = incrementingStepPolicy(0.1f),
+        valueText = { ScaledPercentageUnitText(it) }
+      )
+    }
+
+    item {
+      SliderListItem(
+        modifier = Modifier
+          .interactive(bassBoostEnabled),
+        value = bassBoost,
+        onValueChange = updateBassBoost,
+        valueRange = 0..7,
+        title = { Text("Bass boost") },
+        valueText = { Text(it.toString()) }
+      )
+    }
+
+    item {
+      SwitchListItem(
+        value = loud,
+        onValueChange = updateLoud,
+        title = { Text("Loud") }
+      )
+    }
+
+    item {
+      SwitchListItem(
+        value = mono,
+        onValueChange = updateMono,
+        title = { Text("Mono") }
+      )
     }
   }
 }
