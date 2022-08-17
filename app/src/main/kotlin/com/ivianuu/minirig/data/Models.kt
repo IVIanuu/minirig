@@ -23,11 +23,6 @@ fun BluetoothDevice.debugName() = "[${alias ?: name} ~ $address]"
 fun Minirig.debugName() = "[$name ~ $address]"
 
 @Serializable data class MinirigPrefs(
-  val band1: Float = 0.5f,
-  val band2: Float = 0.5f,
-  val band3: Float = 0.5f,
-  val band4: Float = 0.5f,
-  val band5: Float = 0.5f,
   val minirigGain: Float = 1f,
   val auxGain: Float = 1f,
   val bassBoost: Int = 7,
