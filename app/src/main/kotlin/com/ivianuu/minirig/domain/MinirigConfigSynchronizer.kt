@@ -134,6 +134,21 @@ private suspend fun applyConfig(
       if (!prefs.loud) prefs.bassBoost else 0
     )
     updateConfigIfNeeded(12, if (prefs.loud) 1 else 0)
+
+    suspend fun updateEqBandIfNeeded(key: Int, value: Float) {
+      updateConfigIfNeeded(
+        key,
+        (value * 100)
+          .toInt()
+          .coerceIn(1, 99)
+      )
+    }
+
+    updateEqBandIfNeeded(1, prefs.band1)
+    updateEqBandIfNeeded(2, prefs.band2)
+    updateEqBandIfNeeded(3, prefs.band3)
+    updateEqBandIfNeeded(4, prefs.band4)
+    updateEqBandIfNeeded(5, prefs.band5)
   }
 }
 
