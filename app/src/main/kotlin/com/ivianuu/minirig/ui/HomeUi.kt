@@ -124,14 +124,6 @@ import kotlinx.coroutines.flow.map
         title = { Text("Loud") }
       )
     }
-
-    item {
-      SwitchListItem(
-        value = mono,
-        onValueChange = updateMono,
-        title = { Text("Mono") }
-      )
-    }
   }
 }
 
@@ -211,9 +203,7 @@ data class HomeModel(
   val bassBoost: Int,
   val updateBassBoost: (Int) -> Unit,
   val loud: Boolean,
-  val updateLoud: (Boolean) -> Unit,
-  val mono: Boolean,
-  val updateMono: (Boolean) -> Unit
+  val updateLoud: (Boolean) -> Unit
 ) {
   val bassBoostEnabled: Boolean
     get() = !loud
@@ -280,8 +270,6 @@ data class HomeModel(
     bassBoost = prefs.bassBoost,
     updateBassBoost = action { value -> pref.updateData { copy(bassBoost = value) } },
     loud = prefs.loud,
-    updateLoud = action { value -> pref.updateData { copy(loud = value) } },
-    mono = prefs.mono,
-    updateMono = action { value -> pref.updateData { copy(mono = value) } }
+    updateLoud = action { value -> pref.updateData { copy(loud = value) } }
   )
 }
