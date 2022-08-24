@@ -6,7 +6,7 @@ package com.ivianuu.minirig.domain
 
 import com.ivianuu.injekt.Provide
 
-@Provide class MinirigUsecases(private val remote: MinirigRemote) {
+@Provide class MinirigUseCases(private val remote: MinirigRemote) {
   suspend fun twsPair(address: String) = remote.withMinirig(address) {
     send("P")
   }

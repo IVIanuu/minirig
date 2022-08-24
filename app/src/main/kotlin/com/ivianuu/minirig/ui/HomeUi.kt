@@ -49,7 +49,7 @@ import com.ivianuu.minirig.data.MinirigPrefs
 import com.ivianuu.minirig.data.PowerState
 import com.ivianuu.minirig.domain.MinirigRemote
 import com.ivianuu.minirig.domain.MinirigRepository
-import com.ivianuu.minirig.domain.MinirigUsecases
+import com.ivianuu.minirig.domain.MinirigUseCases
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -212,7 +212,7 @@ data class HomeModel(
   appForegroundState: Flow<AppForegroundState>,
   logger: Logger,
   minirigRepository: MinirigRepository,
-  minirigUseCases: MinirigUsecases,
+  minirigUseCases: MinirigUseCases,
   navigator: Navigator,
   pref: DataStore<MinirigPrefs>,
   remote: MinirigRemote,
