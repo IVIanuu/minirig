@@ -49,8 +49,7 @@ import com.ivianuu.minirig.data.MinirigPrefs
 import com.ivianuu.minirig.data.PowerState
 import com.ivianuu.minirig.domain.MinirigRemote
 import com.ivianuu.minirig.domain.MinirigRepository
-import com.ivianuu.minirig.domain.TroubleshootingUseCases
-import com.ivianuu.minirig.domain.TwsUseCases
+import com.ivianuu.minirig.domain.MinirigUsecases
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -213,12 +212,11 @@ data class HomeModel(
   appForegroundState: Flow<AppForegroundState>,
   logger: Logger,
   minirigRepository: MinirigRepository,
+  minirigUseCases: MinirigUsecases,
   navigator: Navigator,
   pref: DataStore<MinirigPrefs>,
   remote: MinirigRemote,
-  toaster: Toaster,
-  troubleshootingUseCases: TroubleshootingUseCases,
-  twsUseCases: TwsUseCases
+  toaster: Toaster
 ) = Model {
   val minirigs = appForegroundState
     .flatMapLatest { foregroundState ->
@@ -250,8 +248,8 @@ data class HomeModel(
 
   HomeModel(
     minirigs = minirigs,
-    twsPair = action { minirig -> twsUseCases.twsPair(minirig.address) },
-    cancelTws = action { minirig -> twsUseCases.cancelTws(minirig.address) },
+    twsPair = action { minirig -> minirigUseCases.twsPair(minirig.address) },
+    cancelTws = action { minirig -> minirigUseCases.cancelTws(minirig.address) },
     sendCommand = action { minirig ->
       val command = navigator.push(
         TextInputKey(label = "Command..")
@@ -261,8 +259,8 @@ data class HomeModel(
         showToast("Sent \"$command\"")
       }
     },
-    powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
-    factoryReset = action { minirig -> troubleshootingUseCases.factoryReset(minirig.address) },
+    powerOff = action { minirig -> minirigUseCases.powerOff(minirig.address) },
+    factoryReset = action { minirig -> minirigUseCases.factoryReset(minirig.address) },
     minirigGain = prefs.minirigGain,
     updateMinirigGain = action { value -> pref.updateData { copy(minirigGain = value) } },
     auxGain = prefs.auxGain,
