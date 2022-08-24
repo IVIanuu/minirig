@@ -87,56 +87,6 @@ import kotlinx.coroutines.flow.map
 
     item {
       SliderListItem(
-        value = band1,
-        onValueChange = updateBand1,
-        title = { Text("70Hz") },
-        stepPolicy = incrementingStepPolicy(0.05f),
-        valueText = { ScaledPercentageUnitText(it) }
-      )
-    }
-
-    item {
-      SliderListItem(
-        value = band2,
-        onValueChange = updateBand2,
-        title = { Text("250Hz") },
-        stepPolicy = incrementingStepPolicy(0.05f),
-        valueText = { ScaledPercentageUnitText(it) }
-      )
-    }
-
-    item {
-      SliderListItem(
-        value = band3,
-        onValueChange = updateBand3,
-        title = { Text("850Hz") },
-        stepPolicy = incrementingStepPolicy(0.05f),
-        valueText = { ScaledPercentageUnitText(it) }
-      )
-    }
-
-    item {
-      SliderListItem(
-        value = band4,
-        onValueChange = updateBand4,
-        title = { Text("3KHz") },
-        stepPolicy = incrementingStepPolicy(0.05f),
-        valueText = { ScaledPercentageUnitText(it) }
-      )
-    }
-
-    item {
-      SliderListItem(
-        value = band5,
-        onValueChange = updateBand5,
-        title = { Text("10.5KHz") },
-        stepPolicy = incrementingStepPolicy(0.05f),
-        valueText = { ScaledPercentageUnitText(it) }
-      )
-    }
-
-    item {
-      SliderListItem(
         value = minirigGain,
         onValueChange = updateMinirigGain,
         title = { Text("Minirig gain") },
@@ -254,16 +204,6 @@ data class HomeModel(
   val sendCommand: (UiMinirig) -> Unit,
   val powerOff: (UiMinirig) -> Unit,
   val factoryReset: (UiMinirig) -> Unit,
-  val band1: Float,
-  val updateBand1: (Float) -> Unit,
-  val band2: Float,
-  val updateBand2: (Float) -> Unit,
-  val band3: Float,
-  val updateBand3: (Float) -> Unit,
-  val band4: Float,
-  val updateBand4: (Float) -> Unit,
-  val band5: Float,
-  val updateBand5: (Float) -> Unit,
   val minirigGain: Float,
   val updateMinirigGain: (Float) -> Unit,
   val auxGain: Float,
@@ -333,16 +273,6 @@ data class HomeModel(
     },
     powerOff = action { minirig -> troubleshootingUseCases.powerOff(minirig.address) },
     factoryReset = action { minirig -> troubleshootingUseCases.factoryReset(minirig.address) },
-    band1 = prefs.band1,
-    updateBand1 = action { value -> pref.updateData { copy(band1 = value) } },
-    band2 = prefs.band2,
-    updateBand2 = action { value -> pref.updateData { copy(band2 = value) } },
-    band3 = prefs.band3,
-    updateBand3 = action { value -> pref.updateData { copy(band3 = value) } },
-    band4 = prefs.band4,
-    updateBand4 = action { value -> pref.updateData { copy(band4 = value) } },
-    band5 = prefs.band5,
-    updateBand5 = action { value -> pref.updateData { copy(band5 = value) } },
     minirigGain = prefs.minirigGain,
     updateMinirigGain = action { value -> pref.updateData { copy(minirigGain = value) } },
     auxGain = prefs.auxGain,
