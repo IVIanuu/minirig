@@ -150,8 +150,8 @@ class MinirigSocket(
         // the minirig cannot keep with our speed to debounce each write
         sendLimiter.acquire()
 
-        withTimeout(PingPongTimeout) {
-          withContext(scope.coroutineContext) {
+        withContext(scope.coroutineContext) {
+          withTimeout(PingPongTimeout) {
             log { "send ${device.debugName()} -> $message attempt $attempt" }
 
             try {
