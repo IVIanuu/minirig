@@ -11,12 +11,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ivianuu.essentials.AppScope
-import com.ivianuu.essentials.app.AppForegroundState
 import com.ivianuu.essentials.catch
-import com.ivianuu.essentials.coroutines.infiniteEmptyFlow
 import com.ivianuu.essentials.coroutines.par
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.permission.PermissionState
+import com.ivianuu.essentials.state.bind
 import com.ivianuu.essentials.state.state
 import com.ivianuu.essentials.time.seconds
 import com.ivianuu.injekt.Provide
@@ -30,10 +29,11 @@ import com.ivianuu.minirig.data.PowerState
 import com.ivianuu.minirig.data.TwsState
 import com.ivianuu.minirig.data.isMinirig
 import com.ivianuu.minirig.data.toMinirig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
@@ -49,7 +49,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 @Provide @Scoped<AppScope> class MinirigRepository(
-  private val appForegroundState: Flow<AppForegroundState>,
   private val bluetoothManager: @SystemService BluetoothManager,
   private val context: IOContext,
   private val remote: MinirigRemote,
@@ -89,87 +88,10 @@ import kotlinx.coroutines.sync.withLock
     emitAll(
       statesLock.withLock {
         states.getOrPut(address) {
-          scope.state {
-            var batteryPercentage: Float? by remember { mutableStateOf(null) }
-            var powerState by remember { mutableStateOf(PowerState.NORMAL) }
-            var twsState by remember { mutableStateOf(TwsState.NONE) }
-
-            LaunchedEffect(true) {
-              appForegroundState
-                .flatMapLatest {
-                  if (it != AppForegroundState.FOREGROUND) infiniteEmptyFlow()
-                  else merge(
-                    flow<Unit> {
-                      while (true) {
-                        emit(Unit)
-                        delay(5.seconds)
-                      }
-                    },
-                    remote.bondedDeviceChanges()
-                  )
-                }
-                .collect {
-                  remote.withMinirig(address) {
-                    par(
-                      { catch { send("x") } },
-                      { catch { send("B") } }
-                    )
-                  }
-                }
+          flow {
+            coroutineScope {
+              emitAll(minirigStateImpl(address))
             }
-
-            LaunchedEffect(true) {
-              appForegroundState.collectLatest {
-                if (it != AppForegroundState.FOREGROUND) return@collectLatest
-
-                remote.withMinirig(address) {
-                  messages
-                    .filter { it.startsWith("x ") }
-                    .collect { status ->
-                      if (status.length >= 9) {
-                        powerState = when (status.substring(8, 9)) {
-                          "1" -> PowerState.NORMAL
-                          "2" -> PowerState.CHARGING
-                          else -> PowerState.NORMAL
-                        }
-                      }
-
-                      if (status.length >= 7) {
-                        twsState = when (status.substring(5, 7)) {
-                          "30" -> TwsState.SLAVE
-                          "31" -> TwsState.MASTER
-                          else -> TwsState.NONE
-                        }
-                      }
-                    }
-                }
-              }
-            }
-
-            LaunchedEffect(true) {
-              appForegroundState.collectLatest {
-                if (it != AppForegroundState.FOREGROUND) return@collectLatest
-
-                remote.withMinirig(address) {
-                  messages
-                    .filter { it.startsWith("B") }
-                    .collect { message ->
-                      batteryPercentage = message
-                        .removePrefix("B")
-                        .take(5)
-                        .toIntOrNull()
-                        ?.toBatteryPercentage()
-                    }
-                }
-              }
-            }
-
-            MinirigState(
-              isConnected = true,
-              batteryPercentage = batteryPercentage,
-              powerState = powerState,
-              twsState = twsState
-            )
           }
             .shareIn(scope, SharingStarted.WhileSubscribed(), 1)
             .let { sharedFlow ->
@@ -181,6 +103,82 @@ import kotlinx.coroutines.sync.withLock
             }
         }
       }
+    )
+  }
+
+  private fun CoroutineScope.minirigStateImpl(address: String) = state {
+    val isConnected = remote.isConnected(address).bind(false)
+    var batteryPercentage: Float? by remember { mutableStateOf(null) }
+    var powerState by remember { mutableStateOf(PowerState.NORMAL) }
+    var twsState by remember { mutableStateOf(TwsState.NONE) }
+
+    if (!isConnected)
+      return@state MinirigState()
+
+    LaunchedEffect(true) {
+      merge(
+        flow<Unit> {
+          while (true) {
+            emit(Unit)
+            delay(5.seconds)
+          }
+        },
+        remote.bondedDeviceChanges()
+      )
+        .collect {
+          remote.withMinirig(address) {
+            par(
+              { catch { send("x") } },
+              { catch { send("B") } }
+            )
+          }
+        }
+    }
+
+    LaunchedEffect(true) {
+      remote.withMinirig(address) {
+        par(
+          {
+            messages
+              .filter { it.startsWith("x ") }
+              .collect { status ->
+                if (status.length >= 9) {
+                  powerState = when (status.substring(8, 9)) {
+                    "1" -> PowerState.NORMAL
+                    "2" -> PowerState.CHARGING
+                    else -> PowerState.NORMAL
+                  }
+                }
+
+                if (status.length >= 7) {
+                  twsState = when (status.substring(5, 7)) {
+                    "30" -> TwsState.SLAVE
+                    "31" -> TwsState.MASTER
+                    else -> TwsState.NONE
+                  }
+                }
+              }
+          },
+          {
+            messages
+              .filter { it.startsWith("B") }
+              .collect { message ->
+                batteryPercentage = message
+                  .removePrefix("B")
+                  .take(5)
+                  .toIntOrNull()
+                  ?.toBatteryPercentage()
+              }
+          }
+        )
+      }
+    }
+
+    MinirigState(
+      isConnected = true,
+      batteryPercentage = batteryPercentage,
+      powerState = powerState,
+      twsState = twsState
     )
   }
 }
