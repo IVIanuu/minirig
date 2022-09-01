@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.sync.Mutex
@@ -88,32 +89,35 @@ import kotlinx.coroutines.sync.withLock
     emitAll(
       statesLock.withLock {
         states.getOrPut(address) {
+          var initial: MinirigState? = null
           flow {
             coroutineScope {
-              emitAll(minirigStateImpl(address))
+              emitAll(minirigStateImpl(address, initial))
             }
           }
+            .onEach { initial = it }
             .shareIn(scope, SharingStarted.WhileSubscribed(), 1)
-            .let { sharedFlow ->
-              sharedFlow
-                .onStart {
-                  if (sharedFlow.replayCache.isEmpty())
-                    emit(MinirigState(false))
-                }
-            }
         }
       }
     )
   }
 
-  private fun CoroutineScope.minirigStateImpl(address: String) = state {
-    val isConnected = remote.isConnected(address).bind(false)
-    var batteryPercentage: Float? by remember { mutableStateOf(null) }
-    var powerState by remember { mutableStateOf(PowerState.NORMAL) }
-    var twsState by remember { mutableStateOf(TwsState.NONE) }
+  private fun CoroutineScope.minirigStateImpl(
+    address: String,
+    initial: MinirigState?
+  ) = state {
+    val isConnected = remote.isConnected(address).bind(initial?.isConnected ?: false)
+    var batteryPercentage: Float? by remember { mutableStateOf(initial?.batteryPercentage) }
+    var powerState by remember { mutableStateOf(initial?.powerState ?: PowerState.NORMAL) }
+    var twsState by remember { mutableStateOf(initial?.twsState ?: TwsState.NONE) }
 
     if (!isConnected)
-      return@state MinirigState()
+      return@state MinirigState(
+        isConnected = false,
+        batteryPercentage = batteryPercentage,
+        powerState = powerState,
+        twsState = twsState
+      )
 
     LaunchedEffect(true) {
       merge(
