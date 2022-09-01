@@ -11,7 +11,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ivianuu.essentials.AppScope
+import com.ivianuu.essentials.app.AppForegroundState
 import com.ivianuu.essentials.catch
+import com.ivianuu.essentials.coroutines.infiniteEmptyFlow
 import com.ivianuu.essentials.coroutines.par
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.permission.PermissionState
@@ -31,6 +33,7 @@ import com.ivianuu.minirig.data.toMinirig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
@@ -46,6 +49,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 @Provide @Scoped<AppScope> class MinirigRepository(
+  private val appForegroundState: Flow<AppForegroundState>,
   private val bluetoothManager: @SystemService BluetoothManager,
   private val context: IOContext,
   private val remote: MinirigRemote,
@@ -91,15 +95,19 @@ import kotlinx.coroutines.sync.withLock
             var twsState by remember { mutableStateOf(TwsState.NONE) }
 
             LaunchedEffect(true) {
-              merge(
-                flow<Unit> {
-                  while (true) {
-                    emit(Unit)
-                    delay(5.seconds)
-                  }
-                },
-                remote.bondedDeviceChanges()
-              )
+              appForegroundState
+                .flatMapLatest {
+                  if (it != AppForegroundState.FOREGROUND) infiniteEmptyFlow()
+                  else merge(
+                    flow<Unit> {
+                      while (true) {
+                        emit(Unit)
+                        delay(5.seconds)
+                      }
+                    },
+                    remote.bondedDeviceChanges()
+                  )
+                }
                 .collect {
                   remote.withMinirig(address) {
                     par(
@@ -111,40 +119,48 @@ import kotlinx.coroutines.sync.withLock
             }
 
             LaunchedEffect(true) {
-              remote.withMinirig(address) {
-                messages
-                  .filter { it.startsWith("x ") }
-                  .collect { status ->
-                    if (status.length >= 9) {
-                      powerState = when (status.substring(8, 9)) {
-                        "1" -> PowerState.NORMAL
-                        "2" -> PowerState.CHARGING
-                        else -> PowerState.NORMAL
-                      }
-                    }
+              appForegroundState.collectLatest {
+                if (it != AppForegroundState.FOREGROUND) return@collectLatest
 
-                    if (status.length >= 7) {
-                      twsState = when (status.substring(5, 7)) {
-                        "30" -> TwsState.SLAVE
-                        "31" -> TwsState.MASTER
-                        else -> TwsState.NONE
+                remote.withMinirig(address) {
+                  messages
+                    .filter { it.startsWith("x ") }
+                    .collect { status ->
+                      if (status.length >= 9) {
+                        powerState = when (status.substring(8, 9)) {
+                          "1" -> PowerState.NORMAL
+                          "2" -> PowerState.CHARGING
+                          else -> PowerState.NORMAL
+                        }
+                      }
+
+                      if (status.length >= 7) {
+                        twsState = when (status.substring(5, 7)) {
+                          "30" -> TwsState.SLAVE
+                          "31" -> TwsState.MASTER
+                          else -> TwsState.NONE
+                        }
                       }
                     }
-                  }
+                }
               }
             }
 
             LaunchedEffect(true) {
-              remote.withMinirig(address) {
-                messages
-                  .filter { it.startsWith("B") }
-                  .collect { message ->
-                    batteryPercentage = message
-                      .removePrefix("B")
-                      .take(5)
-                      .toIntOrNull()
-                      ?.toBatteryPercentage()
-                  }
+              appForegroundState.collectLatest {
+                if (it != AppForegroundState.FOREGROUND) return@collectLatest
+
+                remote.withMinirig(address) {
+                  messages
+                    .filter { it.startsWith("B") }
+                    .collect { message ->
+                      batteryPercentage = message
+                        .removePrefix("B")
+                        .take(5)
+                        .toIntOrNull()
+                        ?.toBatteryPercentage()
+                    }
+                }
               }
             }
 
