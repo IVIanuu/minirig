@@ -22,7 +22,7 @@ import com.ivianuu.essentials.coroutines.infiniteEmptyFlow
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.resource.Resource
-import com.ivianuu.essentials.resource.getOrNull
+import com.ivianuu.essentials.resource.getOrElse
 import com.ivianuu.essentials.state.action
 import com.ivianuu.essentials.state.bind
 import com.ivianuu.essentials.state.bindResource
@@ -59,7 +59,7 @@ import kotlinx.coroutines.flow.map
 @Provide object HomeKey : RootKey
 
 @Provide val homeUi = ModelKeyUi<HomeKey, HomeModel> {
-  val minirigs = minirigs.getOrNull() ?: emptyList()
+  val minirigs = minirigs.getOrElse { emptyList() }
 
   SimpleListScreen("Minirig") {
     item {
