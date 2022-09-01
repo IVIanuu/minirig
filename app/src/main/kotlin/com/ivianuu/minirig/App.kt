@@ -17,7 +17,5 @@ class App : EsApp() {
     @Providers(
       ".**",
       "com.ivianuu.essentials.logging.AndroidLogger"
-    ) inject(
-
-    )
+    ) inject()
 }
