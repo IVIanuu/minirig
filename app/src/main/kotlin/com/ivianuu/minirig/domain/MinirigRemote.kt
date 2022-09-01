@@ -291,12 +291,8 @@ class MinirigSocket(
             log { "send ${device.debugName()} -> $message attempt $attempt" }
 
             try {
-              measureTimeMillis {
-                withSocket {
-                  outputStream.write(message.toByteArray())
-                }
-              }.let {
-                log { "sent ${device.debugName()} -> $message in ${it}ms" }
+              withSocket {
+                outputStream.write(message.toByteArray())
               }
             } catch (e: IOException) {
               closeCurrentSocket(e)
