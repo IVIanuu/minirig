@@ -6,13 +6,11 @@ package com.ivianuu.minirig.domain
 
 import android.bluetooth.BluetoothManager
 import com.ivianuu.essentials.AppScope
-import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.permission.PermissionState
 import com.ivianuu.injekt.Provide
 import com.ivianuu.injekt.android.SystemService
 import com.ivianuu.injekt.common.Scoped
 import com.ivianuu.injekt.coroutines.IOContext
-import com.ivianuu.injekt.coroutines.NamedCoroutineScope
 import com.ivianuu.minirig.data.Minirig
 import com.ivianuu.minirig.data.isMinirig
 import com.ivianuu.minirig.data.toMinirig
@@ -28,9 +26,7 @@ import kotlinx.coroutines.flow.onStart
   private val bluetoothManager: @SystemService BluetoothManager,
   private val context: IOContext,
   private val remote: MinirigRemote,
-  private val logger: Logger,
-  private val permissionState: Flow<PermissionState<MinirigBluetoothConnectPermission>>,
-  private val scope: NamedCoroutineScope<AppScope>
+  private val permissionState: Flow<PermissionState<MinirigBluetoothConnectPermission>>
 ) {
   val minirigs: Flow<List<Minirig>>
     get() = permissionState
