@@ -50,6 +50,7 @@ import kotlinx.coroutines.withTimeout
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.util.*
+import kotlin.system.measureTimeMillis
 
 @Provide @Scoped<AppScope> class MinirigRemote(
   private val bluetoothManager: @SystemService BluetoothManager,
@@ -155,8 +156,12 @@ class MinirigSocket(
             log { "send ${device.debugName()} -> $message attempt $attempt" }
 
             try {
-              withSocket {
-                outputStream.write(message.toByteArray())
+              measureTimeMillis {
+                withSocket {
+                  outputStream.write(message.toByteArray())
+                }
+              }.let {
+                log { "sent ${device.debugName()} -> $message in ${it}ms" }
               }
             } catch (e: IOException) {
               closeCurrentSocket(e)
@@ -216,9 +221,11 @@ class MinirigSocket(
             var attempt = 0
             while (attempt < 5) {
               try {
-                socket.connect()
+                val duration = measureTimeMillis {
+                  socket.connect()
+                }
                 if (socket.isConnected) {
-                  log { "connected to ${device.debugName()}" }
+                  log { "connected to ${device.debugName()} in ${duration}ms" }
                   break
                 }
               } catch (e: Throwable) {
