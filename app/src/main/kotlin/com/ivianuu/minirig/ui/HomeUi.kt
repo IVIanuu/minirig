@@ -228,7 +228,7 @@ data class HomeModel(
             minirigs
               .sortedBy { it.name }
               .map { minirig ->
-                minirigRepository.minirigState(minirig.address)
+                remote.minirigState(minirig.address)
                   .map {
                     UiMinirig(
                       address = minirig.address,

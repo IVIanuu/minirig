@@ -49,7 +49,7 @@ import kotlinx.coroutines.withTimeoutOrNull
         minirigs.parForEach { minirig ->
           remote.isConnected(minirig.address).collectLatest { isConnected ->
             if (isConnected) {
-              minirigRepository.minirigState(minirig.address)
+              remote.minirigState(minirig.address)
                 .filter { it.twsState == TwsState.MASTER }
                 .debounce(10000)
                 .map { true }
