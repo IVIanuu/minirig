@@ -4,7 +4,6 @@
 
 package com.ivianuu.minirig.domain
 
-import com.github.michaelbull.result.onFailure
 import com.ivianuu.essentials.app.AppForegroundScope
 import com.ivianuu.essentials.app.ScopeWorker
 import com.ivianuu.essentials.catch
@@ -13,6 +12,7 @@ import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.asLog
 import com.ivianuu.essentials.logging.log
+import com.ivianuu.essentials.onFailure
 import com.ivianuu.essentials.util.ToastContext
 import com.ivianuu.essentials.util.showToast
 import com.ivianuu.injekt.Inject
