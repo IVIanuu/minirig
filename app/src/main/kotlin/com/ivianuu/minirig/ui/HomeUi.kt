@@ -5,7 +5,6 @@
 package com.ivianuu.minirig.ui
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
@@ -126,9 +125,7 @@ import kotlinx.coroutines.flow.map
   }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun Minirig(minirig: UiMinirig, model: HomeModel) {
+@Composable private fun Minirig(minirig: UiMinirig, model: HomeModel) {
   ListItem(
     leading = {
       Surface(
