@@ -131,9 +131,10 @@ import kotlin.system.measureTimeMillis
     LaunchedEffect(true) {
       merge(
         flow<Unit> {
+          delay(100)
           while (true) {
             emit(Unit)
-            delay(5.seconds)
+            delay(1.seconds)
           }
         },
         bondedDeviceChanges()
