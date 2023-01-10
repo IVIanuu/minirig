@@ -22,11 +22,27 @@ fun BluetoothDevice.debugName() = "[${alias ?: name} ~ $address]"
 
 fun Minirig.debugName() = "[$name ~ $address]"
 
-@Serializable data class MinirigPrefs(
+@Serializable data class MinirigConfig(
   val minirigGain: Float = 1f,
   val auxGain: Float = 1f,
   val bassBoost: Int = 7,
   val loud: Boolean = false
+)
+
+fun List<MinirigConfig>.merge(): MinirigConfig = when {
+  isEmpty() -> MinirigConfig()
+  size == 1 -> single()
+  else -> MinirigConfig(
+    minirigGain = map { it.minirigGain }.average().toFloat(),
+    auxGain = map { it.auxGain }.average().toFloat(),
+    bassBoost = map { it.bassBoost }.average().toInt(),
+    loud = all { it.loud }
+  )
+}
+
+@Serializable data class MinirigPrefs(
+  val configs: Map<String, MinirigConfig> = emptyMap(),
+  val selectedMinirigs: Set<String> = emptySet()
 ) {
   companion object {
     @Provide val prefModule = DataStoreModule("minirig_prefs") { MinirigPrefs() }

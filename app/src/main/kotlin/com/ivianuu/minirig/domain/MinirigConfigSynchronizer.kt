@@ -18,13 +18,14 @@ import com.ivianuu.essentials.util.showToast
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
 import com.ivianuu.injekt.coroutines.IOContext
+import com.ivianuu.minirig.data.MinirigConfig
 import com.ivianuu.minirig.data.MinirigPrefs
 import com.ivianuu.minirig.data.TwsState
 import com.ivianuu.minirig.data.debugName
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -41,55 +42,56 @@ import kotlinx.coroutines.withTimeoutOrNull
   T: ToastContext
 ) = ScopeWorker<AppForegroundScope> {
   withContext(context) {
-    combine(
-      minirigRepository.minirigs,
-      pref.data
-    ) { minirigs, prefs -> minirigs to prefs }
-      .collectLatest { (minirigs, prefs) ->
-        minirigs.parForEach { minirig ->
-          remote.isConnected(minirig.address).collectLatest { isConnected ->
-            if (isConnected) {
-              remote.minirigState(minirig.address)
-                .filter { it.twsState == TwsState.MASTER }
-                .debounce(10000)
-                .map { true }
-                .onStart { emit(false) }
-                .collectLatest { forceUpdate ->
-                  suspend fun applyConfig(attempt: Int) {
-                    log { "apply config ${minirig.debugName()} attempt $attempt force $forceUpdate" }
-                    if (attempt == 5) {
-                      showToast("Could not apply config to ${minirig.debugName()}")
+    minirigRepository.minirigs.collectLatest { minirigs ->
+      minirigs.parForEach { minirig ->
+        remote.isConnected(minirig.address).collectLatest { isConnected ->
+          if (isConnected) {
+            pref.data
+              .map { it.configs[minirig.address] ?: MinirigConfig() }
+              .distinctUntilChanged()
+              .collectLatest { config ->
+                remote.minirigState(minirig.address)
+                  .filter { it.twsState == TwsState.MASTER }
+                  .debounce(10000)
+                  .map { true }
+                  .onStart { emit(false) }
+                  .collectLatest { forceUpdate ->
+                    suspend fun applyConfig(attempt: Int) {
+                      log { "apply config ${minirig.debugName()} attempt $attempt force $forceUpdate" }
+                      if (attempt == 5) {
+                        showToast("Could not apply config to ${minirig.debugName()}")
+                      }
+
+                      catch {
+                        applyConfig(minirig.address, config, forceUpdate)
+                      }.onFailure {
+                        log { "failed to apply config to ${minirig.debugName()} $attempt -> ${it.asLog()}" }
+                        delay(RetryDelay)
+                        applyConfig(attempt + 1)
+                      }
                     }
 
-                    catch {
-                      applyConfig(minirig.address, prefs, forceUpdate)
-                    }.onFailure {
-                      log { "failed to apply config to ${minirig.debugName()} $attempt -> ${it.asLog()}" }
-                      delay(RetryDelay)
-                      applyConfig(attempt + 1)
-                    }
+                    applyConfig(0)
                   }
-
-                  applyConfig(0)
-                }
-            } else {
-              log { "ignore config changes ${minirig.debugName()}" }
-            }
+              }
+          } else {
+            log { "ignore config changes ${minirig.debugName()}" }
           }
         }
       }
+    }
   }
 }
 
 private suspend fun applyConfig(
   address: String,
-  prefs: MinirigPrefs,
+  config: MinirigConfig,
   forceUpdate: Boolean,
   @Inject logger: Logger,
   @Inject remote: MinirigRemote
 ) {
   remote.withMinirig(address) {
-    log { "${device.debugName()} apply config $prefs force $forceUpdate" }
+    log { "${device.debugName()} apply config $config force $forceUpdate" }
 
     val currentConfig = readMinirigConfig()
 
@@ -116,24 +118,24 @@ private suspend fun applyConfig(
     updateConfigIfNeeded(
       8,
       // > 30 means mutes the minirig
-      if (prefs.minirigGain == 0f) 31
+      if (config.minirigGain == 0f) 31
       // minirig value range is 0..30 and 30 means lowest gain
-      else (30 * (1f - prefs.minirigGain)).toInt()
+      else (30 * (1f - config.minirigGain)).toInt()
     )
 
     updateConfigIfNeeded(
       9,
       // > 10 means mutes the aux device
-      if (prefs.auxGain == 0f) 11
+      if (config.auxGain == 0f) 11
       // minirig value range is 0..10 and 10 means highest gain
-      else (10 * prefs.auxGain).toInt()
+      else (10 * config.auxGain).toInt()
     )
 
     updateConfigIfNeeded(
       7,
-      if (!prefs.loud) prefs.bassBoost else 0
+      if (!config.loud) config.bassBoost else 0
     )
-    updateConfigIfNeeded(12, if (prefs.loud) 1 else 0)
+    updateConfigIfNeeded(12, if (config.loud) 1 else 0)
   }
 }
 
