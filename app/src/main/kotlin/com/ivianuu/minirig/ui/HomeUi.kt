@@ -127,7 +127,7 @@ import kotlinx.coroutines.flow.map
                     buildString {
                       append(minirig.minirig.name)
                       if (minirig.batteryPercentage != null)
-                        append(", bat ${minirig.batteryPercentage}")
+                        append(", bat ${minirig.batteryPercentage}%")
 
                       if (minirig.powerState == PowerState.CHARGING)
                         append(", charging")
