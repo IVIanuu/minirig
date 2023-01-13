@@ -27,27 +27,27 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.flowlayout.FlowRow
 import com.ivianuu.essentials.app.AppForegroundState
+import com.ivianuu.essentials.compose.action
+import com.ivianuu.essentials.compose.bind
+import com.ivianuu.essentials.compose.bindResource
 import com.ivianuu.essentials.coroutines.infiniteEmptyFlow
 import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.resource.Resource
 import com.ivianuu.essentials.resource.getOrNull
-import com.ivianuu.essentials.state.action
-import com.ivianuu.essentials.state.bind
-import com.ivianuu.essentials.state.bindResource
 import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.common.interactive
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.material.guessingContentColorFor
 import com.ivianuu.essentials.ui.material.incrementingStepPolicy
+import com.ivianuu.essentials.ui.navigation.KeyUiContext
 import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.ModelKeyUi
-import com.ivianuu.essentials.ui.navigation.Navigator
 import com.ivianuu.essentials.ui.navigation.RootKey
-import com.ivianuu.essentials.ui.popup.PopupMenu
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
+import com.ivianuu.essentials.ui.popup.PopupMenuItem
 import com.ivianuu.essentials.ui.prefs.ScaledPercentageUnitText
 import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
@@ -61,7 +61,6 @@ import com.ivianuu.minirig.data.merge
 import com.ivianuu.minirig.domain.MinirigRemote
 import com.ivianuu.minirig.domain.MinirigRepository
 import com.ivianuu.minirig.domain.MinirigUseCases
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -75,22 +74,20 @@ import kotlinx.coroutines.flow.map
       TopAppBar(
         title = { Text("Minirig") },
         actions = {
-          PopupMenuButton(
-            items = listOf(
-              PopupMenu.Item(onSelected = twsPair) {
-                Text("Tws pair")
-              },
-              PopupMenu.Item(onSelected = cancelTws) {
-                Text("Cancel tws")
-              },
-              PopupMenu.Item(onSelected = powerOff) {
-                Text("Power off")
-              },
-              PopupMenu.Item(onSelected = factoryReset) {
-                Text("Factory reset")
-              }
-            )
-          )
+          PopupMenuButton {
+            PopupMenuItem(onSelected = twsPair) {
+              Text("Tws pair")
+            }
+            PopupMenuItem(onSelected = cancelTws) {
+              Text("Cancel tws")
+            }
+            PopupMenuItem(onSelected = powerOff) {
+              Text("Power off")
+            }
+            PopupMenuItem(onSelected = factoryReset) {
+              Text("Factory reset")
+            }
+          }
         }
       )
     }
@@ -248,28 +245,22 @@ data class HomeModel(
     get() = !config.loud
 }
 
-@Provide fun homeModel(
-  appForegroundState: Flow<AppForegroundState>,
-  logger: Logger,
-  minirigRepository: MinirigRepository,
-  minirigUseCases: MinirigUseCases,
-  navigator: Navigator,
-  pref: DataStore<MinirigPrefs>,
-  remote: MinirigRemote
-) = Model {
+context(AppForegroundState.Provider, KeyUiContext<HomeKey>, Logger,
+MinirigRepository, MinirigUseCases, MinirigRemote)
+    @Provide fun homeModel(pref: DataStore<MinirigPrefs>) = Model {
   val prefs = pref.data.bind(MinirigPrefs())
 
   val minirigs = appForegroundState
     .flatMapLatest { foregroundState ->
       if (foregroundState == AppForegroundState.BACKGROUND) infiniteEmptyFlow()
-      else minirigRepository.minirigs
+      else minirigs
         .flatMapLatest { minirigs ->
           if (minirigs.isEmpty()) flowOf(emptyList())
           else combine(
             minirigs
               .sortedBy { it.name }
               .map { minirig ->
-                remote.minirigState(minirig.address)
+                minirigState(minirig.address)
                   .map {
                     UiMinirig(
                       minirig = minirig,
@@ -326,16 +317,16 @@ data class HomeModel(
       }
     },
     twsPair = action {
-      prefs.selectedMinirigs.parForEach { minirigUseCases.twsPair(it) }
+      prefs.selectedMinirigs.parForEach { twsPair(it) }
     },
     cancelTws = action {
-      prefs.selectedMinirigs.parForEach { minirigUseCases.cancelTws(it) }
+      prefs.selectedMinirigs.parForEach { cancelTws(it) }
     },
     powerOff = action {
-      prefs.selectedMinirigs.parForEach { minirigUseCases.powerOff(it) }
+      prefs.selectedMinirigs.parForEach { powerOff(it) }
     },
     factoryReset = action {
-      prefs.selectedMinirigs.parForEach { minirigUseCases.factoryReset(it) }
+      prefs.selectedMinirigs.parForEach { factoryReset(it) }
     },
     config = config,
     updateMinirigGain = action { value -> updateConfig { copy(minirigGain = value) } },

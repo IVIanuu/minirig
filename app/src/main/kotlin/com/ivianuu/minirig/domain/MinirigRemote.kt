@@ -15,24 +15,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.catch
+import com.ivianuu.essentials.compose.bind
+import com.ivianuu.essentials.compose.state
 import com.ivianuu.essentials.coroutines.RateLimiter
 import com.ivianuu.essentials.coroutines.RefCountedResource
 import com.ivianuu.essentials.coroutines.childCoroutineScope
 import com.ivianuu.essentials.coroutines.onCancel
 import com.ivianuu.essentials.coroutines.par
+import com.ivianuu.essentials.coroutines.share
 import com.ivianuu.essentials.coroutines.withResource
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.asLog
 import com.ivianuu.essentials.logging.log
 import com.ivianuu.essentials.nonFatalOrThrow
-import com.ivianuu.essentials.state.bind
-import com.ivianuu.essentials.state.state
 import com.ivianuu.essentials.time.milliseconds
 import com.ivianuu.essentials.time.seconds
 import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
-import com.ivianuu.injekt.android.SystemService
 import com.ivianuu.injekt.common.Scoped
 import com.ivianuu.injekt.coroutines.IOContext
 import com.ivianuu.injekt.coroutines.NamedCoroutineScope
@@ -68,15 +68,11 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.system.measureTimeMillis
 
+context(BluetoothManager, BroadcastsFactory, Logger, NamedCoroutineScope<AppScope>)
 @Provide @Scoped<AppScope> class MinirigRemote(
-  private val bluetoothManager: @SystemService BluetoothManager,
-  private val broadcastsFactory: BroadcastsFactory,
-  private val context: IOContext,
-  private val scope: NamedCoroutineScope<AppScope>,
-  private val logger: Logger
+  private val context: IOContext
 ) {
   private val sockets = RefCountedResource<String, MinirigSocket>(
-    scope = scope,
     timeout = 10.seconds,
     create = { address ->
       MinirigSocket(address)
@@ -104,13 +100,13 @@ import kotlin.system.measureTimeMillis
             }
           }
             .onEach { initial = it }
-            .shareIn(scope, SharingStarted.WhileSubscribed(), 1)
+            .share(SharingStarted.WhileSubscribed(), 1)
         }
       }
     )
   }
 
-  private fun CoroutineScope.minirigStateImpl(
+  context(CoroutineScope) private fun minirigStateImpl(
     address: String,
     initial: MinirigState?
   ) = state {
@@ -195,27 +191,27 @@ import kotlin.system.measureTimeMillis
     )
   }
 
-  fun isConnected(address: String) = bondedDeviceChanges()
+  fun isConnected(address: String): Flow<Boolean> = bondedDeviceChanges()
     .onStart<Any> { emit(Unit) }
     .map { address.isConnected() }
     .distinctUntilChanged()
     .flowOn(context)
 
   private fun String.isConnected(): Boolean =
-    bluetoothManager.adapter.getRemoteDevice(this)
+    adapter.getRemoteDevice(this)
       ?.let {
         BluetoothDevice::class.java.getDeclaredMethod("isConnected").invoke(it) as Boolean
       } ?: false
 
   suspend fun <R> withMinirig(
     address: String,
-    block: suspend MinirigSocket.() -> R
+    block: suspend context(MinirigSocket) () -> R
   ): R? = withContext(context) {
     if (!address.isConnected()) null
     else sockets.withResource(address, block)
   }
 
-  fun bondedDeviceChanges() = broadcastsFactory(
+  fun bondedDeviceChanges() = broadcasts(
     BluetoothAdapter.ACTION_STATE_CHANGED,
     BluetoothDevice.ACTION_BOND_STATE_CHANGED,
     BluetoothDevice.ACTION_ACL_CONNECTED,
@@ -239,12 +235,10 @@ private fun Int.toBatteryPercentage(): Float = when {
 
 private val sendLimiter = RateLimiter(1, 250.milliseconds)
 
-class MinirigSocket(
+context(BluetoothManager, Logger) class MinirigSocket(
   private val address: String,
-  @Inject private val bluetoothManager: @SystemService BluetoothManager,
   @Inject context: IOContext,
-  @Inject parentScope: NamedCoroutineScope<AppScope>,
-  @Inject private val logger: Logger
+  @Inject parentScope: NamedCoroutineScope<AppScope>
 ) {
   private val scope = parentScope.childCoroutineScope(context)
 
@@ -252,11 +246,11 @@ class MinirigSocket(
   private val socketLock = Mutex()
 
   val device: BluetoothDevice
-    get() = bluetoothManager.adapter.getRemoteDevice(address)
+    get() = adapter.getRemoteDevice(address)
 
   val messages: Flow<String> = channelFlow {
     while (currentCoroutineContext().isActive) {
-      if (!bluetoothManager.adapter.isEnabled) {
+      if (!adapter.isEnabled) {
         delay(5.seconds)
         continue
       }
