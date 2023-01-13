@@ -123,7 +123,16 @@ import kotlinx.coroutines.flow.map
                   onClick = { toggleMinirigSelection(minirig, false) },
                   onLongClick = { toggleMinirigSelection(minirig, true) }
                 ) {
-                  Text(minirig.minirig.name)
+                  Text(
+                    buildString {
+                      append(minirig.minirig.name)
+                      if (minirig.batteryPercentage != null)
+                        append(", bat ${minirig.batteryPercentage}")
+
+                      if (minirig.powerState == PowerState.CHARGING)
+                        append(", charging")
+                    }
+                  )
                 }
               }
             }
