@@ -119,12 +119,6 @@ context(Logger, MinirigSocket) private suspend fun applyConfig(
   updateConfigIfNeeded(
     "bass boost",
     7,
-    if (!config.loud) config.bassBoost else 0
-  )
-
-  updateConfigIfNeeded(
-    "loud",
-    12,
-    if (config.loud) 1 else 0
+    config.bassBoost
   )
 }
