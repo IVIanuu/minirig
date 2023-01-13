@@ -230,9 +230,9 @@ data class HomeModel(
 )
 
 context(AppForegroundState.Provider, KeyUiContext<HomeKey>, Logger,
-MinirigRepository, MinirigUseCases, MinirigRemote)
-    @Provide fun homeModel(pref: DataStore<MinirigPrefs>) = Model {
-  val prefs = pref.data.bind(MinirigPrefs())
+MinirigPrefs.Context, MinirigRepository, MinirigUseCases, MinirigRemote)
+    @Provide fun homeModel() = Model {
+  val prefs = minirigPref.data.bind(MinirigPrefs())
 
   val minirigs = appForegroundState
     .flatMapLatest { foregroundState ->
@@ -264,7 +264,7 @@ MinirigRepository, MinirigUseCases, MinirigRemote)
     .merge()
 
   suspend fun updateConfig(block: MinirigConfig.() -> MinirigConfig) {
-    pref.updateData {
+    minirigPref.updateData {
       copy(
         configs = buildMap {
           putAll(configs)
@@ -280,7 +280,7 @@ MinirigRepository, MinirigUseCases, MinirigRemote)
     minirigs = minirigs,
     selectedMinirigs = prefs.selectedMinirigs,
     toggleMinirigSelection = action { minirig, longClick ->
-      pref.updateData {
+      minirigPref.updateData {
         copy(
           selectedMinirigs = if (!longClick) setOf(minirig.minirig.address)
           else selectedMinirigs.toMutableSet().apply {
@@ -291,7 +291,7 @@ MinirigRepository, MinirigUseCases, MinirigRemote)
       }
     },
     toggleAllMinirigSelections = action {
-      pref.updateData {
+      minirigPref.updateData {
         val allMinirigs =
           minirigs.getOrNull()?.map { it.minirig.address }?.toSet() ?: emptySet()
         copy(

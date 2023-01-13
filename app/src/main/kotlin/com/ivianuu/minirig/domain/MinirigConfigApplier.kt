@@ -26,11 +26,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.withContext
 
-context(Logger, MinirigRepository, MinirigRemote, ToastContext)
-@Provide fun minirigConfigApplier(
-  context: IOContext,
-  pref: DataStore<MinirigPrefs>
-) = ScopeWorker<AppForegroundScope> {
+context(Logger, MinirigPrefs.Context, MinirigRepository, MinirigRemote, ToastContext)
+    @Provide fun minirigConfigApplier(context: IOContext) = ScopeWorker<AppForegroundScope> {
   withContext(context) {
     minirigs.collectLatest { minirigs ->
       minirigs.parForEach { minirig ->
@@ -61,7 +58,7 @@ context(Logger, MinirigRepository, MinirigRemote, ToastContext)
                 }
               }
               .flatMapLatest {
-                pref.data
+                minirigPref.data
                   .map { it.configs[minirig.address] ?: MinirigConfig() }
                   .distinctUntilChanged()
               }
