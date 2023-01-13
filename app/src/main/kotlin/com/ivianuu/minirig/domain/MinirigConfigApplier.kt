@@ -10,15 +10,20 @@ import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.log
+import com.ivianuu.essentials.time.seconds
 import com.ivianuu.essentials.util.ToastContext
 import com.ivianuu.injekt.Provide
 import com.ivianuu.injekt.coroutines.IOContext
 import com.ivianuu.minirig.data.MinirigConfig
 import com.ivianuu.minirig.data.MinirigPrefs
+import com.ivianuu.minirig.data.TwsState
 import com.ivianuu.minirig.data.debugName
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.withContext
 
 context(Logger, MinirigRepository, MinirigRemote, ToastContext)
@@ -35,9 +40,31 @@ context(Logger, MinirigRepository, MinirigRemote, ToastContext)
           withMinirig(minirig.address) {
             val cache = mutableMapOf<Int, Int>()
 
-            pref.data
-              .map { it.configs[minirig.address] ?: MinirigConfig() }
+            var lastTwsState: TwsState? = null
+
+            minirigState(minirig.address)
+              .map { it.twsState }
               .distinctUntilChanged()
+              .transformLatest { twsState ->
+                if (lastTwsState == null) {
+                  lastTwsState = twsState
+                  emit(Unit)
+                } else if (lastTwsState != TwsState.MASTER && twsState == TwsState.MASTER) {
+                  lastTwsState = twsState
+
+                  delay(6.seconds)
+
+                  cache.clear()
+                  emit(Unit)
+                } else {
+                  lastTwsState = twsState
+                }
+              }
+              .flatMapLatest {
+                pref.data
+                  .map { it.configs[minirig.address] ?: MinirigConfig() }
+                  .distinctUntilChanged()
+              }
               .collectLatest { applyConfig(it, cache) }
           }
         }
@@ -65,7 +92,7 @@ context(Logger, MinirigSocket) private suspend fun applyConfig(
 
     // only write if the value has changed
     if (cache[key] != value) {
-      log { "${device.debugName()} update $tag $finalKey -> $finalValue" }
+      log { "${device.debugName()} apply $tag $finalKey -> $finalValue" }
       send("q p $finalKey $finalValue")
       cache[key] = value
     }

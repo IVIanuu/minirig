@@ -73,7 +73,7 @@ context(BluetoothManager, BroadcastsFactory, Logger, NamedCoroutineScope<AppScop
   private val context: IOContext
 ) {
   private val sockets = RefCountedResource<String, MinirigSocket>(
-    timeout = 10.seconds,
+    timeout = 5.seconds,
     create = { address ->
       MinirigSocket(address)
         .also {
@@ -233,8 +233,6 @@ private fun Int.toBatteryPercentage(): Float = when {
   else -> 1f
 }
 
-private val sendLimiter = RateLimiter(1, 250.milliseconds)
-
 context(BluetoothManager, Logger) class MinirigSocket(
   private val address: String,
   @Inject context: IOContext,
@@ -273,6 +271,8 @@ context(BluetoothManager, Logger) class MinirigSocket(
       }
     }
   }.shareIn(scope, SharingStarted.Eagerly)
+
+  private val sendLimiter = RateLimiter(1, 250.milliseconds)
 
   suspend fun send(message: String) = catch {
     // the minirig cannot keep with our speed to debounce each write
