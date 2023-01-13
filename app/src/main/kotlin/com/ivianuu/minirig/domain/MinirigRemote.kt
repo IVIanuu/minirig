@@ -63,7 +63,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.util.*
@@ -238,7 +237,7 @@ private fun Int.toBatteryPercentage(): Float = when {
   else -> 1f
 }
 
-private val sendLimiter = RateLimiter(1, 100.milliseconds)
+private val sendLimiter = RateLimiter(1, 250.milliseconds)
 
 class MinirigSocket(
   private val address: String,
@@ -282,35 +281,14 @@ class MinirigSocket(
   }.shareIn(scope, SharingStarted.Eagerly)
 
   suspend fun send(message: String) = catch {
-    suspend fun sendImpl(message: String, attempt: Int) {
-      try {
-        // the minirig cannot keep with our speed to debounce each write
-        sendLimiter.acquire()
+    // the minirig cannot keep with our speed to debounce each write
+    sendLimiter.acquire()
 
-        withTimeout(PingPongTimeout) {
-          withContext(scope.coroutineContext) {
-            log { "send ${device.debugName()} -> $message attempt $attempt" }
+    log { "send ${device.debugName()} -> $message" }
 
-            try {
-              withSocket {
-                outputStream.write(message.toByteArray())
-              }
-            } catch (e: IOException) {
-              closeCurrentSocket(e)
-              throw e
-            }
-          }
-        }
-      } catch (e: Throwable) {
-        e.nonFatalOrThrow()
-        if (attempt < 5) {
-          delay(RetryDelay)
-          sendImpl(message, attempt + 1)
-        }
-      }
+    withSocket {
+      outputStream.write(message.toByteArray())
     }
-
-    sendImpl(message, 0)
   }
 
   suspend fun close() {
