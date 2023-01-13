@@ -124,24 +124,26 @@ context(BluetoothManager, BroadcastsFactory, Logger, NamedCoroutineScope<AppScop
       )
 
     LaunchedEffect(true) {
-      merge(
-        flow<Unit> {
-          delay(100)
-          while (true) {
-            emit(Unit)
-            delay(1.seconds)
-          }
-        },
-        bondedDeviceChanges()
-      )
-        .collect {
-          withMinirig(address) {
+      withMinirig(address) {
+        merge(
+          flow<Unit> {
+            // wait for the message receiver to initialize
+            delay(100)
+
+            while (true) {
+              emit(Unit)
+              delay(1.seconds)
+            }
+          },
+          bondedDeviceChanges()
+        )
+          .collect {
             par(
               { catch { send("x") } },
               { catch { send("B") } }
             )
           }
-        }
+      }
     }
 
     LaunchedEffect(true) {
