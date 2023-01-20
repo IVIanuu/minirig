@@ -79,6 +79,9 @@ import kotlinx.coroutines.flow.map
             PopupMenuItem(onSelected = cancelTws) {
               Text("Cancel tws")
             }
+            PopupMenuItem(onSelected = enablePowerOut) {
+              Text("Enable power out")
+            }
             PopupMenuItem(onSelected = powerOff) {
               Text("Power off")
             }
@@ -131,6 +134,9 @@ import kotlinx.coroutines.flow.map
 
                       if (minirig.powerState == PowerState.CHARGING)
                         append(", charging")
+
+                      if (minirig.powerState == PowerState.POWER_OUT)
+                        append(", power out")
                     }
                   )
                 }
@@ -230,6 +236,7 @@ data class HomeModel(
   val toggleAllMinirigSelections: () -> Unit,
   val twsPair: () -> Unit,
   val cancelTws: () -> Unit,
+  val enablePowerOut: () -> Unit,
   val powerOff: () -> Unit,
   val factoryReset: () -> Unit,
   val config: MinirigConfig,
@@ -314,6 +321,9 @@ MinirigPrefs.Context, MinirigRepository, MinirigUseCases, MinirigRemote)
     },
     cancelTws = action {
       prefs.selectedMinirigs.parForEach { cancelTws(it) }
+    },
+    enablePowerOut = action {
+      prefs.selectedMinirigs.parForEach { enablePowerOut(it) }
     },
     powerOff = action {
       prefs.selectedMinirigs.parForEach { powerOff(it) }

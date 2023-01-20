@@ -157,6 +157,7 @@ context(BluetoothManager, BroadcastsFactory, Logger, NamedCoroutineScope<AppScop
                   powerState = when (status.substring(8, 9)) {
                     "1" -> PowerState.NORMAL
                     "2" -> PowerState.CHARGING
+                    "3" -> PowerState.POWER_OUT
                     else -> PowerState.NORMAL
                   }
                 }

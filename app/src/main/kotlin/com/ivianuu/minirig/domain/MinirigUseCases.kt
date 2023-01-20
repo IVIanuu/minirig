@@ -5,6 +5,7 @@
 package com.ivianuu.minirig.domain
 
 import com.ivianuu.injekt.Provide
+import kotlinx.coroutines.delay
 
 context(MinirigRemote) @Provide class MinirigUseCases {
   suspend fun twsPair(address: String) = withMinirig(address) {
@@ -21,5 +22,9 @@ context(MinirigRemote) @Provide class MinirigUseCases {
 
   suspend fun factoryReset(address: String) = withMinirig(address) {
     send("*")
+  }
+
+  suspend fun enablePowerOut(address: String) = withMinirig(address) {
+    send("^")
   }
 }

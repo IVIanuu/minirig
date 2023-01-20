@@ -36,7 +36,6 @@ context(BluetoothManager, MinirigRemote, PermissionManager)
               ?.map { it.toMinirig() }
               ?: emptyList()
           }
-          .distinctUntilChanged()
           .flowOn(context)
       }
       .distinctUntilChanged()

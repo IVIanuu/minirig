@@ -58,7 +58,7 @@ data class MinirigState(
 )
 
 enum class PowerState {
-  NORMAL, CHARGING
+  NORMAL, CHARGING, POWER_OUT
 }
 
 enum class TwsState {
