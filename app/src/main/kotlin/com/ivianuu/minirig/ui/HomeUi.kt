@@ -134,8 +134,7 @@ import kotlinx.coroutines.flow.map
 
                       if (minirig.powerState == PowerState.CHARGING)
                         append(", charging")
-
-                      if (minirig.powerState == PowerState.POWER_OUT)
+                      else if (minirig.powerState == PowerState.POWER_OUT)
                         append(", power out")
                     }
                   )
