@@ -64,7 +64,5 @@ enum class PowerState {
 }
 
 enum class TwsState {
-  NONE,
-  MASTER,
-  SLAVE
+  NONE, MASTER, SLAVE
 }
