@@ -26,7 +26,8 @@ fun Minirig.debugName() = "[$name ~ $address]"
 @Serializable data class MinirigConfig(
   val minirigGain: Float = 1f,
   val auxGain: Float = 1f,
-  val bassBoost: Int = 7
+  val bassBoost: Int = 7,
+  val loud: Boolean = false
 )
 
 fun List<MinirigConfig>.merge(): MinirigConfig = when {
@@ -35,7 +36,8 @@ fun List<MinirigConfig>.merge(): MinirigConfig = when {
   else -> MinirigConfig(
     minirigGain = map { it.minirigGain }.average().toFloat(),
     auxGain = map { it.auxGain }.average().toFloat(),
-    bassBoost = map { it.bassBoost }.average().toInt()
+    bassBoost = map { it.bassBoost }.average().toInt(),
+    loud = all { it.loud }
   )
 }
 

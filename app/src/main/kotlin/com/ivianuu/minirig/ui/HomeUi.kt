@@ -37,6 +37,7 @@ import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.resource.Resource
 import com.ivianuu.essentials.resource.getOrNull
 import com.ivianuu.essentials.ui.common.VerticalList
+import com.ivianuu.essentials.ui.common.interactive
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.material.guessingContentColorFor
@@ -49,6 +50,7 @@ import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.popup.PopupMenuItem
 import com.ivianuu.essentials.ui.prefs.ScaledPercentageUnitText
 import com.ivianuu.essentials.ui.prefs.SliderListItem
+import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.essentials.ui.resource.ResourceBox
 import com.ivianuu.injekt.Provide
 import com.ivianuu.minirig.data.Minirig
@@ -170,11 +172,21 @@ import kotlinx.coroutines.flow.map
 
             item {
               SliderListItem(
+                modifier = Modifier
+                  .interactive(bassBoostEnabled),
                 value = config.bassBoost,
                 onValueChange = updateBassBoost,
                 valueRange = 0..7,
                 title = { Text("Bass boost") },
                 valueText = { Text(it.toString()) }
+              )
+            }
+
+            item {
+              SwitchListItem(
+                value = config.loud,
+                onValueChange = updateLoud,
+                title = { Text("Loud") }
               )
             }
           }
@@ -241,8 +253,12 @@ data class HomeModel(
   val config: MinirigConfig,
   val updateMinirigGain: (Float) -> Unit,
   val updateAuxGain: (Float) -> Unit,
-  val updateBassBoost: (Int) -> Unit
-)
+  val updateBassBoost: (Int) -> Unit,
+  val updateLoud: (Boolean) -> Unit
+) {
+  val bassBoostEnabled: Boolean
+    get() = !config.loud
+}
 
 context(AppForegroundState.Provider, KeyUiContext<HomeKey>, Logger,
 MinirigPrefs.Context, MinirigRepository, MinirigUseCases, MinirigRemote)
@@ -333,6 +349,7 @@ MinirigPrefs.Context, MinirigRepository, MinirigUseCases, MinirigRemote)
     config = config,
     updateMinirigGain = action { value -> updateConfig { copy(minirigGain = value) } },
     updateAuxGain = action { value -> updateConfig { copy(auxGain = value) } },
-    updateBassBoost = action { value -> updateConfig { copy(bassBoost = value) } }
+    updateBassBoost = action { value -> updateConfig { copy(bassBoost = value) } },
+    updateLoud = action { value -> updateConfig { copy(loud = value) } }
   )
 }
