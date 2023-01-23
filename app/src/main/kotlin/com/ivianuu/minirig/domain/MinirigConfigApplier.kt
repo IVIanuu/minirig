@@ -6,6 +6,7 @@ package com.ivianuu.minirig.domain
 
 import com.ivianuu.essentials.app.AppForegroundScope
 import com.ivianuu.essentials.app.ScopeWorker
+import com.ivianuu.essentials.coroutines.onCancel
 import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.logging.Logger
@@ -51,6 +52,8 @@ context(Logger, MinirigPrefs.Context, MinirigRepository, MinirigRemote, ToastCon
 
                   delay(6.seconds)
 
+                  log { "invalidate all due to tws pairing" }
+
                   cache.clear()
                   emit(Unit)
                 } else {
@@ -89,9 +92,17 @@ context(Logger, MinirigSocket) private suspend fun applyConfig(
 
     // only write if the value has changed
     if (cache[key] != value) {
-      log { "${device.debugName()} apply $tag $finalKey -> $finalValue" }
-      send("q p $finalKey $finalValue")
-      cache[key] = value
+      onCancel(
+        block = {
+          log { "${device.debugName()} apply $tag $finalKey -> $finalValue" }
+          send("q p $finalKey $finalValue")
+          cache[key] = value
+        },
+        onCancel = {
+          log { "invalidate $tag $finalKey" }
+          cache.remove(key)
+        }
+      )
     }
   }
 
