@@ -275,16 +275,18 @@ context(BluetoothManager, Logger) class MinirigSocket(
     }
   }.shareIn(scope, SharingStarted.Eagerly)
 
-  private val sendLimiter = RateLimiter(1, 250.milliseconds)
+  private val sendLimiter = RateLimiter(1, 100.milliseconds)
+  private val sendLock = Mutex()
 
   suspend fun send(message: String) = catch {
-    // the minirig cannot keep with our speed to debounce each write
-    sendLimiter.acquire()
-
-    log { "send ${device.debugName()} -> $message" }
-
     withSocket {
-      outputStream.write(message.toByteArray())
+      sendLock.withLock {
+        log { "send ${device.debugName()} -> $message" }
+
+        outputStream.write(message.toByteArray())
+        // the minirig cannot keep with our speed to debounce each write
+        sendLimiter.acquire()
+      }
     }
   }
 
