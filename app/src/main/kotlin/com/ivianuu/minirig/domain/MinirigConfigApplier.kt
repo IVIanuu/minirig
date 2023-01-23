@@ -50,9 +50,11 @@ context(Logger, MinirigPrefs.Context, MinirigRepository, MinirigRemote, ToastCon
                 } else if (lastTwsState != TwsState.MASTER && twsState == TwsState.MASTER) {
                   lastTwsState = twsState
 
+                  log { "${device.debugName()} changed to tws master invalidate all after delay" }
+
                   delay(6.seconds)
 
-                  log { "invalidate all due to tws pairing" }
+                  log { "${device.debugName()} invalidate all due to tws pairing" }
 
                   cache.clear()
                   emit(Unit)
@@ -99,7 +101,7 @@ context(Logger, MinirigSocket) private suspend fun applyConfig(
           cache[key] = value
         },
         onCancel = {
-          log { "invalidate $tag $finalKey" }
+          log { "${device.debugName()} invalidate $tag $finalKey" }
           cache.remove(key)
         }
       )
