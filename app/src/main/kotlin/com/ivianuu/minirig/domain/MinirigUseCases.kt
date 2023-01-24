@@ -26,5 +26,6 @@ context(MinirigRemote) @Provide class MinirigUseCases {
 
   suspend fun enablePowerOut(address: String) = withMinirig(address) {
     send("^")
+    forceStateRefresh(address)
   }
 }

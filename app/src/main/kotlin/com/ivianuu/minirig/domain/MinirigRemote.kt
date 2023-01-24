@@ -17,6 +17,7 @@ import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.catch
 import com.ivianuu.essentials.compose.bind
 import com.ivianuu.essentials.compose.state
+import com.ivianuu.essentials.coroutines.EventFlow
 import com.ivianuu.essentials.coroutines.RateLimiter
 import com.ivianuu.essentials.coroutines.RefCountedResource
 import com.ivianuu.essentials.coroutines.childCoroutineScope
@@ -89,6 +90,12 @@ context(BluetoothManager, BroadcastsFactory, Logger, NamedCoroutineScope<AppScop
   private val states = mutableMapOf<String, Flow<MinirigState>>()
   private val statesLock = Mutex()
 
+  private val forceStateRefresh = EventFlow<String>()
+
+  fun forceStateRefresh(address: String) {
+    forceStateRefresh.tryEmit(address)
+  }
+
   fun minirigState(address: String): Flow<MinirigState> = flow {
     emitAll(
       statesLock.withLock {
@@ -126,13 +133,15 @@ context(BluetoothManager, BroadcastsFactory, Logger, NamedCoroutineScope<AppScop
     LaunchedEffect(true) {
       withMinirig(address) {
         merge(
+          forceStateRefresh
+            .filter { it == address },
           flow<Unit> {
             // wait for the message receiver to initialize
             delay(100)
 
             while (true) {
               emit(Unit)
-              delay(1.seconds)
+              delay(5.seconds)
             }
           },
           bondedDeviceChanges()
