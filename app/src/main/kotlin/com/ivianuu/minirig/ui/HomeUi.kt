@@ -61,6 +61,7 @@ import com.ivianuu.minirig.data.merge
 import com.ivianuu.minirig.domain.MinirigRemote
 import com.ivianuu.minirig.domain.MinirigRepository
 import com.ivianuu.minirig.domain.MinirigUseCases
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -260,22 +261,28 @@ data class HomeModel(
     get() = !config.loud
 }
 
-context(AppForegroundState.Provider, KeyUiContext<HomeKey>, Logger,
-MinirigPrefs.Context, MinirigRepository, MinirigUseCases, MinirigRemote)
-    @Provide fun homeModel() = Model {
-  val prefs = minirigPref.data.bind(MinirigPrefs())
+@Provide fun homeModel(
+  appForegroundState: Flow<AppForegroundState>,
+  ctx: KeyUiContext<HomeKey>,
+  logger: Logger,
+  pref: DataStore<MinirigPrefs>,
+  remote: MinirigRemote,
+  repository: MinirigRepository,
+  useCases: MinirigUseCases
+) = Model {
+  val prefs = pref.data.bind(MinirigPrefs())
 
   val minirigs = appForegroundState
     .flatMapLatest { foregroundState ->
       if (foregroundState == AppForegroundState.BACKGROUND) infiniteEmptyFlow()
-      else minirigs
+      else repository.minirigs
         .flatMapLatest { minirigs ->
           if (minirigs.isEmpty()) flowOf(emptyList())
           else combine(
             minirigs
               .sortedBy { it.name }
               .map { minirig ->
-                minirigState(minirig.address)
+                remote.minirigState(minirig.address)
                   .map {
                     UiMinirig(
                       minirig = minirig,
@@ -295,7 +302,7 @@ MinirigPrefs.Context, MinirigRepository, MinirigUseCases, MinirigRemote)
     .merge()
 
   suspend fun updateConfig(block: MinirigConfig.() -> MinirigConfig) {
-    minirigPref.updateData {
+    pref.updateData {
       copy(
         configs = buildMap {
           putAll(configs)
@@ -311,7 +318,7 @@ MinirigPrefs.Context, MinirigRepository, MinirigUseCases, MinirigRemote)
     minirigs = minirigs,
     selectedMinirigs = prefs.selectedMinirigs,
     toggleMinirigSelection = action { minirig, longClick ->
-      minirigPref.updateData {
+      pref.updateData {
         copy(
           selectedMinirigs = if (!longClick) setOf(minirig.minirig.address)
           else selectedMinirigs.toMutableSet().apply {
@@ -322,7 +329,7 @@ MinirigPrefs.Context, MinirigRepository, MinirigUseCases, MinirigRemote)
       }
     },
     toggleAllMinirigSelections = action {
-      minirigPref.updateData {
+      pref.updateData {
         val allMinirigs =
           minirigs.getOrNull()?.map { it.minirig.address }?.toSet() ?: emptySet()
         copy(
@@ -332,19 +339,19 @@ MinirigPrefs.Context, MinirigRepository, MinirigUseCases, MinirigRemote)
       }
     },
     twsPair = action {
-      prefs.selectedMinirigs.parForEach { twsPair(it) }
+      prefs.selectedMinirigs.parForEach { useCases.twsPair(it) }
     },
     cancelTws = action {
-      prefs.selectedMinirigs.parForEach { cancelTws(it) }
+      prefs.selectedMinirigs.parForEach { useCases.cancelTws(it) }
     },
     enablePowerOut = action {
-      prefs.selectedMinirigs.parForEach { enablePowerOut(it) }
+      prefs.selectedMinirigs.parForEach { useCases.enablePowerOut(it) }
     },
     powerOff = action {
-      prefs.selectedMinirigs.parForEach { powerOff(it) }
+      prefs.selectedMinirigs.parForEach { useCases.powerOff(it) }
     },
     factoryReset = action {
-      prefs.selectedMinirigs.parForEach { factoryReset(it) }
+      prefs.selectedMinirigs.parForEach { useCases.factoryReset(it) }
     },
     config = config,
     updateMinirigGain = action { value -> updateConfig { copy(minirigGain = value) } },

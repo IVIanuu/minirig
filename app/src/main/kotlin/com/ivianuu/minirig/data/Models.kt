@@ -45,8 +45,6 @@ fun List<MinirigConfig>.merge(): MinirigConfig = when {
   val configs: Map<String, MinirigConfig> = emptyMap(),
   val selectedMinirigs: Set<String> = emptySet()
 ) {
-  @Provide @JvmInline value class Context(val minirigPref: DataStore<MinirigPrefs>)
-
   companion object {
     @Provide val prefModule = DataStoreModule("minirig_prefs") { MinirigPrefs() }
   }

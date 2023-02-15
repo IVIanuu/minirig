@@ -18,7 +18,8 @@ import com.ivianuu.injekt.common.typeKeyOf
 )
 
 // always request permissions when launching the ui
-context(PermissionManager)
-    @Provide fun minirigPermissionRequestWorker() = ScopeWorker<AppForegroundScope> {
-  requestPermissions(listOf(typeKeyOf<MinirigBluetoothConnectPermission>()))
+@Provide fun minirigPermissionRequestWorker(
+  permissionManager: PermissionManager
+) = ScopeWorker<AppForegroundScope> {
+  permissionManager.requestPermissions(listOf(typeKeyOf<MinirigBluetoothConnectPermission>()))
 }

@@ -4,6 +4,7 @@
 
 package com.ivianuu.minirig.domain
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -23,17 +24,17 @@ import com.ivianuu.essentials.coroutines.RefCountedResource
 import com.ivianuu.essentials.coroutines.childCoroutineScope
 import com.ivianuu.essentials.coroutines.onCancel
 import com.ivianuu.essentials.coroutines.par
-import com.ivianuu.essentials.coroutines.share
 import com.ivianuu.essentials.coroutines.withResource
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.asLog
-import com.ivianuu.essentials.logging.log
+import com.ivianuu.essentials.logging.invoke
 import com.ivianuu.essentials.nonFatalOrThrow
 import com.ivianuu.essentials.time.milliseconds
 import com.ivianuu.essentials.time.seconds
 import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
+import com.ivianuu.injekt.android.SystemService
 import com.ivianuu.injekt.common.Scoped
 import com.ivianuu.injekt.coroutines.IOContext
 import com.ivianuu.injekt.coroutines.NamedCoroutineScope
@@ -69,20 +70,23 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.system.measureTimeMillis
 
-context(BluetoothManager, BroadcastsFactory, Logger, NamedCoroutineScope<AppScope>)
 @Provide @Scoped<AppScope> class MinirigRemote(
-  private val context: IOContext
+  private val bluetoothManager: @SystemService BluetoothManager,
+  private val broadcastsFactory: BroadcastsFactory,
+  private val context: IOContext,
+  private val logger: Logger,
+  private val scope: NamedCoroutineScope<AppScope>
 ) {
   private val sockets = RefCountedResource<String, MinirigSocket>(
     timeout = 5.seconds,
     create = { address ->
       MinirigSocket(address)
         .also {
-          log { "create socket ${it.device.debugName()}" }
+          logger { "create socket ${it.device.debugName()}" }
         }
     },
     release = { _, socket ->
-      log { "release socket $socket ${socket.device.debugName()}" }
+      logger { "release socket $socket ${socket.device.debugName()}" }
       socket.close()
     }
   )
@@ -107,16 +111,17 @@ context(BluetoothManager, BroadcastsFactory, Logger, NamedCoroutineScope<AppScop
             }
           }
             .onEach { initial = it }
-            .share(SharingStarted.WhileSubscribed(), 1)
+            .shareIn(scope, SharingStarted.WhileSubscribed(), 1)
         }
       }
     )
   }
 
-  context(CoroutineScope) private fun minirigStateImpl(
+  private fun minirigStateImpl(
     address: String,
-    initial: MinirigState?
-  ) = state {
+    initial: MinirigState?,
+    @Inject scope: CoroutineScope
+  ) = scope.state {
     val isConnected = isConnected(address).bind(initial?.isConnected ?: false)
     var batteryPercentage: Float? by remember { mutableStateOf(initial?.batteryPercentage) }
     var powerState by remember { mutableStateOf(initial?.powerState ?: PowerState.NORMAL) }
@@ -210,7 +215,7 @@ context(BluetoothManager, BroadcastsFactory, Logger, NamedCoroutineScope<AppScop
     .flowOn(context)
 
   private fun String.isConnected(): Boolean =
-    adapter.getRemoteDevice(this)
+    bluetoothManager.adapter.getRemoteDevice(this)
       ?.let {
         BluetoothDevice::class.java.getDeclaredMethod("isConnected").invoke(it) as Boolean
       } ?: false
@@ -223,7 +228,7 @@ context(BluetoothManager, BroadcastsFactory, Logger, NamedCoroutineScope<AppScop
     else sockets.withResource(address, block)
   }
 
-  fun bondedDeviceChanges() = broadcasts(
+  fun bondedDeviceChanges() = broadcastsFactory(
     BluetoothAdapter.ACTION_STATE_CHANGED,
     BluetoothDevice.ACTION_BOND_STATE_CHANGED,
     BluetoothDevice.ACTION_ACL_CONNECTED,
@@ -245,9 +250,11 @@ private fun Int.toBatteryPercentage(): Float = when {
   else -> 1f
 }
 
-context(BluetoothManager, Logger) class MinirigSocket(
+class MinirigSocket(
   private val address: String,
+  @Inject private val bluetoothManager: @SystemService BluetoothManager,
   @Inject context: IOContext,
+  @Inject private val logger: Logger,
   @Inject parentScope: NamedCoroutineScope<AppScope>
 ) {
   private val scope = parentScope.childCoroutineScope(context)
@@ -256,11 +263,11 @@ context(BluetoothManager, Logger) class MinirigSocket(
   private val socketLock = Mutex()
 
   val device: BluetoothDevice
-    get() = adapter.getRemoteDevice(address)
+    get() = bluetoothManager.adapter.getRemoteDevice(address)
 
   val messages: Flow<String> = channelFlow {
     while (currentCoroutineContext().isActive) {
-      if (!adapter.isEnabled) {
+      if (!bluetoothManager.adapter.isEnabled) {
         delay(5.seconds)
         continue
       }
@@ -272,7 +279,7 @@ context(BluetoothManager, Logger) class MinirigSocket(
               val arr = ByteArray(inputStream.available())
               inputStream.read(arr)
               val current = arr.toString(StandardCharsets.UTF_8)
-              log { "${device.debugName()} stats $current" }
+              logger { "${device.debugName()} stats $current" }
               send(current)
             }
           }
@@ -290,7 +297,7 @@ context(BluetoothManager, Logger) class MinirigSocket(
     // the minirig cannot keep with our speed to debounce each write
     sendLimiter.acquire()
 
-    log { "send ${device.debugName()} -> $message" }
+    logger { "send ${device.debugName()} -> $message" }
 
     withSocket {
       outputStream.write(message.toByteArray())
@@ -313,12 +320,13 @@ context(BluetoothManager, Logger) class MinirigSocket(
   private fun closeCurrentSocketImpl(reason: Throwable?) {
     catch {
       socket
-        ?.also { log { "${device.debugName()} close current socket ${reason?.asLog()}" } }
+        ?.also { logger { "${device.debugName()} close current socket ${reason?.asLog()}" } }
         ?.close()
     }
     socket = null
   }
 
+  @SuppressLint("MissingPermission")
   private suspend fun withSocket(block: suspend BluetoothSocket.() -> Unit) {
     val socket = socketLock.withLock {
       var socket = socket
@@ -332,7 +340,7 @@ context(BluetoothManager, Logger) class MinirigSocket(
       val connectComplete = CompletableDeferred<Unit>()
       par(
         {
-          log { "connect ${device.debugName()}" }
+          logger { "connect ${device.debugName()}" }
           try {
             var attempt = 0
             while (attempt < 5) {
@@ -341,11 +349,11 @@ context(BluetoothManager, Logger) class MinirigSocket(
                   socket.connect()
                 }
                 if (socket.isConnected) {
-                  log { "connected to ${device.debugName()} in ${duration}ms" }
+                  logger { "connected to ${device.debugName()} in ${duration}ms" }
                   break
                 }
               } catch (e: Throwable) {
-                log { "connect failed ${device.debugName()} attempt $attempt" }
+                logger { "connect failed ${device.debugName()} attempt $attempt" }
                 e.nonFatalOrThrow()
                 attempt++
                 delay(RetryDelay)
@@ -359,7 +367,7 @@ context(BluetoothManager, Logger) class MinirigSocket(
           onCancel(
             block = { connectComplete.await() },
             onCancel = {
-              log { "cancel connect ${device.debugName()}" }
+              logger { "cancel connect ${device.debugName()}" }
               catch { socket.close() }
             }
           )

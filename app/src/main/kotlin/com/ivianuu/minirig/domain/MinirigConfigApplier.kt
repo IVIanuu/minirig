@@ -10,9 +10,10 @@ import com.ivianuu.essentials.coroutines.onCancel
 import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.logging.Logger
-import com.ivianuu.essentials.logging.log
+import com.ivianuu.essentials.logging.invoke
 import com.ivianuu.essentials.time.seconds
-import com.ivianuu.essentials.util.ToastContext
+import com.ivianuu.essentials.util.Toaster
+import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
 import com.ivianuu.injekt.coroutines.IOContext
 import com.ivianuu.minirig.data.MinirigConfig
@@ -27,20 +28,26 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.withContext
 
-context(Logger, MinirigPrefs.Context, MinirigRepository, MinirigRemote, ToastContext)
-    @Provide fun minirigConfigApplier(context: IOContext) = ScopeWorker<AppForegroundScope> {
+@Provide fun minirigConfigApplier(
+  context: IOContext,
+  logger: Logger,
+  pref: DataStore<MinirigPrefs>,
+  repository: MinirigRepository,
+  remote: MinirigRemote,
+  toaster: Toaster
+) = ScopeWorker<AppForegroundScope> {
   withContext(context) {
-    minirigs.collectLatest { minirigs ->
+    repository.minirigs.collectLatest { minirigs ->
       minirigs.parForEach { minirig ->
-        isConnected(minirig.address).collectLatest { isConnected ->
+        remote.isConnected(minirig.address).collectLatest { isConnected ->
           if (!isConnected) return@collectLatest
 
-          withMinirig(minirig.address) {
+          remote.withMinirig(minirig.address) {
             val cache = mutableMapOf<Int, Int>()
 
             var lastTwsState: TwsState? = null
 
-            minirigState(minirig.address)
+            remote.minirigState(minirig.address)
               .map { it.twsState }
               .distinctUntilChanged()
               .transformLatest { twsState ->
@@ -50,11 +57,11 @@ context(Logger, MinirigPrefs.Context, MinirigRepository, MinirigRemote, ToastCon
                 } else if (lastTwsState != TwsState.MASTER && twsState == TwsState.MASTER) {
                   lastTwsState = twsState
 
-                  log { "${device.debugName()} changed to tws master invalidate all after delay" }
+                  logger { "${device.debugName()} changed to tws master invalidate all after delay" }
 
                   delay(6.seconds)
 
-                  log { "${device.debugName()} invalidate all due to tws pairing" }
+                  logger { "${device.debugName()} invalidate all due to tws pairing" }
 
                   cache.clear()
                   emit(Unit)
@@ -63,7 +70,7 @@ context(Logger, MinirigPrefs.Context, MinirigRepository, MinirigRemote, ToastCon
                 }
               }
               .flatMapLatest {
-                minirigPref.data
+                pref.data
                   .map { it.configs[minirig.address] ?: MinirigConfig() }
                   .distinctUntilChanged()
               }
@@ -75,11 +82,12 @@ context(Logger, MinirigPrefs.Context, MinirigRepository, MinirigRemote, ToastCon
   }
 }
 
-context(Logger, MinirigSocket) private suspend fun applyConfig(
+private suspend fun MinirigSocket.applyConfig(
   config: MinirigConfig,
-  cache: MutableMap<Int, Int>
+  cache: MutableMap<Int, Int>,
+  @Inject logger: Logger
 ) {
-  log { "${device.debugName()} apply config $config" }
+  logger { "${device.debugName()} apply config $config" }
 
   suspend fun updateConfigIfNeeded(tag: String, key: Int, value: Int) {
     fun Int.toMinirigFormat(): String {
@@ -96,12 +104,12 @@ context(Logger, MinirigSocket) private suspend fun applyConfig(
     if (cache[key] != value) {
       onCancel(
         block = {
-          log { "${device.debugName()} apply $tag $finalKey -> $finalValue" }
+          logger { "${device.debugName()} apply $tag $finalKey -> $finalValue" }
           send("q p $finalKey $finalValue")
           cache[key] = value
         },
         onCancel = {
-          log { "${device.debugName()} invalidate $tag $finalKey" }
+          logger { "${device.debugName()} invalidate $tag $finalKey" }
           cache.remove(key)
         }
       )

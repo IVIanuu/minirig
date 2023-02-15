@@ -4,10 +4,12 @@
 
 package com.ivianuu.minirig.domain
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothManager
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.permission.PermissionManager
 import com.ivianuu.injekt.Provide
+import com.ivianuu.injekt.android.SystemService
 import com.ivianuu.injekt.common.Scoped
 import com.ivianuu.injekt.common.typeKeyOf
 import com.ivianuu.injekt.coroutines.IOContext
@@ -22,16 +24,21 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 
-context(BluetoothManager, MinirigRemote, PermissionManager)
-@Provide @Scoped<AppScope> class MinirigRepository(private val context: IOContext) {
+@Provide @Scoped<AppScope> class MinirigRepository(
+  private val bluetoothManager: @SystemService BluetoothManager,
+  private val context: IOContext,
+  private val permissionManager: PermissionManager,
+  private val remote: MinirigRemote
+) {
   val minirigs: Flow<List<Minirig>>
-    get() = permissionState(listOf(typeKeyOf<MinirigBluetoothConnectPermission>()))
+    @SuppressLint("MissingPermission")
+    get() = permissionManager.permissionState(listOf(typeKeyOf<MinirigBluetoothConnectPermission>()))
       .flatMapLatest {
         if (!it) flowOf(emptyList())
-        else bondedDeviceChanges()
+        else remote.bondedDeviceChanges()
           .onStart<Any> { emit(Unit) }
           .map {
-            adapter?.bondedDevices
+            bluetoothManager.adapter?.bondedDevices
               ?.filter { it.isMinirig() }
               ?.map { it.toMinirig() }
               ?: emptyList()
@@ -40,10 +47,10 @@ context(BluetoothManager, MinirigRemote, PermissionManager)
       }
       .distinctUntilChanged()
 
-  fun minirig(address: String): Flow<Minirig?> = bondedDeviceChanges()
+  fun minirig(address: String): Flow<Minirig?> = remote.bondedDeviceChanges()
     .onStart<Any> { emit(Unit) }
     .map {
-      adapter
+      bluetoothManager.adapter
         ?.getRemoteDevice(address)
         ?.toMinirig()
     }
