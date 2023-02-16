@@ -154,7 +154,7 @@ import kotlinx.coroutines.flow.map
             item {
               SliderListItem(
                 value = config.minirigGain,
-                onValueChange = updateMinirigGain,
+                onValueChangeFinished = updateMinirigGain,
                 title = { Text("Minirig gain") },
                 stepPolicy = incrementingStepPolicy(0.1f),
                 valueText = { ScaledPercentageUnitText(it) }
@@ -164,7 +164,7 @@ import kotlinx.coroutines.flow.map
             item {
               SliderListItem(
                 value = config.auxGain,
-                onValueChange = updateAuxGain,
+                onValueChangeFinished = updateAuxGain,
                 title = { Text("Aux gain") },
                 stepPolicy = incrementingStepPolicy(0.1f),
                 valueText = { ScaledPercentageUnitText(it) }
@@ -176,7 +176,7 @@ import kotlinx.coroutines.flow.map
                 modifier = Modifier
                   .interactive(bassBoostEnabled),
                 value = config.bassBoost,
-                onValueChange = updateBassBoost,
+                onValueChangeFinished = updateBassBoost,
                 valueRange = 0..7,
                 title = { Text("Bass boost") },
                 valueText = { Text(it.toString()) }
