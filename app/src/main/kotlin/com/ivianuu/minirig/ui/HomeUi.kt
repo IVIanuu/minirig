@@ -185,6 +185,14 @@ import kotlinx.coroutines.flow.map
             }
 
             item {
+              SwitchListItem(
+                value = config.loud,
+                onValueChange = updateLoud,
+                title = { Text("Loud") }
+              )
+            }
+
+            item {
               SliderListItem(
                 value = config.channel,
                 onValueChangeFinished = updateChannel,
