@@ -27,7 +27,9 @@ fun Minirig.debugName() = "[$name ~ $address]"
   val minirigGain: Float = 1f,
   val auxGain: Float = 1f,
   val bassBoost: Int = 7,
-  val loud: Boolean = false
+  val loud: Boolean = false,
+  val channel: Float = 0.5f,
+  val auxChannel: Float = 0.5f
 )
 
 fun List<MinirigConfig>.merge(): MinirigConfig = when {
@@ -37,7 +39,8 @@ fun List<MinirigConfig>.merge(): MinirigConfig = when {
     minirigGain = map { it.minirigGain }.average().toFloat(),
     auxGain = map { it.auxGain }.average().toFloat(),
     bassBoost = map { it.bassBoost }.average().toInt(),
-    loud = all { it.loud }
+    loud = all { it.loud },
+    channel = map { it.channel }.average().toFloat()
   )
 }
 

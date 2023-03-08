@@ -113,6 +113,8 @@ private suspend fun MinirigSocket.applyConfig(
           cache.remove(key)
         }
       )
+    } else {
+      logger { "${device.debugName()} not changed $tag $finalKey $finalValue" }
     }
   }
 
@@ -144,5 +146,21 @@ private suspend fun MinirigSocket.applyConfig(
     "loud",
     12,
     if (config.loud) 1 else 0
+  )
+
+  updateConfigIfNeeded(
+    "channel",
+    14,
+    (config.channel * 100)
+      .toInt()
+      .coerceIn(1, 99)
+  )
+
+  updateConfigIfNeeded(
+    "aux channel",
+    15,
+    (config.auxChannel * 100)
+      .toInt()
+      .coerceIn(1, 99)
   )
 }

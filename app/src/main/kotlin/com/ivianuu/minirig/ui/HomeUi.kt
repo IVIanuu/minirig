@@ -40,6 +40,7 @@ import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.common.interactive
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.TopAppBar
+import com.ivianuu.essentials.ui.material.fixedStepPolicy
 import com.ivianuu.essentials.ui.material.guessingContentColorFor
 import com.ivianuu.essentials.ui.material.incrementingStepPolicy
 import com.ivianuu.essentials.ui.navigation.KeyUiContext
@@ -184,10 +185,22 @@ import kotlinx.coroutines.flow.map
             }
 
             item {
-              SwitchListItem(
-                value = config.loud,
-                onValueChange = updateLoud,
-                title = { Text("Loud") }
+              SliderListItem(
+                value = config.channel,
+                onValueChangeFinished = updateChannel,
+                valueRange = 0f..1f,
+                title = { Text("Channel") },
+                stepPolicy = fixedStepPolicy(1)
+              )
+            }
+
+            item {
+              SliderListItem(
+                value = config.auxChannel,
+                onValueChangeFinished = updateAuxChannel,
+                valueRange = 0f..1f,
+                title = { Text("Aux channel") },
+                stepPolicy = fixedStepPolicy(1)
               )
             }
           }
@@ -255,7 +268,9 @@ data class HomeModel(
   val updateMinirigGain: (Float) -> Unit,
   val updateAuxGain: (Float) -> Unit,
   val updateBassBoost: (Int) -> Unit,
-  val updateLoud: (Boolean) -> Unit
+  val updateLoud: (Boolean) -> Unit,
+  val updateChannel: (Float) -> Unit,
+  val updateAuxChannel: (Float) -> Unit
 ) {
   val bassBoostEnabled: Boolean
     get() = !config.loud
@@ -357,6 +372,8 @@ data class HomeModel(
     updateMinirigGain = action { value -> updateConfig { copy(minirigGain = value) } },
     updateAuxGain = action { value -> updateConfig { copy(auxGain = value) } },
     updateBassBoost = action { value -> updateConfig { copy(bassBoost = value) } },
-    updateLoud = action { value -> updateConfig { copy(loud = value) } }
+    updateLoud = action { value -> updateConfig { copy(loud = value) } },
+    updateChannel = action { value -> updateConfig { copy(channel = value) } },
+    updateAuxChannel = action { value -> updateConfig { copy(auxChannel = value) } }
   )
 }
