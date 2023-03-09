@@ -110,7 +110,7 @@ private suspend fun MinirigSocket.applyConfig(
         },
         onCancel = {
           logger { "${device.debugName()} invalidate $tag $finalKey" }
-          cache.remove(key)
+          cache.clear()
         }
       )
     } else {
