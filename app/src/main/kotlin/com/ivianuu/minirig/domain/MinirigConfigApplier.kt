@@ -9,6 +9,7 @@ import com.ivianuu.essentials.app.ScopeWorker
 import com.ivianuu.essentials.coroutines.onCancel
 import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
+import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.invoke
 import com.ivianuu.essentials.time.seconds
@@ -137,7 +138,7 @@ private suspend fun MinirigSocket.applyConfig(
   updateConfigIfNeeded(
     "bass boost",
     7,
-    if (!config.loud) config.bassBoost else 0
+    if (!config.loud) lerp(-7, 7, config.bassBoost) else -7
   )
 
   updateConfigIfNeeded(

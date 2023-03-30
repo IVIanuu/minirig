@@ -177,9 +177,9 @@ import kotlinx.coroutines.flow.map
                   .interactive(bassBoostEnabled),
                 value = config.bassBoost,
                 onValueChangeFinished = updateBassBoost,
-                valueRange = 0..7,
+                stepPolicy = incrementingStepPolicy(0.1f),
                 title = { Text("Bass boost") },
-                valueText = { Text(it.toString()) }
+                valueText = { ScaledPercentageUnitText(it) }
               )
             }
 
@@ -254,7 +254,7 @@ data class HomeModel(
   val config: MinirigConfig,
   val updateMinirigGain: (Float) -> Unit,
   val updateAuxGain: (Float) -> Unit,
-  val updateBassBoost: (Int) -> Unit,
+  val updateBassBoost: (Float) -> Unit,
   val updateLoud: (Boolean) -> Unit
 ) {
   val bassBoostEnabled: Boolean
