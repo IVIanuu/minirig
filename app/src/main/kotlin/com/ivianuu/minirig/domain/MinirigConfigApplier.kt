@@ -108,12 +108,15 @@ private suspend fun MinirigSocket.applyConfig(
           logger { "${device.debugName()} apply $tag $finalKey -> $finalValue" }
           send("q p $finalKey $finalValue")
           cache[key] = value
+          logger { "${device.debugName()} applied $tag $finalKey -> $finalValue" }
         },
         onCancel = {
           logger { "${device.debugName()} invalidate $tag $finalKey" }
           cache.remove(key)
         }
       )
+    } else {
+      logger { "${device.debugName()} skip $tag $finalKey $finalValue" }
     }
   }
 
@@ -138,7 +141,7 @@ private suspend fun MinirigSocket.applyConfig(
   updateConfigIfNeeded(
     "bass boost",
     7,
-    if (!config.loud) lerp(-7, 7, config.bassBoost) else -7
+    if (!config.loud) config.bassBoost else -14
   )
 
   updateConfigIfNeeded(
