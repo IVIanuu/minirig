@@ -141,7 +141,7 @@ private suspend fun MinirigSocket.applyConfig(
   updateConfigIfNeeded(
     "bass boost",
     7,
-    if (!config.loud) config.bassBoost else -14
+    config.bassBoost
   )
 
   updateConfigIfNeeded(
