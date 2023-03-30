@@ -291,8 +291,6 @@ class MinirigSocket(
     }
   }.shareIn(scope, SharingStarted.Eagerly)
 
-  private val sendLimiter = RateLimiter(1, 250.milliseconds)
-
   suspend fun send(message: String) = catch {
     // the minirig cannot keep with our speed to debounce each write
     sendLimiter.acquire()
@@ -382,5 +380,7 @@ class MinirigSocket(
     block(socket)
   }
 }
+
+private val sendLimiter = RateLimiter(1, 250.milliseconds)
 
 val CLIENT_ID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")!!
