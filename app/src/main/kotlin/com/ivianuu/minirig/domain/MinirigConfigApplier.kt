@@ -23,7 +23,6 @@ import com.ivianuu.minirig.data.MinirigConfig
 import com.ivianuu.minirig.data.MinirigPrefs
 import com.ivianuu.minirig.data.TwsState
 import com.ivianuu.minirig.data.debugName
-import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -81,7 +80,6 @@ import kotlinx.coroutines.flow.map
               remote.withMinirig<Unit>(minirig.address) {
                 logger.log { "${device.debugName()} apply $tag $finalKey -> $finalValue" }
                 send("q p $finalKey $finalValue")
-                awaitCancellation()
               }
             }
           }
