@@ -20,32 +20,34 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.flowlayout.FlowRow
 import com.ivianuu.essentials.app.AppForegroundState
 import com.ivianuu.essentials.compose.action
-import com.ivianuu.essentials.compose.bind
-import com.ivianuu.essentials.compose.bindResource
 import com.ivianuu.essentials.coroutines.infiniteEmptyFlow
 import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.resource.Resource
+import com.ivianuu.essentials.resource.collectAsResourceState
 import com.ivianuu.essentials.resource.getOrNull
+import com.ivianuu.essentials.ui.AppColors
 import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.common.interactive
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.material.guessingContentColorFor
 import com.ivianuu.essentials.ui.material.incrementingStepPolicy
-import com.ivianuu.essentials.ui.navigation.KeyUiContext
 import com.ivianuu.essentials.ui.navigation.Model
-import com.ivianuu.essentials.ui.navigation.ModelKeyUi
-import com.ivianuu.essentials.ui.navigation.RootKey
+import com.ivianuu.essentials.ui.navigation.RootScreen
+import com.ivianuu.essentials.ui.navigation.Ui
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.popup.PopupMenuItem
 import com.ivianuu.essentials.ui.prefs.ScaledPercentageUnitText
@@ -67,28 +69,33 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
-@Provide object HomeKey : RootKey
+@Provide val minirigAppColors = AppColors(
+  primary = Color(0xFF222F3E),
+  secondary = Color(0xFFFF9F43)
+)
 
-@Provide val homeUi = ModelKeyUi<HomeKey, HomeModel> {
+@Provide object HomeScreen : RootScreen
+
+@Provide val homeUi = Ui<HomeScreen, HomeModel> { model ->
   Scaffold(
     topBar = {
       TopAppBar(
         title = { Text("Minirig") },
         actions = {
           PopupMenuButton {
-            PopupMenuItem(onSelected = twsPair) {
+            PopupMenuItem(onSelected = model.twsPair) {
               Text("Tws pair")
             }
-            PopupMenuItem(onSelected = cancelTws) {
+            PopupMenuItem(onSelected = model.cancelTws) {
               Text("Cancel tws")
             }
-            PopupMenuItem(onSelected = enablePowerOut) {
+            PopupMenuItem(onSelected = model.enablePowerOut) {
               Text("Enable power out")
             }
-            PopupMenuItem(onSelected = powerOff) {
+            PopupMenuItem(onSelected = model.powerOff) {
               Text("Power off")
             }
-            PopupMenuItem(onSelected = factoryReset) {
+            PopupMenuItem(onSelected = model.factoryReset) {
               Text("Factory reset")
             }
           }
@@ -96,7 +103,7 @@ import kotlinx.coroutines.flow.map
       )
     }
   ) {
-    ResourceBox(minirigs) { value ->
+    ResourceBox(model.minirigs) { value ->
       VerticalList {
         if (value.isEmpty()) {
           item {
@@ -111,12 +118,12 @@ import kotlinx.coroutines.flow.map
               crossAxisSpacing = 8.dp
             ) {
               val allMinirigs =
-                minirigs.getOrNull()?.map { it.minirig.address }?.toSet() ?: emptySet()
+                model.minirigs.getOrNull()?.map { it.minirig.address }?.toSet() ?: emptySet()
 
               Minirig(
-                selected = allMinirigs.all { it in selectedMinirigs },
+                selected = allMinirigs.all { it in model.selectedMinirigs },
                 active = true,
-                onClick = toggleAllMinirigSelections,
+                onClick = model.toggleAllMinirigSelections,
                 onLongClick = null
               ) {
                 Text("ALL")
@@ -124,10 +131,10 @@ import kotlinx.coroutines.flow.map
 
               value.forEach { minirig ->
                 Minirig(
-                  selected = minirig.minirig.address in selectedMinirigs,
+                  selected = minirig.minirig.address in model.selectedMinirigs,
                   active = minirig.isConnected,
-                  onClick = { toggleMinirigSelection(minirig, false) },
-                  onLongClick = { toggleMinirigSelection(minirig, true) }
+                  onClick = { model.toggleMinirigSelection(minirig, false) },
+                  onLongClick = { model.toggleMinirigSelection(minirig, true) }
                 ) {
                   Text(
                     buildString {
@@ -146,15 +153,15 @@ import kotlinx.coroutines.flow.map
             }
           }
 
-          if (selectedMinirigs.isEmpty()) {
+          if (model.selectedMinirigs.isEmpty()) {
             item {
               Text("Select a minirig to edit")
             }
           } else {
             item {
               SliderListItem(
-                value = config.minirigGain,
-                onValueChangeFinished = updateMinirigGain,
+                value = model.config.minirigGain,
+                onValueChangeFinished = model.updateMinirigGain,
                 title = { Text("Minirig gain") },
                 stepPolicy = incrementingStepPolicy(0.1f),
                 valueText = { ScaledPercentageUnitText(it) }
@@ -163,8 +170,8 @@ import kotlinx.coroutines.flow.map
 
             item {
               SliderListItem(
-                value = config.auxGain,
-                onValueChangeFinished = updateAuxGain,
+                value = model.config.auxGain,
+                onValueChangeFinished = model.updateAuxGain,
                 title = { Text("Aux gain") },
                 stepPolicy = incrementingStepPolicy(0.1f),
                 valueText = { ScaledPercentageUnitText(it) }
@@ -174,9 +181,9 @@ import kotlinx.coroutines.flow.map
             item {
               SliderListItem(
                 modifier = Modifier
-                  .interactive(bassBoostEnabled),
-                value = config.bassBoost,
-                onValueChangeFinished = updateBassBoost,
+                  .interactive(model.bassBoostEnabled),
+                value = model.config.bassBoost,
+                onValueChangeFinished = model.updateBassBoost,
                 valueRange = -14..7,
                 title = { Text("Bass boost") },
                 valueText = { Text(it.toString()) }
@@ -185,8 +192,8 @@ import kotlinx.coroutines.flow.map
 
             item {
               SwitchListItem(
-                value = config.loud,
-                onValueChange = updateLoud,
+                value = model.config.loud,
+                onValueChange = model.updateLoud,
                 title = { Text("Loud") }
               )
             }
@@ -263,39 +270,39 @@ data class HomeModel(
 
 @Provide fun homeModel(
   appForegroundState: Flow<AppForegroundState>,
-  ctx: KeyUiContext<HomeKey>,
   logger: Logger,
   pref: DataStore<MinirigPrefs>,
   remote: MinirigRemote,
   repository: MinirigRepository,
   useCases: MinirigUseCases
 ) = Model {
-  val prefs = pref.data.bind(MinirigPrefs())
+  val prefs by pref.data.collectAsState(MinirigPrefs())
 
-  val minirigs = appForegroundState
-    .flatMapLatest { foregroundState ->
-      if (foregroundState == AppForegroundState.BACKGROUND) infiniteEmptyFlow()
-      else repository.minirigs
-        .flatMapLatest { minirigs ->
-          if (minirigs.isEmpty()) flowOf(emptyList())
-          else combine(
-            minirigs
-              .sortedBy { it.name }
-              .map { minirig ->
-                remote.minirigState(minirig.address)
-                  .map {
-                    UiMinirig(
-                      minirig = minirig,
-                      isConnected = it.isConnected,
-                      batteryPercentage = (it.batteryPercentage?.let { it * 100 })?.toInt(),
-                      powerState = it.powerState
-                    )
-                  }
-              }
-          ) { it.toList() }
-        }
-    }
-    .bindResource()
+  val minirigs by remember {
+    appForegroundState
+      .flatMapLatest { foregroundState ->
+        if (foregroundState == AppForegroundState.BACKGROUND) infiniteEmptyFlow()
+        else repository.minirigs
+          .flatMapLatest { minirigs ->
+            if (minirigs.isEmpty()) flowOf(emptyList())
+            else combine(
+              minirigs
+                .sortedBy { it.name }
+                .map { minirig ->
+                  remote.minirigState(minirig.address)
+                    .map {
+                      UiMinirig(
+                        minirig = minirig,
+                        isConnected = it.isConnected,
+                        batteryPercentage = (it.batteryPercentage?.let { it * 100 })?.toInt(),
+                        powerState = it.powerState
+                      )
+                    }
+                }
+            ) { it.toList() }
+          }
+      }
+  }.collectAsResourceState()
 
   val config = prefs.selectedMinirigs
     .map { prefs.configs[it] ?: MinirigConfig() }

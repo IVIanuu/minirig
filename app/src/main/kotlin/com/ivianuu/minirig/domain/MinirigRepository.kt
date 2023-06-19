@@ -7,12 +7,13 @@ package com.ivianuu.minirig.domain
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothManager
 import com.ivianuu.essentials.AppScope
+import com.ivianuu.essentials.Scoped
 import com.ivianuu.essentials.permission.PermissionManager
 import com.ivianuu.injekt.Provide
 import com.ivianuu.injekt.android.SystemService
-import com.ivianuu.injekt.common.Scoped
+import com.ivianuu.injekt.common.IOCoroutineContext
+import com.ivianuu.injekt.common.MainCoroutineContext
 import com.ivianuu.injekt.common.typeKeyOf
-import com.ivianuu.injekt.coroutines.IOContext
 import com.ivianuu.minirig.data.Minirig
 import com.ivianuu.minirig.data.isMinirig
 import com.ivianuu.minirig.data.toMinirig
@@ -26,26 +27,24 @@ import kotlinx.coroutines.flow.onStart
 
 @Provide @Scoped<AppScope> class MinirigRepository(
   private val bluetoothManager: @SystemService BluetoothManager,
-  private val context: IOContext,
+  private val coroutineContext: IOCoroutineContext,
   private val permissionManager: PermissionManager,
   private val remote: MinirigRemote
 ) {
-  val minirigs: Flow<List<Minirig>>
-    @SuppressLint("MissingPermission")
-    get() = permissionManager.permissionState(listOf(typeKeyOf<MinirigBluetoothConnectPermission>()))
-      .flatMapLatest {
-        if (!it) flowOf(emptyList())
-        else remote.bondedDeviceChanges()
-          .onStart<Any> { emit(Unit) }
-          .map {
-            bluetoothManager.adapter?.bondedDevices
-              ?.filter { it.isMinirig() }
-              ?.map { it.toMinirig() }
-              ?: emptyList()
-          }
-          .flowOn(context)
-      }
-      .distinctUntilChanged()
+  val minirigs: Flow<List<Minirig>> = permissionManager.permissionState(listOf(typeKeyOf<MinirigBluetoothConnectPermission>()))
+    .flatMapLatest {
+      if (!it) flowOf(emptyList())
+      else remote.bondedDeviceChanges()
+        .onStart<Any> { emit(Unit) }
+        .map {
+          bluetoothManager.adapter?.bondedDevices
+            ?.filter { it.isMinirig() }
+            ?.map { it.toMinirig() }
+            ?: emptyList()
+        }
+        .flowOn(coroutineContext)
+    }
+    .distinctUntilChanged()
 
   fun minirig(address: String): Flow<Minirig?> = remote.bondedDeviceChanges()
     .onStart<Any> { emit(Unit) }
@@ -55,5 +54,5 @@ import kotlinx.coroutines.flow.onStart
         ?.toMinirig()
     }
     .distinctUntilChanged()
-    .flowOn(context)
+    .flowOn(coroutineContext)
 }

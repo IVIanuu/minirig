@@ -10,24 +10,27 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothSocket
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ivianuu.essentials.AppScope
+import com.ivianuu.essentials.Scoped
 import com.ivianuu.essentials.catch
-import com.ivianuu.essentials.compose.bind
-import com.ivianuu.essentials.compose.state
+import com.ivianuu.essentials.compose.compositionStateFlow
 import com.ivianuu.essentials.coroutines.EventFlow
 import com.ivianuu.essentials.coroutines.RateLimiter
 import com.ivianuu.essentials.coroutines.RefCountedResource
+import com.ivianuu.essentials.coroutines.ScopedCoroutineScope
 import com.ivianuu.essentials.coroutines.childCoroutineScope
 import com.ivianuu.essentials.coroutines.onCancel
 import com.ivianuu.essentials.coroutines.par
 import com.ivianuu.essentials.coroutines.withResource
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.asLog
-import com.ivianuu.essentials.logging.invoke
+import com.ivianuu.essentials.logging.log
 import com.ivianuu.essentials.nonFatalOrThrow
 import com.ivianuu.essentials.time.milliseconds
 import com.ivianuu.essentials.time.seconds
@@ -35,9 +38,8 @@ import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
 import com.ivianuu.injekt.android.SystemService
-import com.ivianuu.injekt.common.Scoped
-import com.ivianuu.injekt.coroutines.IOContext
-import com.ivianuu.injekt.coroutines.NamedCoroutineScope
+import com.ivianuu.injekt.common.IOCoroutineContext
+import com.ivianuu.injekt.common.MainCoroutineContext
 import com.ivianuu.minirig.data.MinirigState
 import com.ivianuu.minirig.data.PowerState
 import com.ivianuu.minirig.data.TwsState
@@ -73,20 +75,20 @@ import kotlin.system.measureTimeMillis
 @Provide @Scoped<AppScope> class MinirigRemote(
   private val bluetoothManager: @SystemService BluetoothManager,
   private val broadcastsFactory: BroadcastsFactory,
-  private val context: IOContext,
+  private val coroutineContext: IOCoroutineContext,
   private val logger: Logger,
-  private val scope: NamedCoroutineScope<AppScope>
+  private val scope: ScopedCoroutineScope<AppScope>
 ) {
   private val sockets = RefCountedResource<String, MinirigSocket>(
     timeout = 5.seconds,
     create = { address ->
       MinirigSocket(address)
         .also {
-          logger { "create socket ${it.device.debugName()}" }
+          logger.log { "create socket ${it.device.debugName()}" }
         }
     },
     release = { _, socket ->
-      logger { "release socket $socket ${socket.device.debugName()}" }
+      logger.log { "release socket $socket ${socket.device.debugName()}" }
       socket.close()
     }
   )
@@ -121,19 +123,11 @@ import kotlin.system.measureTimeMillis
     address: String,
     initial: MinirigState?,
     @Inject scope: CoroutineScope
-  ) = scope.state {
-    val isConnected = isConnected(address).bind(initial?.isConnected ?: false)
-    var batteryPercentage: Float? by remember { mutableStateOf(initial?.batteryPercentage) }
-    var powerState by remember { mutableStateOf(initial?.powerState ?: PowerState.NORMAL) }
-    var twsState by remember { mutableStateOf(initial?.twsState ?: TwsState.NONE) }
+  ) = scope.compositionStateFlow {
+    val isConnected by remember { isConnected(address) }.collectAsState(initial?.isConnected ?: false)
 
     if (!isConnected)
-      return@state MinirigState(
-        isConnected = false,
-        batteryPercentage = batteryPercentage,
-        powerState = powerState,
-        twsState = twsState
-      )
+      return@compositionStateFlow MinirigState(isConnected = false)
 
     LaunchedEffect(true) {
       withMinirig(address) {
@@ -160,43 +154,48 @@ import kotlin.system.measureTimeMillis
       }
     }
 
-    LaunchedEffect(true) {
+    val batteryPercentage by produceState(initial?.batteryPercentage) {
       withMinirig(address) {
-        par(
-          {
-            messages
-              .filter { it.startsWith("x ") }
-              .collect { status ->
-                if (status.length >= 9) {
-                  powerState = when (status.substring(8, 9)) {
-                    "1" -> PowerState.NORMAL
-                    "2" -> PowerState.CHARGING
-                    "3" -> PowerState.POWER_OUT
-                    else -> PowerState.NORMAL
-                  }
-                }
-
-                if (status.length >= 7) {
-                  twsState = when (status.substring(5, 7)) {
-                    "30" -> TwsState.SLAVE
-                    "31" -> TwsState.MASTER
-                    else -> TwsState.NONE
-                  }
-                }
-              }
-          },
-          {
-            messages
-              .filter { it.startsWith("B") }
-              .collect { message ->
-                batteryPercentage = message
-                  .removePrefix("B")
-                  .take(5)
-                  .toIntOrNull()
-                  ?.toBatteryPercentage()
-              }
+        messages
+          .filter { it.startsWith("B") }
+          .collect { message ->
+            value = message
+              .removePrefix("B")
+              .take(5)
+              .toIntOrNull()
+              ?.toBatteryPercentage()
           }
-        )
+      }
+    }
+
+    val powerState by produceState(initial?.powerState ?: PowerState.NORMAL) {
+      withMinirig(address) {
+        messages
+          .filter { it.startsWith("x ") && it.length >= 9 }
+          .map {
+            when (it.substring(8, 9)) {
+              "1" -> PowerState.NORMAL
+              "2" -> PowerState.CHARGING
+              "3" -> PowerState.POWER_OUT
+              else -> PowerState.NORMAL
+            }
+          }
+          .collect { value = it }
+      }
+    }
+
+    val twsState by produceState(initial?.twsState ?: TwsState.NONE) {
+      withMinirig(address) {
+        messages
+          .filter { it.startsWith("x ") && it.length >= 7 }
+          .map {
+            when (it.substring(5, 7)) {
+              "30" -> TwsState.SLAVE
+              "31" -> TwsState.MASTER
+              else -> TwsState.NONE
+            }
+          }
+          .collect { value = it }
       }
     }
 
@@ -212,7 +211,7 @@ import kotlin.system.measureTimeMillis
     .onStart<Any> { emit(Unit) }
     .map { address.isConnected() }
     .distinctUntilChanged()
-    .flowOn(context)
+    .flowOn(coroutineContext)
 
   private fun String.isConnected(): Boolean =
     bluetoothManager.adapter.getRemoteDevice(this)
@@ -222,8 +221,8 @@ import kotlin.system.measureTimeMillis
 
   suspend fun <R> withMinirig(
     address: String,
-    block: suspend context(MinirigSocket) () -> R
-  ): R? = withContext(context) {
+    block: suspend MinirigSocket.() -> R
+  ): R? = withContext(coroutineContext) {
     if (!address.isConnected()) null
     else sockets.withResource(address, block)
   }
@@ -253,11 +252,11 @@ private fun Int.toBatteryPercentage(): Float = when {
 class MinirigSocket(
   private val address: String,
   @Inject private val bluetoothManager: @SystemService BluetoothManager,
-  @Inject context: IOContext,
+  @Inject coroutineContext: IOCoroutineContext,
   @Inject private val logger: Logger,
-  @Inject parentScope: NamedCoroutineScope<AppScope>
+  @Inject parentScope: ScopedCoroutineScope<AppScope>
 ) {
-  private val scope = parentScope.childCoroutineScope(context)
+  private val scope = parentScope.childCoroutineScope(coroutineContext)
 
   var socket: BluetoothSocket? = null
   private val socketLock = Mutex()
@@ -279,7 +278,7 @@ class MinirigSocket(
               val arr = ByteArray(inputStream.available())
               inputStream.read(arr)
               val current = arr.toString(StandardCharsets.UTF_8)
-              logger { "${device.debugName()} stats $current" }
+              logger.log { "${device.debugName()} stats $current" }
               send(current)
             }
           }
@@ -295,7 +294,7 @@ class MinirigSocket(
     // the minirig cannot keep with our speed to debounce each write
     sendLimiter.acquire()
 
-    logger { "send ${device.debugName()} -> $message" }
+    logger.log { "send ${device.debugName()} -> $message" }
 
     withSocket {
       outputStream.write(message.toByteArray())
@@ -318,7 +317,7 @@ class MinirigSocket(
   private fun closeCurrentSocketImpl(reason: Throwable?) {
     catch {
       socket
-        ?.also { logger { "${device.debugName()} close current socket ${reason?.asLog()}" } }
+        ?.also { logger.log { "${device.debugName()} close current socket ${reason?.asLog()}" } }
         ?.close()
     }
     socket = null
@@ -338,7 +337,7 @@ class MinirigSocket(
       val connectComplete = CompletableDeferred<Unit>()
       par(
         {
-          logger { "connect ${device.debugName()}" }
+          logger.log { "connect ${device.debugName()}" }
           try {
             var attempt = 0
             while (attempt < 5) {
@@ -347,11 +346,11 @@ class MinirigSocket(
                   socket.connect()
                 }
                 if (socket.isConnected) {
-                  logger { "connected to ${device.debugName()} in ${duration}ms" }
+                  logger.log { "connected to ${device.debugName()} in ${duration}ms" }
                   break
                 }
               } catch (e: Throwable) {
-                logger { "connect failed ${device.debugName()} attempt $attempt" }
+                logger.log { "connect failed ${device.debugName()} attempt $attempt" }
                 e.nonFatalOrThrow()
                 attempt++
                 delay(RetryDelay)
@@ -365,7 +364,7 @@ class MinirigSocket(
           onCancel(
             block = { connectComplete.await() },
             onCancel = {
-              logger { "cancel connect ${device.debugName()}" }
+              logger.log { "cancel connect ${device.debugName()}" }
               catch { socket.close() }
             }
           )
