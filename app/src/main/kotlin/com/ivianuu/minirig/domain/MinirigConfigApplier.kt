@@ -11,9 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import com.ivianuu.essentials.app.AppForegroundScope
-import com.ivianuu.essentials.app.ScopeWorker
-import com.ivianuu.essentials.compose.launchComposition
-import com.ivianuu.essentials.coroutines.ScopedCoroutineScope
+import com.ivianuu.essentials.app.ScopeComposition
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.log
@@ -24,7 +22,6 @@ import com.ivianuu.minirig.data.MinirigPrefs
 import com.ivianuu.minirig.data.TwsState
 import com.ivianuu.minirig.data.debugName
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
 @Provide fun minirigConfigApplier(
@@ -32,28 +29,17 @@ import kotlinx.coroutines.flow.map
   pref: DataStore<MinirigPrefs>,
   repository: MinirigRepository,
   remote: MinirigRemote,
-  scope: ScopedCoroutineScope<AppForegroundScope>,
   toaster: Toaster
-) = ScopeWorker<AppForegroundScope> {
-  scope.launchComposition {
-    val minirigs by remember {
-      repository.minirigs
-        .flatMapLatest { minirigs ->
-          combine(
-            minirigs
-              .map { minirig ->
-                remote.isConnected(minirig.address)
-                  .map { minirig to it }
-              }
-          ) { minirigsWithState ->
-            minirigsWithState
-              .filter { it.second }
-              .map { it.first }
-          }
-        }
-    }.collectAsState(emptyList())
+) = ScopeComposition<AppForegroundScope> {
+  val minirigs by repository.minirigs.collectAsState(emptyList())
 
-    minirigs.forEach { minirig ->
+  minirigs
+    .filter {
+      key(it.address) {
+        remote.isConnected(it.address).collectAsState(false).value
+      }
+    }
+    .forEach { minirig ->
       key(minirig) {
         val (config, twsState) = remember {
           combine(
@@ -116,5 +102,4 @@ import kotlinx.coroutines.flow.map
         }
       }
     }
-  }
 }
