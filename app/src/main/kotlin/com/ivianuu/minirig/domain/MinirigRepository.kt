@@ -4,15 +4,13 @@
 
 package com.ivianuu.minirig.domain
 
-import android.annotation.SuppressLint
 import android.bluetooth.BluetoothManager
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.Scoped
+import com.ivianuu.essentials.coroutines.CoroutineContexts
 import com.ivianuu.essentials.permission.PermissionManager
 import com.ivianuu.injekt.Provide
 import com.ivianuu.injekt.android.SystemService
-import com.ivianuu.injekt.common.IOCoroutineContext
-import com.ivianuu.injekt.common.MainCoroutineContext
 import com.ivianuu.injekt.common.typeKeyOf
 import com.ivianuu.minirig.data.Minirig
 import com.ivianuu.minirig.data.isMinirig
@@ -27,7 +25,7 @@ import kotlinx.coroutines.flow.onStart
 
 @Provide @Scoped<AppScope> class MinirigRepository(
   private val bluetoothManager: @SystemService BluetoothManager,
-  private val coroutineContext: IOCoroutineContext,
+  private val coroutineContexts: CoroutineContexts,
   private val permissionManager: PermissionManager,
   private val remote: MinirigRemote
 ) {
@@ -42,7 +40,7 @@ import kotlinx.coroutines.flow.onStart
             ?.map { it.toMinirig() }
             ?: emptyList()
         }
-        .flowOn(coroutineContext)
+        .flowOn(coroutineContexts.io)
     }
     .distinctUntilChanged()
 
@@ -54,5 +52,5 @@ import kotlinx.coroutines.flow.onStart
         ?.toMinirig()
     }
     .distinctUntilChanged()
-    .flowOn(coroutineContext)
+    .flowOn(coroutineContexts.io)
 }
