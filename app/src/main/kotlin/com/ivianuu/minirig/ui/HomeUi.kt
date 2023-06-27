@@ -180,8 +180,7 @@ import kotlinx.coroutines.flow.map
 
             item {
               SliderListItem(
-                modifier = Modifier
-                  .interactive(model.bassBoostEnabled),
+                modifier = Modifier.interactive(model.bassBoostEnabled),
                 value = model.config.bassBoost,
                 onValueChangeFinished = model.updateBassBoost,
                 valueRange = -14..7,
