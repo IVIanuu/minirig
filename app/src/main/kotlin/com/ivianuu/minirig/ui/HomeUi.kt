@@ -121,7 +121,7 @@ import kotlinx.coroutines.flow.map
               val allMinirigs =
                 model.minirigs.getOrNull()?.map { it.minirig.address }?.toSet() ?: emptySet()
 
-              Minirig(
+              MinirigChip(
                 selected = allMinirigs.all { it in model.selectedMinirigs },
                 active = true,
                 onClick = model.toggleAllMinirigSelections,
@@ -131,7 +131,7 @@ import kotlinx.coroutines.flow.map
               }
 
               value.forEach { minirig ->
-                Minirig(
+                MinirigChip(
                   selected = minirig.minirig.address in model.selectedMinirigs,
                   active = minirig.isConnected,
                   onClick = { model.toggleMinirigSelection(minirig, false) },
@@ -205,7 +205,7 @@ import kotlinx.coroutines.flow.map
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-@Composable private fun Minirig(
+@Composable private fun MinirigChip(
   selected: Boolean,
   active: Boolean,
   onClick: () -> Unit,
