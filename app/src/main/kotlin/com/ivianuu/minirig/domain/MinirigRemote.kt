@@ -264,7 +264,7 @@ class MinirigSocket(
   val messages: Flow<String> = channelFlow {
     while (currentCoroutineContext().isActive) {
       if (!bluetoothManager.adapter.isEnabled) {
-        delay(5.seconds)
+        delay(1.seconds)
         continue
       }
 
@@ -288,9 +288,6 @@ class MinirigSocket(
   }.shareIn(scope, SharingStarted.Eagerly)
 
   suspend fun send(message: String) = catch {
-    // the minirig cannot keep with our speed to debounce each write
-    sendLimiter.acquire()
-
     logger.log { "send ${device.debugName()} -> $message" }
 
     withSocket {
