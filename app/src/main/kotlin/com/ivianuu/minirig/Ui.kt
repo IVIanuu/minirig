@@ -2,7 +2,7 @@
  * Copyright 2022 Manuel Wrage. Use of this source code is governed by the Apache 2.0 license.
  */
 
-package com.ivianuu.minirig.ui
+package com.ivianuu.minirig
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -56,14 +56,6 @@ import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.essentials.ui.resource.ResourceBox
 import com.ivianuu.injekt.Provide
-import com.ivianuu.minirig.data.Minirig
-import com.ivianuu.minirig.data.MinirigConfig
-import com.ivianuu.minirig.data.MinirigPrefs
-import com.ivianuu.minirig.data.PowerState
-import com.ivianuu.minirig.data.merge
-import com.ivianuu.minirig.domain.MinirigRemote
-import com.ivianuu.minirig.domain.MinirigRepository
-import com.ivianuu.minirig.domain.MinirigUseCases
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest

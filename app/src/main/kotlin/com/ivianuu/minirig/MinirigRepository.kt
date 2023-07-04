@@ -2,19 +2,14 @@
  * Copyright 2022 Manuel Wrage. Use of this source code is governed by the Apache 2.0 license.
  */
 
-package com.ivianuu.minirig.domain
+package com.ivianuu.minirig
 
 import android.bluetooth.BluetoothManager
-import com.ivianuu.essentials.AppScope
-import com.ivianuu.essentials.Scoped
 import com.ivianuu.essentials.coroutines.CoroutineContexts
 import com.ivianuu.essentials.permission.PermissionManager
 import com.ivianuu.injekt.Provide
 import com.ivianuu.injekt.android.SystemService
 import com.ivianuu.injekt.common.typeKeyOf
-import com.ivianuu.minirig.data.Minirig
-import com.ivianuu.minirig.data.isMinirig
-import com.ivianuu.minirig.data.toMinirig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -23,10 +18,10 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 
-@Provide @Scoped<AppScope> class MinirigRepository(
+@Provide class MinirigRepository(
   private val bluetoothManager: @SystemService BluetoothManager,
   private val coroutineContexts: CoroutineContexts,
-  private val permissionManager: PermissionManager,
+  permissionManager: PermissionManager,
   private val remote: MinirigRemote
 ) {
   val minirigs: Flow<List<Minirig>> = permissionManager.permissionState(listOf(typeKeyOf<MinirigBluetoothConnectPermission>()))

@@ -2,7 +2,7 @@
  * Copyright 2022 Manuel Wrage. Use of this source code is governed by the Apache 2.0 license.
  */
 
-package com.ivianuu.minirig.domain
+package com.ivianuu.minirig
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
@@ -19,7 +19,6 @@ import com.ivianuu.essentials.Scoped
 import com.ivianuu.essentials.compose.compositionStateFlow
 import com.ivianuu.essentials.coroutines.CoroutineContexts
 import com.ivianuu.essentials.coroutines.EventFlow
-import com.ivianuu.essentials.coroutines.RateLimiter
 import com.ivianuu.essentials.coroutines.RefCountedResource
 import com.ivianuu.essentials.coroutines.ScopedCoroutineScope
 import com.ivianuu.essentials.coroutines.childCoroutineScope
@@ -31,16 +30,11 @@ import com.ivianuu.essentials.logging.asLog
 import com.ivianuu.essentials.logging.log
 import com.ivianuu.essentials.nonFatalOrThrow
 import com.ivianuu.essentials.result.catch
-import com.ivianuu.essentials.time.milliseconds
 import com.ivianuu.essentials.time.seconds
 import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
 import com.ivianuu.injekt.android.SystemService
-import com.ivianuu.minirig.data.MinirigState
-import com.ivianuu.minirig.data.PowerState
-import com.ivianuu.minirig.data.TwsState
-import com.ivianuu.minirig.data.debugName
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -373,7 +367,5 @@ class MinirigSocket(
     block(socket)
   }
 }
-
-private val sendLimiter = RateLimiter(1, 250.milliseconds)
 
 val CLIENT_ID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")!!
