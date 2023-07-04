@@ -68,12 +68,12 @@ import kotlin.system.measureTimeMillis
   private val broadcastsFactory: BroadcastsFactory,
   private val coroutineContexts: CoroutineContexts,
   private val logger: Logger,
-  private val scope: ScopedCoroutineScope<AppScope>
+  private val scope: ScopedCoroutineScope<AppScope>,
+  private val socketFactory: (String) -> MinirigSocket
 ) {
   private val sockets = RefCountedResource<String, MinirigSocket>(
-    timeout = 5.seconds,
     create = { address ->
-      MinirigSocket(address)
+      socketFactory(address)
         .also {
           logger.log { "create socket ${it.device.debugName()}" }
         }
@@ -240,12 +240,12 @@ private fun Int.toBatteryPercentage(): Float = when {
   else -> 1f
 }
 
-class MinirigSocket(
+@Provide class MinirigSocket(
   private val address: String,
-  @Inject private val bluetoothManager: @SystemService BluetoothManager,
-  @Inject coroutineContexts: CoroutineContexts,
-  @Inject private val logger: Logger,
-  @Inject parentScope: ScopedCoroutineScope<AppScope>
+  private val bluetoothManager: @SystemService BluetoothManager,
+  coroutineContexts: CoroutineContexts,
+  private val logger: Logger,
+  parentScope: ScopedCoroutineScope<AppScope>
 ) {
   private val scope = parentScope.childCoroutineScope(coroutineContexts.io)
 
@@ -281,11 +281,14 @@ class MinirigSocket(
     }
   }.shareIn(scope, SharingStarted.Eagerly)
 
-  suspend fun send(message: String) = catch {
-    logger.log { "send ${device.debugName()} -> $message" }
+  private val sendLock = Mutex()
 
-    withSocket {
-      outputStream.write(message.toByteArray())
+  suspend fun send(message: String) = catch {
+    sendLock.withLock {
+      withSocket {
+        logger.log { "send ${device.debugName()} -> $message" }
+        outputStream.write(message.toByteArray())
+      }
     }
   }
 
@@ -360,6 +363,8 @@ class MinirigSocket(
       )
 
       this.socket = socket
+
+      delay(1.seconds)
 
       socket
     }

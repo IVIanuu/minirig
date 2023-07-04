@@ -4,21 +4,33 @@
 
 package com.ivianuu.minirig
 
+import android.bluetooth.BluetoothDevice
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import com.ivianuu.essentials.AppScope
+import com.ivianuu.essentials.Scoped
 import com.ivianuu.essentials.app.AppForegroundScope
 import com.ivianuu.essentials.app.ScopeComposition
+import com.ivianuu.essentials.broadcast.BroadcastHandler
+import com.ivianuu.essentials.compose.launchComposition
+import com.ivianuu.essentials.coroutines.ScopedCoroutineScope
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.log
+import com.ivianuu.essentials.time.seconds
 import com.ivianuu.essentials.util.Toaster
 import com.ivianuu.injekt.Provide
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+
+fun interface MinirigConfigApplier : ScopeComposition<AppForegroundScope>
 
 @Provide fun minirigConfigApplier(
   logger: Logger,
@@ -26,7 +38,7 @@ import kotlinx.coroutines.flow.map
   repository: MinirigRepository,
   remote: MinirigRemote,
   toaster: Toaster
-) = ScopeComposition<AppForegroundScope> {
+) = MinirigConfigApplier {
   val minirigs by repository.minirigs.collectAsState(emptyList())
 
   minirigs
@@ -98,4 +110,33 @@ import kotlinx.coroutines.flow.map
         }
       }
     }
+}
+
+@Provide fun soundboksBroadcastHandler(
+  applierFactory: () -> MinirigConfigApplier,
+  logger: Logger,
+  scope: ScopedCoroutineScope<AppScope>
+): @Scoped<AppScope> BroadcastHandler {
+  var applierJob: Job? = null
+  var cancelJob: Job? = null
+  return BroadcastHandler(BluetoothDevice.ACTION_ACL_CONNECTED) {
+    val device = it.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)!!
+    if (!device.isMinirig()) return@BroadcastHandler
+
+    if (applierJob == null) {
+      logger.log { "apply configs" }
+      applierJob = scope.launchComposition {
+        applierFactory()()
+      }
+    }
+
+    cancelJob?.cancel()?.also { logger.log { "stop cancel timer" } }
+    cancelJob = scope.launch {
+      logger.log { "start cancel timer" }
+      delay(30.seconds)
+      logger.log { "stop apply configs" }
+      applierJob?.cancel()
+      applierJob = null
+    }
+  }
 }
