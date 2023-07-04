@@ -19,6 +19,7 @@ import com.ivianuu.essentials.Scoped
 import com.ivianuu.essentials.compose.compositionStateFlow
 import com.ivianuu.essentials.coroutines.CoroutineContexts
 import com.ivianuu.essentials.coroutines.EventFlow
+import com.ivianuu.essentials.coroutines.RateLimiter
 import com.ivianuu.essentials.coroutines.RefCountedResource
 import com.ivianuu.essentials.coroutines.ScopedCoroutineScope
 import com.ivianuu.essentials.coroutines.childCoroutineScope
@@ -30,6 +31,7 @@ import com.ivianuu.essentials.logging.asLog
 import com.ivianuu.essentials.logging.log
 import com.ivianuu.essentials.nonFatalOrThrow
 import com.ivianuu.essentials.result.catch
+import com.ivianuu.essentials.time.milliseconds
 import com.ivianuu.essentials.time.seconds
 import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.injekt.Inject
@@ -282,10 +284,12 @@ private fun Int.toBatteryPercentage(): Float = when {
   }.shareIn(scope, SharingStarted.Eagerly)
 
   private val sendLock = Mutex()
+  private val sendLimiter = RateLimiter(1, 100.milliseconds)
 
   suspend fun send(message: String) = catch {
     sendLock.withLock {
       withSocket {
+        sendLimiter.acquire()
         logger.log { "send ${device.debugName()} -> $message" }
         outputStream.write(message.toByteArray())
       }
