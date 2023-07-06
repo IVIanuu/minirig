@@ -44,7 +44,7 @@ fun interface MinirigConfigApplier : ScopeComposition<AppForegroundScope>
   minirigs
     .filter {
       key(it.address) {
-        remote.isConnected(it.address).collectAsState(false).value
+        remember { remote.isConnected(it.address) }.collectAsState(false).value
       }
     }
     .forEach { minirig ->
