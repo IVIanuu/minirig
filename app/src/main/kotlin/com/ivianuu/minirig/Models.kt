@@ -45,7 +45,7 @@ fun List<MinirigConfig>.merge(): MinirigConfig = when {
   val selectedMinirigs: Set<String> = emptySet()
 ) {
   companion object {
-    @Provide val prefModule = PrefModule { MinirigPrefs() }
+    @Provide val dataStoreModule = PrefModule { MinirigPrefs() }
   }
 }
 
