@@ -5,7 +5,7 @@
 package com.ivianuu.minirig
 
 import android.bluetooth.BluetoothDevice
-import com.ivianuu.essentials.data.PrefModule
+import com.ivianuu.essentials.data.DataStoreModule
 import com.ivianuu.injekt.Provide
 import kotlinx.serialization.Serializable
 
@@ -44,8 +44,8 @@ fun List<MinirigConfig>.merge(): MinirigConfig = when {
   val configs: Map<String, MinirigConfig> = emptyMap(),
   val selectedMinirigs: Set<String> = emptySet()
 ) {
-  companion object {
-    @Provide val dataStoreModule = PrefModule { MinirigPrefs() }
+  @Provide companion object {
+    @Provide val dataStoreModule = DataStoreModule("minirig_prefs") { MinirigPrefs() }
   }
 }
 
@@ -56,10 +56,6 @@ data class MinirigState(
   val twsState: TwsState = TwsState.NONE
 )
 
-enum class PowerState {
-  NORMAL, CHARGING, POWER_OUT
-}
+enum class PowerState { NORMAL, CHARGING, POWER_OUT }
 
-enum class TwsState {
-  NONE, MASTER, SLAVE
-}
+enum class TwsState { NONE, MASTER, SLAVE }

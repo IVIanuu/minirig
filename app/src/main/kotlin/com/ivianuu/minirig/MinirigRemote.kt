@@ -16,27 +16,25 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.Scoped
+import com.ivianuu.essentials.SystemService
 import com.ivianuu.essentials.compose.compositionStateFlow
 import com.ivianuu.essentials.coroutines.CoroutineContexts
 import com.ivianuu.essentials.coroutines.EventFlow
 import com.ivianuu.essentials.coroutines.RateLimiter
-import com.ivianuu.essentials.coroutines.RefCountedResource
 import com.ivianuu.essentials.coroutines.ScopedCoroutineScope
 import com.ivianuu.essentials.coroutines.childCoroutineScope
 import com.ivianuu.essentials.coroutines.onCancel
 import com.ivianuu.essentials.coroutines.par
-import com.ivianuu.essentials.coroutines.withResource
+import com.ivianuu.essentials.coroutines.sharedResource
+import com.ivianuu.essentials.coroutines.use
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.asLog
 import com.ivianuu.essentials.logging.log
 import com.ivianuu.essentials.nonFatalOrThrow
 import com.ivianuu.essentials.result.catch
-import com.ivianuu.essentials.time.milliseconds
-import com.ivianuu.essentials.time.seconds
 import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
-import com.ivianuu.injekt.android.SystemService
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -64,6 +62,8 @@ import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.system.measureTimeMillis
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @Provide @Scoped<AppScope> class MinirigRemote(
   private val bluetoothManager: @SystemService BluetoothManager,
@@ -73,7 +73,7 @@ import kotlin.system.measureTimeMillis
   private val scope: ScopedCoroutineScope<AppScope>,
   private val socketFactory: (String) -> MinirigSocket
 ) {
-  private val sockets = RefCountedResource<String, MinirigSocket>(
+  private val sockets = scope.sharedResource<String, MinirigSocket>(
     create = { address ->
       socketFactory(address)
         .also {
@@ -114,8 +114,7 @@ import kotlin.system.measureTimeMillis
 
   private fun minirigStateImpl(
     address: String,
-    initial: MinirigState?,
-    @Inject scope: CoroutineScope
+    initial: MinirigState?
   ) = scope.compositionStateFlow {
     val isConnected by remember { isConnected(address) }.collectAsState(initial?.isConnected ?: false)
 
@@ -217,7 +216,7 @@ import kotlin.system.measureTimeMillis
     block: suspend MinirigSocket.() -> R
   ): R? = withContext(coroutineContexts.io) {
     if (!address.isConnected()) null
-    else sockets.withResource(address, block)
+    else sockets.use(address, block)
   }
 
   fun bondedDeviceChanges() = broadcastsFactory(

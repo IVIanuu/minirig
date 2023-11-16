@@ -4,6 +4,6 @@
 
 package com.ivianuu.minirig
 
-import com.ivianuu.essentials.time.milliseconds
+import kotlin.time.Duration.Companion.milliseconds
 
 val RetryDelay = 500.milliseconds

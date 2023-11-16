@@ -15,13 +15,14 @@ import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.Scoped
 import com.ivianuu.essentials.app.AppForegroundScope
 import com.ivianuu.essentials.app.ScopeComposition
+import com.ivianuu.essentials.app.ScopeWorker
 import com.ivianuu.essentials.broadcast.BroadcastHandler
 import com.ivianuu.essentials.compose.launchComposition
 import com.ivianuu.essentials.coroutines.ScopedCoroutineScope
+import com.ivianuu.essentials.coroutines.childCoroutineScope
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.log
-import com.ivianuu.essentials.time.seconds
 import com.ivianuu.essentials.util.Toaster
 import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.Job
@@ -29,8 +30,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
-fun interface MinirigConfigApplier : ScopeComposition<AppForegroundScope>
+fun interface MinirigConfigApplier : ScopeWorker<AppForegroundScope>
 
 @Provide fun minirigConfigApplier(
   logger: Logger,
@@ -39,77 +41,79 @@ fun interface MinirigConfigApplier : ScopeComposition<AppForegroundScope>
   remote: MinirigRemote,
   toaster: Toaster
 ) = MinirigConfigApplier {
-  val minirigs by repository.minirigs.collectAsState(emptyList())
+  childCoroutineScope().launchComposition {
+    val minirigs by repository.minirigs.collectAsState(emptyList())
 
-  minirigs
-    .filter {
-      key(it.address) {
-        remember { remote.isConnected(it.address) }.collectAsState(false).value
-      }
-    }
-    .forEach { minirig ->
-      key(minirig) {
-        val (config, twsState) = remember {
-          combine(
-            pref.data
-              .map { it.configs[minirig.address] ?: MinirigConfig() },
-            remote.minirigState(minirig.address)
-              .map { it.twsState }
-          ) { config, twsState -> config to twsState }
-        }.collectAsState(null to TwsState.NONE).value
-
-        if (config != null) {
-          @Composable fun MinirigConfigItem(tag: String, key: Int, value: Int) {
-            LaunchedEffect(value, twsState) {
-              fun Int.toMinirigFormat(): String {
-                var tmp = toString()
-                if (tmp.length == 1)
-                  tmp = "0$tmp"
-                return tmp
-              }
-
-              val finalKey = key.toMinirigFormat()
-              val finalValue = value.toMinirigFormat()
-
-              remote.withMinirig<Unit>(minirig.address) {
-                logger.log { "${device.debugName()} apply $tag $finalKey -> $finalValue" }
-                send("q p $finalKey $finalValue")
-              }
-            }
-          }
-
-          MinirigConfigItem(
-            tag = "minirig gain",
-            key = 8,
-            // > 30 means mutes the minirig
-            value = if (config.minirigGain == 0f) 31
-            // minirig value range is 0..30 and 30 means lowest gain
-            else (30 * (1f - config.minirigGain)).toInt()
-          )
-
-          MinirigConfigItem(
-            tag = "aux gain",
-            key = 9,
-            // > 10 means mutes the aux device
-            value = if (config.auxGain == 0f) 11
-            // minirig value range is 0..10 and 10 means highest gain
-            else (10 * config.auxGain).toInt()
-          )
-
-          MinirigConfigItem(
-            tag = "bass boost",
-            key = 7,
-            value = config.bassBoost
-          )
-
-          MinirigConfigItem(
-            tag = "loud",
-            key = 12,
-            value = if (config.loud) 1 else 0
-          )
+    minirigs
+      .filter {
+        key(it.address) {
+          remember { remote.isConnected(it.address) }.collectAsState(false).value
         }
       }
-    }
+      .forEach { minirig ->
+        key(minirig) {
+          val (config, twsState) = remember {
+            combine(
+              pref.data
+                .map { it.configs[minirig.address] ?: MinirigConfig() },
+              remote.minirigState(minirig.address)
+                .map { it.twsState }
+            ) { config, twsState -> config to twsState }
+          }.collectAsState(null to TwsState.NONE).value
+
+          if (config != null) {
+            @Composable fun MinirigConfigItem(tag: String, key: Int, value: Int) {
+              LaunchedEffect(value, twsState) {
+                fun Int.toMinirigFormat(): String {
+                  var tmp = toString()
+                  if (tmp.length == 1)
+                    tmp = "0$tmp"
+                  return tmp
+                }
+
+                val finalKey = key.toMinirigFormat()
+                val finalValue = value.toMinirigFormat()
+
+                remote.withMinirig<Unit>(minirig.address) {
+                  logger.log { "${device.debugName()} apply $tag $finalKey -> $finalValue" }
+                  send("q p $finalKey $finalValue")
+                }
+              }
+            }
+
+            MinirigConfigItem(
+              tag = "minirig gain",
+              key = 8,
+              // > 30 means mutes the minirig
+              value = if (config.minirigGain == 0f) 31
+              // minirig value range is 0..30 and 30 means lowest gain
+              else (30 * (1f - config.minirigGain)).toInt()
+            )
+
+            MinirigConfigItem(
+              tag = "aux gain",
+              key = 9,
+              // > 10 means mutes the aux device
+              value = if (config.auxGain == 0f) 11
+              // minirig value range is 0..10 and 10 means highest gain
+              else (10 * config.auxGain).toInt()
+            )
+
+            MinirigConfigItem(
+              tag = "bass boost",
+              key = 7,
+              value = config.bassBoost
+            )
+
+            MinirigConfigItem(
+              tag = "loud",
+              key = 12,
+              value = if (config.loud) 1 else 0
+            )
+          }
+        }
+      }
+  }
 }
 
 @Provide fun soundboksBroadcastHandler(
@@ -125,9 +129,7 @@ fun interface MinirigConfigApplier : ScopeComposition<AppForegroundScope>
 
     if (applierJob == null) {
       logger.log { "apply configs" }
-      applierJob = scope.launchComposition {
-        applierFactory()()
-      }
+      applierJob = scope.launch { applierFactory()() }
     }
 
     cancelJob?.cancel()?.also { logger.log { "stop cancel timer" } }

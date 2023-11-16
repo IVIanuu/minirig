@@ -30,11 +30,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.flowlayout.FlowRow
-import com.ivianuu.essentials.app.AppForegroundState
+import com.ivianuu.essentials.ScopeManager
+import com.ivianuu.essentials.app.AppForegroundScope
 import com.ivianuu.essentials.compose.action
 import com.ivianuu.essentials.coroutines.infiniteEmptyFlow
 import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
+import com.ivianuu.essentials.flowInScope
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.resource.Resource
 import com.ivianuu.essentials.resource.collectAsResourceState
@@ -42,11 +44,11 @@ import com.ivianuu.essentials.resource.getOrNull
 import com.ivianuu.essentials.ui.AppColors
 import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.common.interactive
+import com.ivianuu.essentials.ui.material.AppBar
 import com.ivianuu.essentials.ui.material.Scaffold
-import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.material.guessingContentColorFor
 import com.ivianuu.essentials.ui.material.incrementingStepPolicy
-import com.ivianuu.essentials.ui.navigation.Model
+import com.ivianuu.essentials.ui.navigation.Presenter
 import com.ivianuu.essentials.ui.navigation.RootScreen
 import com.ivianuu.essentials.ui.navigation.Ui
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
@@ -69,34 +71,35 @@ import kotlinx.coroutines.flow.map
 
 @Provide object HomeScreen : RootScreen
 
-@Provide val homeUi = Ui<HomeScreen, HomeModel> { model ->
+@Provide val homeUi = Ui<HomeScreen, HomeState> { state ->
   Scaffold(
     topBar = {
-      TopAppBar(
-        title = { Text("Minirig") },
+      AppBar(
         actions = {
           PopupMenuButton {
-            PopupMenuItem(onSelected = model.twsPair) {
+            PopupMenuItem(onSelected = state.twsPair) {
               Text("Tws pair")
             }
-            PopupMenuItem(onSelected = model.cancelTws) {
+            PopupMenuItem(onSelected = state.cancelTws) {
               Text("Cancel tws")
             }
-            PopupMenuItem(onSelected = model.enablePowerOut) {
+            PopupMenuItem(onSelected = state.enablePowerOut) {
               Text("Enable power out")
             }
-            PopupMenuItem(onSelected = model.powerOff) {
+            PopupMenuItem(onSelected = state.powerOff) {
               Text("Power off")
             }
-            PopupMenuItem(onSelected = model.factoryReset) {
+            PopupMenuItem(onSelected = state.factoryReset) {
               Text("Factory reset")
             }
           }
         }
-      )
+      ) {
+        Text("Minirig")
+      }
     }
   ) {
-    ResourceBox(model.minirigs) { value ->
+    ResourceBox(state.minirigs) { value ->
       VerticalList {
         if (value.isEmpty()) {
           item {
@@ -111,12 +114,12 @@ import kotlinx.coroutines.flow.map
               crossAxisSpacing = 8.dp
             ) {
               val allMinirigs =
-                model.minirigs.getOrNull()?.map { it.minirig.address }?.toSet() ?: emptySet()
+                state.minirigs.getOrNull()?.map { it.minirig.address }?.toSet() ?: emptySet()
 
               MinirigChip(
-                selected = allMinirigs.all { it in model.selectedMinirigs },
+                selected = allMinirigs.all { it in state.selectedMinirigs },
                 active = true,
-                onClick = model.toggleAllMinirigSelections,
+                onClick = state.toggleAllMinirigSelections,
                 onLongClick = null
               ) {
                 Text("ALL")
@@ -124,10 +127,10 @@ import kotlinx.coroutines.flow.map
 
               value.forEach { minirig ->
                 MinirigChip(
-                  selected = minirig.minirig.address in model.selectedMinirigs,
+                  selected = minirig.minirig.address in state.selectedMinirigs,
                   active = minirig.isConnected,
-                  onClick = { model.toggleMinirigSelection(minirig, false) },
-                  onLongClick = { model.toggleMinirigSelection(minirig, true) }
+                  onClick = { state.toggleMinirigSelection(minirig, false) },
+                  onLongClick = { state.toggleMinirigSelection(minirig, true) }
                 ) {
                   Text(
                     buildString {
@@ -146,15 +149,15 @@ import kotlinx.coroutines.flow.map
             }
           }
 
-          if (model.selectedMinirigs.isEmpty()) {
+          if (state.selectedMinirigs.isEmpty()) {
             item {
               Text("Select a minirig to edit")
             }
           } else {
             item {
               SliderListItem(
-                value = model.config.minirigGain,
-                onValueChange = model.updateMinirigGain,
+                value = state.config.minirigGain,
+                onValueChange = state.updateMinirigGain,
                 title = { Text("Minirig gain") },
                 stepPolicy = incrementingStepPolicy(0.1f),
                 valueText = { ScaledPercentageUnitText(it) }
@@ -163,8 +166,8 @@ import kotlinx.coroutines.flow.map
 
             item {
               SliderListItem(
-                value = model.config.auxGain,
-                onValueChange = model.updateAuxGain,
+                value = state.config.auxGain,
+                onValueChange = state.updateAuxGain,
                 title = { Text("Aux gain") },
                 stepPolicy = incrementingStepPolicy(0.1f),
                 valueText = { ScaledPercentageUnitText(it) }
@@ -173,9 +176,9 @@ import kotlinx.coroutines.flow.map
 
             item {
               SliderListItem(
-                modifier = Modifier.interactive(model.bassBoostEnabled),
-                value = model.config.bassBoost,
-                onValueChange = model.updateBassBoost,
+                modifier = Modifier.interactive(state.bassBoostEnabled),
+                value = state.config.bassBoost,
+                onValueChange = state.updateBassBoost,
                 valueRange = -14..7,
                 title = { Text("Bass boost") },
                 valueText = { Text(it.toString()) }
@@ -184,8 +187,8 @@ import kotlinx.coroutines.flow.map
 
             item {
               SwitchListItem(
-                value = model.config.loud,
-                onValueChange = model.updateLoud,
+                value = state.config.loud,
+                onValueChange = state.updateLoud,
                 title = { Text("Loud") }
               )
             }
@@ -242,7 +245,7 @@ data class UiMinirig(
   val powerState: PowerState
 )
 
-data class HomeModel(
+data class HomeState(
   val minirigs: Resource<List<UiMinirig>>,
   val selectedMinirigs: Set<String>,
   val toggleMinirigSelection: (UiMinirig, Boolean) -> Unit,
@@ -262,21 +265,20 @@ data class HomeModel(
     get() = !config.loud
 }
 
-@Provide fun homeModel(
-  appForegroundState: Flow<AppForegroundState>,
+@Provide fun homePresenter(
   logger: Logger,
   pref: DataStore<MinirigPrefs>,
   remote: MinirigRemote,
   repository: MinirigRepository,
+  scopeManager: ScopeManager,
   useCases: MinirigUseCases
-) = Model {
+) = Presenter {
   val prefs by pref.data.collectAsState(MinirigPrefs())
 
   val minirigs by remember {
-    appForegroundState
-      .flatMapLatest { foregroundState ->
-        if (foregroundState == AppForegroundState.BACKGROUND) infiniteEmptyFlow()
-        else repository.minirigs
+    scopeManager
+      .flowInScope<AppForegroundScope, _>(
+        repository.minirigs
           .flatMapLatest { minirigs ->
             if (minirigs.isEmpty()) flowOf(emptyList())
             else combine(
@@ -295,7 +297,7 @@ data class HomeModel(
                 }
             ) { it.toList() }
           }
-      }
+      )
   }.collectAsResourceState()
 
   val config = prefs.selectedMinirigs
@@ -315,7 +317,7 @@ data class HomeModel(
     }
   }
 
-  HomeModel(
+  HomeState(
     minirigs = minirigs,
     selectedMinirigs = prefs.selectedMinirigs,
     toggleMinirigSelection = action { minirig, longClick ->
