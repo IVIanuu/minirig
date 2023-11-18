@@ -13,10 +13,10 @@ data class Minirig(val address: String, val name: String)
 
 fun BluetoothDevice.toMinirig() = Minirig(address, alias ?: name)
 
-fun BluetoothDevice.isMinirig() = (alias ?: name).let {
+fun BluetoothDevice.isMinirig() = (alias ?: name)?.let {
   it.contains("minirig", ignoreCase = true) ||
       it.contains("minrig", ignoreCase = true)
-}
+} == true
 
 fun BluetoothDevice.debugName() = "[${alias ?: name} ~ $address]"
 
