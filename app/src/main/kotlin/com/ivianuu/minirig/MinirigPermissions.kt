@@ -5,7 +5,7 @@
 package com.ivianuu.minirig
 
 import android.Manifest
-import com.ivianuu.essentials.app.AppForegroundScope
+import com.ivianuu.essentials.app.AppVisibleScope
 import com.ivianuu.essentials.app.ScopeWorker
 import com.ivianuu.essentials.permission.PermissionManager
 import com.ivianuu.essentials.permission.runtime.RuntimePermission
@@ -20,6 +20,6 @@ import com.ivianuu.injekt.common.typeKeyOf
 // always request permissions when launching the ui
 @Provide fun minirigPermissionRequestWorker(
   permissionManager: PermissionManager
-) = ScopeWorker<AppForegroundScope> {
+) = ScopeWorker<AppVisibleScope> {
   permissionManager.requestPermissions(listOf(typeKeyOf<MinirigBluetoothConnectPermission>()))
 }

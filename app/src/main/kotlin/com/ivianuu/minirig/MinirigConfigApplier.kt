@@ -13,8 +13,6 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.Scoped
-import com.ivianuu.essentials.app.AppForegroundScope
-import com.ivianuu.essentials.app.ScopeComposition
 import com.ivianuu.essentials.app.ScopeWorker
 import com.ivianuu.essentials.broadcast.BroadcastHandler
 import com.ivianuu.essentials.compose.launchComposition
@@ -23,6 +21,7 @@ import com.ivianuu.essentials.coroutines.childCoroutineScope
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.log
+import com.ivianuu.essentials.ui.UiScope
 import com.ivianuu.essentials.util.Toaster
 import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.Job
@@ -32,7 +31,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
 
-fun interface MinirigConfigApplier : ScopeWorker<AppForegroundScope>
+fun interface MinirigConfigApplier : ScopeWorker<UiScope>
 
 @Provide fun minirigConfigApplier(
   logger: Logger,
