@@ -120,7 +120,7 @@ fun interface MinirigConfigApplier : ScopeWorker<UiScope>
   }
 }
 
-@Provide fun soundboksBroadcastHandler(
+@Provide fun minirigBroadcastHandler(
   applierFactory: () -> MinirigConfigApplier,
   logger: Logger,
   scope: ScopedCoroutineScope<AppScope>
