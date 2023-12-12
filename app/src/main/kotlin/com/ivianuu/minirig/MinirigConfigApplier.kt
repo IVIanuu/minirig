@@ -29,6 +29,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration.Companion.seconds
 
 fun interface MinirigConfigApplier : ScopeWorker<UiScope>
@@ -62,6 +64,7 @@ fun interface MinirigConfigApplier : ScopeWorker<UiScope>
 
           if (config != null) {
             @Composable fun MinirigConfigItem(tag: String, key: Int, value: Int) {
+              val lock = remember { Mutex() }
               LaunchedEffect(value, twsState) {
                 fun Int.toMinirigFormat(): String {
                   var tmp = toString()
@@ -74,8 +77,10 @@ fun interface MinirigConfigApplier : ScopeWorker<UiScope>
                 val finalValue = value.toMinirigFormat()
 
                 remote.withMinirig<Unit>(minirig.address) {
-                  logger.log { "${device.debugName()} apply $tag $finalKey -> $finalValue" }
-                  send("q p $finalKey $finalValue")
+                  lock.withLock {
+                    logger.log { "${device.debugName()} apply $tag $finalKey -> $finalValue" }
+                    send("q p $finalKey $finalValue")
+                  }
                 }
               }
             }
