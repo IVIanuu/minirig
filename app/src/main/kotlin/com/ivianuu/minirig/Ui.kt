@@ -30,12 +30,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.flowlayout.FlowRow
-import com.ivianuu.essentials.ScopeManager
-import com.ivianuu.essentials.app.AppVisibleScope
 import com.ivianuu.essentials.compose.action
 import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
-import com.ivianuu.essentials.flowInScope
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.resource.Resource
 import com.ivianuu.essentials.resource.collectAsResourceState
@@ -268,34 +265,30 @@ data class HomeState(
   pref: DataStore<MinirigPrefs>,
   remote: MinirigRemote,
   repository: MinirigRepository,
-  scopeManager: ScopeManager,
   useCases: MinirigUseCases
 ) = Presenter {
   val prefs by pref.data.collectAsState(MinirigPrefs())
 
   val minirigs by remember {
-    scopeManager
-      .flowInScope<AppVisibleScope, _>(
-        repository.minirigs
-          .flatMapLatest { minirigs ->
-            if (minirigs.isEmpty()) flowOf(emptyList())
-            else combine(
-              minirigs
-                .sortedBy { it.name }
-                .map { minirig ->
-                  remote.minirigState(minirig.address)
-                    .map {
-                      UiMinirig(
-                        minirig = minirig,
-                        isConnected = it.isConnected,
-                        batteryPercentage = (it.batteryPercentage?.let { it * 100 })?.toInt(),
-                        powerState = it.powerState
-                      )
-                    }
+    repository.minirigs
+      .flatMapLatest { minirigs ->
+        if (minirigs.isEmpty()) flowOf(emptyList())
+        else combine(
+          minirigs
+            .sortedBy { it.name }
+            .map { minirig ->
+              remote.minirigState(minirig.address)
+                .map {
+                  UiMinirig(
+                    minirig = minirig,
+                    isConnected = it.isConnected,
+                    batteryPercentage = (it.batteryPercentage?.let { it * 100 })?.toInt(),
+                    powerState = it.powerState
+                  )
                 }
-            ) { it.toList() }
-          }
-      )
+            }
+        ) { it.toList() }
+      }
   }.collectAsResourceState()
 
   val config = prefs.selectedMinirigs
