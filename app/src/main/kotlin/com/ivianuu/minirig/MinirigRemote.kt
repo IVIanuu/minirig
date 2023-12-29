@@ -33,10 +33,8 @@ import com.ivianuu.essentials.logging.log
 import com.ivianuu.essentials.nonFatalOrThrow
 import com.ivianuu.essentials.result.catch
 import com.ivianuu.essentials.util.BroadcastsFactory
-import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
@@ -283,7 +281,7 @@ private fun Int.toBatteryPercentage(): Float = when {
   }.shareIn(scope, SharingStarted.Eagerly)
 
   private val sendLock = Mutex()
-  private val sendLimiter = RateLimiter(1, 100.milliseconds)
+  private val sendLimiter = RateLimiter(1, 200.milliseconds)
 
   suspend fun send(message: String) = catch {
     sendLock.withLock {
